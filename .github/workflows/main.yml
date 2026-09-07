@@ -39,7 +39,7 @@ jobs:
               exit 1
             fi
             SRC_ROOT=$(dirname "$(dirname "$SRC_PUBSPEC")")
-            cp -r "$SRC_ROOT"/. .
+            cp -rn "$SRC_ROOT"/. .
           fi
 
       - name: Set up Flutter (stable)
