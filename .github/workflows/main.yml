@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 # Builds the release APK entirely in GitHub's cloud. Trigger it from a
@@ -23,7 +24,7 @@ jobs:
       # this step finds it and extracts it before anything else runs.
       - name: Extract project ZIP if the repo root doesn't already have the app
         run: |
-          if [ ! -f app/pubspec.yaml ]; then
+          if [ ! -f scripts/patch_manifest.py ]; then
             ZIP=$(find . -maxdepth 2 -iname "*.zip" | head -n 1)
             if [ -z "$ZIP" ]; then
               echo "No app/pubspec.yaml and no .zip found in the repo. Upload the project (or its ZIP) to the repo root."
