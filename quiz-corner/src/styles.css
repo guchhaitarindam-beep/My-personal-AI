@@ -646,3 +646,11 @@ body.role-host .preview-box { max-width: 900px; }
 .stat-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .stat-table th, .stat-table td { border-bottom: 1px solid #22205a; padding: .35rem .4rem; text-align: center; }
 .stat-table td:nth-child(2), .stat-table th:nth-child(2) { text-align: left; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.coach { border-color: var(--gold); background: linear-gradient(180deg, #1d1638, #0f0b26); }
+.coach-t { margin: 0; font-size: 1.05rem; line-height: 1.6; font-weight: 600; }
+.coach-tip { margin: .4rem 0 0; font-size: .78rem; color: var(--muted); }
+.btn.glow { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 18px color-mix(in srgb, var(--gold) 70%, transparent); animation: glowPulse 1.6s ease-in-out infinite; }
+@keyframes glowPulse { 50% { box-shadow: 0 0 0 2px var(--gold), 0 0 4px transparent; } }
+.host-line { font-size: 1.05rem; line-height: 1.6; padding: .5rem .7rem; border-left: 4px solid var(--accent); background: #0b0a22; border-radius: 8px; }

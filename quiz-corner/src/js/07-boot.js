@@ -37,7 +37,8 @@ const Host = {
     document.body.classList.add('mode-control');
     document.title = 'Quiz Corner — HOST SCRIPT';
     document.body.innerHTML = '<div class="host-view" id="host"></div>';
-    Bus.on('change', () => this.render());
+    Bus.on('change', () => { const k = Store.state.live.qid + '|' + Store.state.prelimLive.idx + '|' + Store.state.show.scene; if (k !== this.key) { this.key = k; this.show = false; } this.render(); });
+    document.addEventListener('click', (e) => { if (e.target.closest('#hostShowAns')) { this.show = !this.show; this.render(); } });
     setInterval(() => this.clock(), 200);
     this.render();
   },
@@ -46,15 +47,17 @@ const Host = {
     let h = '<div class="row"><span class="status-pill ok">' + esc(SCENES[s.show.scene] || s.show.scene) + '</span><span class="grow"></span><span class="bigtime" id="hostTime" style="font-family:var(--font-timer);font-size:3rem"></span></div>';
     if (s.show.scene === 'QUESTION') {
       const q = Sel.liveQuestion(); const t = Sel.team(Sel.answeringTeam());
-      if (q) h += '<div class="card"><div class="muted">' + esc((Sel.round(q.roundId) || {}).name || '') + ' • প্রশ্ন ' + bn(q.number) + (t ? ' • ' + esc(t.name) + ' (' + Game.flowName(s.live.flow) + ')' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + (q.options.filter(Boolean).length ? '<div class="hq" style="font-size:1.4rem">' + q.options.map((o, i) => (o ? OPT_LABELS[i] + ') ' + esc(o) : '')).filter(Boolean).join(' &nbsp; ') + '</div>' : '') + '<div class="ha">উত্তর: ' + esc(q.answerText || q.options[q.answer] || '') + '</div>' + (q.explanation ? '<div class="muted">' + esc(q.explanation) + '</div>' : '') + '</div>';
+      if (q) h += '<div class="card"><div class="muted">' + esc((Sel.round(q.roundId) || {}).name || '') + ' • প্রশ্ন ' + bn(q.number) + (t ? ' • ' + esc(t.name) + ' (' + Game.flowName(s.live.flow) + ')' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + (q.options.filter(Boolean).length ? '<div class="hq" style="font-size:1.4rem">' + q.options.map((o, i) => (o ? OPT_LABELS[i] + ') ' + esc(o) : '')).filter(Boolean).join(' &nbsp; ') + '</div>' : '') + this.ans(q.answerText || q.options[q.answer] || '') + (q.explanation && this.visible() ? '<div class="muted">' + esc(q.explanation) + '</div>' : '') + '</div>';
     } else if (s.show.scene === 'PRELIM_Q') {
       const q = Sel.prelimQuestions()[s.prelimLive.idx];
-      if (q) h += '<div class="card"><div class="muted">বাছাই প্রশ্ন ' + bn(s.prelimLive.idx + 1) + (q.star ? ' ★' : '') + '</div><div class="hq">' + esc(q.text) + '</div><div class="ha">উত্তর: ' + esc(q.answer) + '</div></div>';
+      if (q) h += '<div class="card"><div class="muted">বাছাই প্রশ্ন ' + bn(s.prelimLive.idx + 1) + (q.star ? ' ★' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + this.ans(q.answer) + '</div>';
     }
     h += '<div class="card"><h3>স্কোর</h3><div class="team-chips">' + Sel.standings().map((r) => '<span class="chip" style="--team:' + esc(r.team.color) + '">' + bn(r.rank) + '. ' + esc(r.team.name) + ' <span class="pts">' + bn(r.score) + '</span></span>').join('') + '</div></div>';
     $('#host').innerHTML = h;
     this.clock();
   },
+  visible() { return Store.state.settings.hostAnswer === 'always' || this.show; },
+  ans(text) { return this.visible() ? '<div class="ha">উত্তর: ' + esc(text) + '</div>' : '<button id="hostShowAns" class="btn gold lg">👁 উত্তর দেখাও (শুধু এখানে)</button>'; },
   clock() { const el = $('#hostTime'); if (el) el.textContent = fmtTime(Sel.timerRemaining(Store.state.timer)); },
 };
 

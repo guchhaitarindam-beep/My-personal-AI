@@ -56,6 +56,7 @@ const UI = {
       <option value="controller">কন্ট্রোলার</option><option value="quizmaster">কুইজ মাস্টার</option><option value="host">হোস্ট (শুধু দেখা)</option>
     </select>
   </header>
+  <div id="announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <main class="ctl-main">
     <section class="live-col" aria-label="লাইভ নিয়ন্ত্রণ">
       <div class="preview-box" id="preview" aria-label="স্টেজ প্রিভিউ"></div>
@@ -129,8 +130,11 @@ const UI = {
   onChange(c) {
     DesignSystem.apply();
     this.preview.render();
-    this.renderLive();
     const label = (c && c.label) || '';
+    Announcer.onChange(c, Store.state);
+    const hl = HostLines.auto(label); if (hl) this.hostLine = hl;
+    const qk = Store.state.live.qid + '|' + Store.state.prelimLive.idx + '|' + Store.state.show.scene; if (qk !== this.ansKey) { this.ansKey = qk; this.showAns = false; }
+    this.renderLive();
     if (label.startsWith('timer-')) return;
     if (this.fromBind && !label.startsWith('edit:show')) return; // the input already shows the value
     if (this.typing()) { this.tabDirty = true; return; }
@@ -166,6 +170,7 @@ const UI = {
     const focusKey = document.activeElement && host.contains(document.activeElement) ? (document.activeElement.dataset.act || '') + '|' + (document.activeElement.dataset.arg || '') : '';
     host.innerHTML = html;
     Media.hydrate(host);
+    Coach.applyGlow(host, Store.state);
     this.renderClock();
     if (focusKey) { const [a, g] = focusKey.split('|'); const f = $$('[data-act="' + a + '"]', host).find((x) => (x.dataset.arg || '') === g); if (f) f.focus(); }
   },
@@ -176,8 +181,10 @@ const UI = {
     const b = (act, label, cls = '', arg = '', key = '', dis = false) => '<button class="btn ' + cls + '" data-act="' + act + '"' + (arg !== '' ? ' data-arg="' + esc(arg) + '"' : '') + (dis ? ' disabled' : '') + '>' + label + (key ? ' <kbd>' + key + '</kbd>' : '') + '</button>';
     let out = '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">ধাপ ' + bn(i + 1) + ' / ' + bn(rd.length) + (nxt ? ' • পরবর্তী: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
     out += '<div class="deck" style="margin-top:.6rem">' + b('prev', '◀ আগের', 'lg', '', '←') + b('next', 'পরের ▶', 'lg primary', '', '→') + b('timerToggle', '▶ চালু', 'lg', '', '') + b('replay', '↻ দৃশ্য পুনরায়', '') + b('scoreboard', '📊 স্কোরবোর্ড', '', '', 'S') + '</div></div>';
+    if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);
     out += this.teamDeck(s);
+    out += '<div class="card"><div class="row"><button class="btn sm' + (this.hostOpen ? ' on' : '') + '" data-act="hostToggle">🎙 হোস্ট সহায়ক (ধারাভাষ্য)</button></div>' + (this.hostOpen ? '<p class="host-line">' + esc(this.hostLine || HostLines.line('open')) + '</p><div class="deck">' + b('hostLine', 'স্কোর মন্তব্য', '', 'score') + b('hostLine', 'ভুল উত্তরের লাইন', '', 'wrong') + b('hostLine', 'সাসপেন্স', '', 'tension') + b('hostLine', 'রাউন্ড শুরুর লাইন', '', 'open') + b('hostLine', 'বিজয়ী লাইন', '', 'win') + b('hostSpeak', '🔊 বলো', 'good') + '</div>' : '') + '</div>';
     return out;
   },
   contextDeck(s, b) {
@@ -189,7 +196,7 @@ const UI = {
       const ans = Sel.team(Sel.answeringTeam());
       const pc = Game.pointsFor('correct'); const pw = Game.pointsFor('wrong');
       h += '<div class="card"><h3>প্রশ্ন নিয়ন্ত্রণ <span class="hint">' + esc(r ? r.name : '') + ' • ' + Game.flowName(l.flow) + (ans ? ' • উত্তরদাতা: ' + esc(ans.name) : '') + '</span></h3>';
-      if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div><div class="a">উত্তর: ' + (q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + esc(q.answerText || q.options[q.answer] || '—') + '</div></div>';
+      if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div>' + this.ansHtml((q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + (q.answerText || q.options[q.answer] || '—'), s) + '</div>';
       h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ সঠিক ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ ভুল ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ নো স্কোর', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও', 'lg gold', '', 'R') + b('lock', l.locked ? '🔒 লক (আনলক করুন)' : '🔓 লক', l.locked ? 'lock-on' : '', '', 'L') + b('replay', '⟲ প্রশ্ন রিসেট');
       h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : 'বিকল্প দেখাও', '', '', 'V', !q || q.options.filter(Boolean).length < 2);
       if (q && l.optionsShown) h += '<div class="deck-sep">দলের বেছে নেওয়া বিকল্প' + (r && r.features.judgeOptions ? ' (সঙ্গে সঙ্গে রায়)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
@@ -204,7 +211,7 @@ const UI = {
       h += '</div></div>';
     } else if (sc === 'PRELIM_Q') {
       const idx = s.prelimLive.idx; const q = Sel.prelimQuestions()[idx];
-      h += '<div class="card"><h3>বাছাই প্রশ্ন ' + bn(idx + 1) + (q && q.star ? ' ★' : '') + '</h3>' + (q ? '<div class="qm-box"><div class="q">' + esc(q.text) + '</div><div class="a">উত্তর: ' + esc(q.answer || '—') + '</div></div>' : '') +
+      h += '<div class="card"><h3>বাছাই প্রশ্ন ' + bn(idx + 1) + (q && q.star ? ' ★' : '') + '</h3>' + (q ? '<div class="qm-box"><div class="q">' + esc(q.text) + '</div>' + this.ansHtml(q.answer || '—', s) + '</div>' : '') +
         '<div class="deck" style="margin-top:.6rem">' + b('prelimAnswer', s.prelimLive.reveal ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও (ANSWER)', 'lg gold span2', '', 'R') + b('speak', '🔊 প্রশ্ন পড়ো', '', 'question', 'E') + b('speak', '🔊 উত্তর পড়ো', '', 'answer', 'A') + timerRow + '</div></div>';
     } else if (sc === 'GRID') {
       const r = Sel.round(s.show.params.roundId);
@@ -223,6 +230,11 @@ const UI = {
     }
     if (sc !== 'QUESTION' && sc !== 'PRELIM_Q') h += '<div class="card"><div class="deck">' + timerRow + '</div></div>';
     return h;
+  },
+  /** V100 host panel: the answer stays hidden on the laptop until asked for (or always, by setting). */
+  ansHtml(text, s) {
+    if (s.settings.hostAnswer === 'always' || this.showAns) return '<div class="a">উত্তর: ' + esc(text) + '</div>';
+    return '<div class="row" style="margin-top:.35rem"><button class="btn sm gold" data-act="showAnsHere">👁 উত্তর এখানে দেখাও (টিভিতে নয়)</button></div>';
   },
   teamDeck(s) {
     const ids = Sel.finalistIds();
@@ -330,6 +342,10 @@ const Actions = {
   timerCustom() { const v = prompt('কত সেকেন্ড?', '30'); if (v && num(v) > 0) Timer.start('custom', num(v)); },
   judge(kind) { Game.judge(kind); },
   bonus() { Game.bonus(); },
+  showAnsHere() { UI.showAns = !UI.showAns; UI.liveSig = ''; UI.renderLive(); },
+  hostToggle() { UI.hostOpen = !UI.hostOpen; UI.liveSig = ''; UI.renderLive(); },
+  hostLine(kind) { UI.hostLine = HostLines.line(kind); UI.liveSig = ''; UI.renderLive(); },
+  hostSpeak() { AudioDirector.unlock(); Speech.say(UI.hostLine || HostLines.line('open'), 'host', true); },
   raiseHand(id) { Game.raiseHand(id); },
   judgeHand(arg) { const [id, ok] = String(arg).split('|'); Game.judgeHand(id, ok === '1'); },
   timerRaise() { const r = Sel.currentRound(); Timer.start('raise', (r && r.timers.raise) || 5); },

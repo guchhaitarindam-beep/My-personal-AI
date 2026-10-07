@@ -245,6 +245,7 @@ function defaultState() {
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1100, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: true, operatorRole: 'controller',
+      operatorVoice: false, hostAnswer: 'click', coach: true,
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },

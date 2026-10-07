@@ -93,6 +93,9 @@ check('Correct button +10', await ctl.evaluate((b) => window.QC.Sel.score(window
 await stage.waitForTimeout(600);
 check('Stage shows answer after correct', await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .answer-bar')));
 await stage.screenshot({ path: path.join(shots, '90-correct-reveal.png') });
+check('Coach card guides the operator', await ctl.evaluate(() => /উত্তর/.test((document.querySelector('.coach-t') || {}).textContent || '')));
+check('Action announced for screen readers', await ctl.evaluate(() => /সঠিক/.test(document.querySelector('#announce').textContent)));
+check('Coach makes the right buttons glow', await ctl.evaluate(() => document.querySelectorAll('#live .btn.glow').length > 0));
 await ctl.keyboard.press('Control+z');
 check('Ctrl+Z undoes score', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b, before));
 await ctl.keyboard.press('x');
