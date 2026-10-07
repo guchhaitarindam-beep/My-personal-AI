@@ -130,7 +130,7 @@ function defaultTextStyles() {
 function defaultTeam(i) {
   return {
     id: 'T' + (i + 1), name: 'দল ' + bn(i + 1), school: '', captain: '', players: ['', '', ''],
-    photo: '', playerPhotos: ['', '', ''], color: TEAM_COLORS[i % TEAM_COLORS.length], emblem: '',
+    photo: '', captainPhoto: '', playerPhotos: ['', '', ''], color: TEAM_COLORS[i % TEAM_COLORS.length], emblem: '',
     prelim: { marks: [], manual: null, stars: null },
     gift: { category: (DEFAULT_GIFTS[i] || ['', ''])[0], item: (DEFAULT_GIFTS[i] || ['', ''])[1], image: '' },
   };
@@ -169,6 +169,7 @@ function questionFromSeed(q, i) {
     id: str(q.id || 'Q' + (i + 1), 24), roundId: str(q.roundId || 'R1', 12), number: int(q.number, i + 1, 1, 999),
     text: str(q.text), options: arr(q.options).slice(0, 4).map((o) => str(o, 400)), answer: int(q.answer, 0, 0, 3),
     answerText: str(q.answerText, 400), explanation: str(q.explanation, 1200), image: str(q.image || media, 200),
+    hint: str(q.hint || q.clue, 400), difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
     timer: q.timer == null ? null : int(q.timer, 60, 5, 600), points: q.points == null ? null : int(q.points, 10, -100, 100), speech: str(q.speech, 2000),
   };
 }
@@ -207,7 +208,7 @@ function defaultState() {
       credits: str(ev.credits), sponsors: '', welcomeNote: str(ev.overviewNote), ticker: '',
       showTicker: false,
     },
-    crew: arr(show.crew).map((c, i) => ({ name: str(c.name, 80), role: str(c.role, 120), photo: crewPhotos[i] || '' })),
+    crew: arr(show.crew).map((c, i) => ({ name: str(c.name, 80), role: str(c.role, 120), about: str(c.about, 500), photo: crewPhotos[i] || '' })),
     groupPhoto: 'asset:group', groupCaption: str(show.groupCaption, 300),
     logo: 'asset:logo',
     winnerPhoto: '',

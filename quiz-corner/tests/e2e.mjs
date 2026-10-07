@@ -143,7 +143,7 @@ await ctl.click('input[data-bind="teams.5.prelim.marks.0"]');
 check('Marking matrix updates prelim score', await ctl.evaluate(() => window.QC.Sel.prelimResult(window.QC.Store.state.teams[5]).score === 5));
 
 // ---- every tab renders ----
-for (const t of ['show', 'prelim', 'teams', 'questions', 'rounds', 'event', 'text', 'colors', 'effects', 'scenes', 'media', 'audio', 'voice', 'backup', 'flow', 'tests', 'help']) {
+for (const t of ['show', 'prelim', 'teams', 'questions', 'rounds', 'scores', 'ai', 'event', 'text', 'colors', 'effects', 'scenes', 'media', 'audio', 'voice', 'backup', 'flow', 'tests', 'help']) {
   await openPage(t);
   const ok = await ctl.evaluate(() => !document.querySelector('#tabBody').textContent.includes('লোড করা যায়নি'));
   if (!ok) check('Tab ' + t, false);
@@ -234,6 +234,45 @@ check('V100 sound library present (applause, drumroll, gong, rin1–6, rq1–6 �
 check('Built-in applause renders audible sound', audio.applause > 0.001, String(audio.applause));
 check('Generative background music renders', audio.music > 0.001, String(audio.music));
 check('Music mood follows scene; Tagore plays in round 1', audio.focus && audio.tagore);
+// ---- V100 tools: import, auditor, certificates, legacy backup ----
+const tools = await ctl.evaluate(async () => {
+  const QC = window.QC; const out = {};
+  const rounds = QC.Store.state.rounds.map((r) => ({ id: r.id, name: r.name, label: r.label }));
+  const csv = 'রাউন্ড,প্রশ্ন,বিকল্প ক,বিকল্প খ,বিকল্প গ,বিকল্প ঘ,উত্তর\n2,ভারতের জাতীয় পশু কী?,সিংহ,বাঘ,হাতি,ময়ূর,খ\n3,গঙ্গা কোথায় মিশেছে?,বঙ্গোপসাগর,আরব সাগর,ভারত মহাসাগর,প্রশান্ত মহাসাগর,1';
+  const r1 = await QC.NexusImport.preview({ text: csv, defaultRound: 'R1', rounds, legacy: () => [] });
+  out.csv = r1.list.length === 2 && r1.list[0].roundId === 'R2' && r1.list[0].answer === 1 && r1.list[1].answer === 0;
+  const plain = '1. সুন্দরবন কোন রাজ্যে?\nক) পশ্চিমবঙ্গ\nখ) বিহার\nগ) ওড়িশা\nঘ) অসম\nউত্তর: ক';
+  const r2 = await QC.NexusImport.preview({ text: plain, defaultRound: 'R1', rounds, legacy: () => [] });
+  out.plain = r2.list.length === 1 && r2.list[0].answer === 0;
+  const ai = '```json\n[{"question":"2+2?","options":["3","4","5","6"],"answer_index":1}]\n```';
+  const r3 = await QC.NexusImport.preview({ text: ai, defaultRound: 'R4', rounds, legacy: () => [] });
+  out.ai = r3.list.length === 1 && r3.list[0].answer === 1 && r3.list[0].roundId === 'R4';
+  const enc = new TextEncoder();
+  const sheet = '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>question</t></is></c><c r="B1" t="inlineStr"><is><t>a</t></is></c><c r="C1" t="inlineStr"><is><t>b</t></is></c><c r="D1" t="inlineStr"><is><t>answer</t></is></c></row><row r="2"><c r="A2" t="inlineStr"><is><t>পৃথিবীর উপগ্রহ?</t></is></c><c r="B2" t="inlineStr"><is><t>চাঁদ</t></is></c><c r="C2" t="inlineStr"><is><t>সূর্য</t></is></c><c r="D2" t="inlineStr"><is><t>A</t></is></c></row></sheetData></worksheet>';
+  const zip = QC.zipStore([{ name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) }]);
+  const file = new File([zip], 'q.xlsx');
+  const r4 = await QC.NexusImport.preview({ file, defaultRound: 'R1', rounds, legacy: () => [] });
+  out.xlsx = r4.list.length === 1 && r4.list[0].options[1] === 'সূর্য';
+  const au = QC.NLP.audit('অামাদের বিদ্যালয়');
+  out.audit = au.issues.some((i) => i.rule === 'a-aa') && QC.NLP.fixAll('অামাদের') === 'আমাদের';
+  const t = QC.Store.state.teams[0];
+  const png = await QC.renderCertificate(t, 1);
+  out.cert = png.size > 20000 && png.type === 'image/png';
+  const backup = { format: 'QC60-BACKUP', state: { schema: 60, teams: [{ name: 'পুরনো দল', captain: 'রাহুল', players: ['সীমা'], score: 25 }, { name: 'দল B', players: [], score: 10 }], questions: [{ id: 'Q1', round: 'R2', num: 1, text: 'পুরনো প্রশ্ন?', options: ['ক', 'খ', 'গ', 'ঘ'], optionCount: 4, answer: 2, timeLimit: 30 }], prelim: [{ text: 'বাছাই?', answer: 'হ্যাঁ', star: true }], event: { name: 'পুরনো অনুষ্ঠান', banner: 'লাইন এক' }, crew: [{ name: 'অরিন্দম', role: 'অধিনায়ক', about: 'পরিচিতি' }], rounds: [{ id: 'R1', name: 'নতুন নাম', skip: false }], ledger: [] }, photos: {} };
+  backup.checksum = undefined;
+  const conv = await QC.Legacy.convert(backup);
+  out.legacy = conv.teams[0].name === 'পুরনো দল' && conv.questions[0].answer === 2 && conv.questions[0].roundId === 'R2' && conv.ledger.find((e) => e.team === conv.teams[0].id).delta === 25 && conv.event.programme === 'পুরনো অনুষ্ঠান' && conv.crew[0].about === 'পরিচিতি' && conv.rounds[0].name === 'নতুন নাম';
+  return out;
+});
+check('Import: Bengali-header CSV with ক–ঘ / 1–4 answers', tools.csv);
+check('Import: numbered plain text (প্রশ্ন / ক) / উত্তর:)', tools.plain);
+check('Import: AI JSON with code fences and answer_index', tools.ai);
+check('Import: Excel .xlsx', tools.xlsx);
+check('Text auditor finds and fixes অা → আ', tools.audit);
+check('Certificate PNG renders', tools.cert);
+check('Old V100 (QC60) backup converts: teams, scores, questions, crew, rounds', tools.legacy);
+await openPage('ai');
+check('AI Studio page renders (air-gapped by default)', await ctl.evaluate(() => /Air-gapped/.test(document.querySelector('#tabBody').textContent) && window.QC.AI.cfg.airGapped === true));
 // ---- host script window + roles ----
 const host = await ctx.newPage(); watch(host, 'host');
 await host.goto(url + '#host');

@@ -290,6 +290,6 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

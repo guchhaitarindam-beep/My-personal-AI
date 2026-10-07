@@ -60,7 +60,8 @@ const TabRender = {
     const finalIds = Sel.finalistIds();
     const rankHtml = ranking.map((r) => '<div class="li' + (finalIds.includes(r.team.id) ? ' active' : '') + '"><span class="n">' + bn(r.rank) + '</span><div class="t"><b>' + esc(r.team.name) + '</b> <span class="muted">' + esc(r.team.school) + '</span><small>' + bn(r.score) + ' নম্বর • ★' + bn(r.stars) + '</small></div><div class="acts">' + F.btn('finalistToggle', finalIds.includes(r.team.id) ? '✓ চূড়ান্ত' : '+ চূড়ান্তে যোগ', 'sm ' + (finalIds.includes(r.team.id) ? 'good' : ''), r.team.id) + '</div></div>').join('');
     const finals = finalIds.map((id, i) => { const ti = Sel.teamIndex(id); const t = s.teams[ti]; if (!t) return ''; return '<div class="li" style="--team:' + esc(t.color) + '"><span class="n">' + bn(i + 1) + '</span><div class="g2">' + F.text('teams.' + ti + '.name', 'দলের নাম', t.name) + F.text('teams.' + ti + '.school', 'বিদ্যালয়', t.school) + '</div><div class="acts">' + F.btn('finalistMove', '↑', 'sm', id + '|-1') + F.btn('finalistMove', '↓', 'sm', id + '|1') + F.btn('finalistToggle', '✕', 'sm bad', id) + '</div></div>'; }).join('');
-    return F.card('বাছাই পর্ব — সেটিংস', settings) + F.card('বাছাই প্রশ্ন ও ডেডিকেটেড উত্তর বোতাম', testNote + '<div class="list">' + list + '</div>', 'প্রতিটি প্রশ্নের নিজস্ব ANSWER বোতাম') +
+    return F.card('বাছাই পর্ব — সেটিংস', settings) +
+      F.card('একসাথে অনেক বাছাই প্রশ্ন পেস্ট', '<p class="big-hint">প্রতি লাইনে একটি প্রশ্ন: <code>প্রশ্ন|উত্তর</code></p><textarea id="prelimBulk" rows="4" placeholder="সুন্দরবনে কোন বাঘ থাকে?|রয়্যাল বেঙ্গল টাইগার"></textarea><div class="row" style="margin-top:.4rem">' + F.btn('prelimBulk', '⇧ বাছাই তালিকা আমদানি', 'primary') + '</div>') + F.card('বাছাই প্রশ্ন ও ডেডিকেটেড উত্তর বোতাম', testNote + '<div class="list">' + list + '</div>', 'প্রতিটি প্রশ্নের নিজস্ব ANSWER বোতাম') +
       F.card('উত্তরপত্র মূল্যায়ন (টিক = সঠিক)', '<div class="matrix" data-keep-scroll="mx"><table>' + head + body + '</table></div><p class="big-hint">টাই হলে: বেশি ★ সঠিক ▸ প্রশ্নক্রমে আগে সঠিক ▸ নিবন্ধনক্রম। ম্যানুয়াল নম্বর দিলে টিকের হিসাব উপেক্ষিত হবে।</p>') +
       F.card('র‍্যাঙ্কিং ও চূড়ান্ত নির্বাচন', '<div class="list" data-keep-scroll="rank" style="max-height:50vh;overflow:auto">' + rankHtml + '</div><div class="deck" style="margin-top:.6rem">' + F.btn('confirmFinalists', '✓ শীর্ষ ' + bn(p.finalistCount) + ' স্বয়ংক্রিয় নির্বাচন', 'good span2') + F.btn('clearFinalists', '↺ স্বয়ংক্রিয়তে ফেরত') + '</div>', s.finalists.length ? 'ম্যানুয়ালি নিশ্চিত' : 'স্বয়ংক্রিয় (র‍্যাঙ্ক অনুযায়ী)') +
       F.card('চূড়ান্ত দল — নাম সম্পাদনা ও ক্রম', '<div class="list">' + finals + '</div>');
@@ -74,7 +75,7 @@ const TabRender = {
       return '<div class="team-editor" style="--team:' + esc(t.color) + '"><header><span class="thumb" style="--team:' + esc(t.color) + '">' + (t.photo ? '<img data-media="' + esc(t.photo) + '" alt="">' : bn(i + 1)) + '</span><b style="flex:1">' + bn(i + 1) + '. ' + esc(t.name) + (fin ? ' <span class="status-pill ok">চূড়ান্ত</span>' : '') + '</b><span class="pts gold">' + bn(Sel.score(t.id)) + ' পয়েন্ট</span>' +
         F.btn('teamIntroNow', '▶ পরিচিতি', 'sm', t.id) + F.btn('teamMove', '↑', 'sm', t.id + '|-1') + F.btn('teamMove', '↓', 'sm', t.id + '|1') + F.btn('teamDel', '🗑', 'sm bad', t.id) + '</header>' +
         '<div class="g3">' + F.text(r + '.name', 'দলের নাম', t.name) + F.text(r + '.school', 'বিদ্যালয়', t.school) + F.color(r + '.color', 'দলের রং', t.color) + F.text(r + '.captain', 'অধিনায়ক', t.captain) + F.text(r + '.players.0', 'খেলোয়াড় ১', t.players[0]) + F.text(r + '.players.1', 'খেলোয়াড় ২', t.players[1]) + F.text(r + '.players.2', 'খেলোয়াড় ৩', t.players[2]) + '</div>' +
-        '<div class="g4">' + F.media(r + '.photo', 'দলের ছবি', t.photo) + F.media(r + '.playerPhotos.0', 'খেলোয়াড় ১', t.playerPhotos[0]) + F.media(r + '.playerPhotos.1', 'খেলোয়াড় ২', t.playerPhotos[1]) + F.media(r + '.playerPhotos.2', 'খেলোয়াড় ৩', t.playerPhotos[2]) + '</div>' +
+        '<div class="g4">' + F.media(r + '.photo', 'দলের ছবি', t.photo) + F.media(r + '.captainPhoto', 'অধিনায়কের ছবি', t.captainPhoto) + F.media(r + '.playerPhotos.0', 'খেলোয়াড় ১', t.playerPhotos[0]) + F.media(r + '.playerPhotos.1', 'খেলোয়াড় ২', t.playerPhotos[1]) + F.media(r + '.playerPhotos.2', 'খেলোয়াড় ৩', t.playerPhotos[2]) + '</div>' +
         '<div class="g3">' + F.select(r + '.gift.category', 'বিশেষ উপস্থাপনা — বিভাগ', s.giftCategories.concat(s.giftCategories.includes(t.gift.category) || !t.gift.category ? [] : [t.gift.category]), t.gift.category) + F.text(r + '.gift.item', 'বিষয় (যেমন: আম, রবীন্দ্রনাথ)', t.gift.item) + F.media(r + '.gift.image', 'বিষয়ের ছবি', t.gift.image) + '</div>' +
         '<div class="row">' + F.media(r + '.emblem', 'লোগো/প্রতীক', t.emblem) + '<div class="field" style="flex:2"><span>লাইফলাইন</span><div class="row">' + ['fifty', 'poll', 'flip'].map((k) => '<span class="status-pill ' + (Sel.lifelineUsed(t.id, k) ? 'bad' : 'ok') + '">' + { fifty: '৫০:৫০', poll: 'পোল', flip: 'ফ্লিপ' }[k] + (Sel.lifelineUsed(t.id, k) ? ' ব্যবহৃত' : ' আছে') + '</span>').join('') + F.btn('lifelineReset', 'রিসেট', 'sm', t.id) + '</div></div></div></div>';
     }).join('');
@@ -113,10 +114,10 @@ const TabRender = {
         F.area(p + '.text', 'প্রশ্ন', q.text, 4) +
         '<div class="g2">' + [0, 1, 2, 3].map((i) => '<label class="field"><span><input type="radio" name="ans" data-bind="' + p + '.answer" data-type="int" value="' + i + '"' + (q.answer === i ? ' checked' : '') + '> সঠিক — বিকল্প ' + OPT_LABELS[i] + '</span><input type="text" data-bind="' + p + '.options.' + i + '" value="' + esc(q.options[i] || '') + '"></label>').join('') + '</div>' +
         '<div class="g2">' + F.text(p + '.answerText', 'লিখিত উত্তর (বিকল্প না থাকলে)', q.answerText) + F.num(p + '.points', 'নম্বর (খালি = রাউন্ড ডিফল্ট)', q.points, -100, 100, 1, 'nullnum') + '</div>' +
-        F.area(p + '.explanation', 'ব্যাখ্যা', q.explanation, 2) + F.area(p + '.speech', 'ভয়েসের জন্য লেখা (ঐচ্ছিক)', q.speech, 2) +
+        F.area(p + '.explanation', 'ব্যাখ্যা', q.explanation, 2) + '<div class="g2">' + F.text(p + '.hint', 'সংকেত (Hint)', q.hint) + F.select(p + '.difficulty', 'কাঠিন্য', [['easy', 'সহজ'], ['medium', 'মাঝারি'], ['hard', 'কঠিন']], q.difficulty) + '</div>' + F.area(p + '.speech', 'ভয়েসের জন্য লেখা (ঐচ্ছিক)', q.speech, 2) + '<div class="card" style="margin:.5rem 0"><h3>✔ বানান ও গঠন পরীক্ষা (V100 অডিটর)</h3>' + auditHtml(q) + '</div>' +
         '<div class="row">' + F.media(p + '.image', 'প্রশ্নের ছবি', q.image) + '<div class="deck" style="flex:1">' + F.btn('showQ', '▶ স্টেজে দেখাও', 'good', q.id) + F.btn('qEdit', 'বন্ধ', '', '') + '</div></div>');
     }
-    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON রপ্তানি') + F.btn('importFile', '⇧ JSON আমদানি') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
+    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('importOpen', '⇧ আমদানি (CSV / Excel / JSON / লেখা)', 'warn') + F.btn('exportQuestionsCsv', '⇩ প্রশ্ন CSV') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON') + F.btn('bankAudit', '🔎 বানান ও প্রশ্ন-ব্যাংক পরীক্ষা') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
   },
 
   /* ---------------- ROUNDS ---------------- */
@@ -140,7 +141,7 @@ const TabRender = {
   /* ---------------- EVENT ---------------- */
   event(s) {
     const e = 'event.';
-    const crew = s.crew.map((c, i) => '<div class="li" style="grid-template-columns:auto 1fr auto">' + F.media('crew.' + i + '.photo', 'ছবি', c.photo) + '<div class="g2">' + F.text('crew.' + i + '.name', 'নাম', c.name) + F.text('crew.' + i + '.role', 'ভূমিকা', c.role) + '</div><div class="acts">' + F.btn('crewDel', '🗑', 'sm bad', String(i)) + '</div></div>').join('');
+    const crew = s.crew.map((c, i) => '<div class="li" style="grid-template-columns:auto 1fr auto">' + F.media('crew.' + i + '.photo', 'ছবি', c.photo) + '<div><div class="g2">' + F.text('crew.' + i + '.name', 'নাম', c.name) + F.text('crew.' + i + '.role', 'ভূমিকা', c.role) + '</div>' + F.area('crew.' + i + '.about', 'পরিচিতি (ঐচ্ছিক)', c.about || '', 2) + '</div><div class="acts">' + F.btn('crewDel', '🗑', 'sm bad', String(i)) + '</div></div>').join('');
     return F.card('ব্র্যান্ড', '<div class="g3">' + F.text(e + 'brandEn', 'ইংরেজি নাম', s.event.brandEn) + F.text(e + 'brandBn', 'বাংলা নাম', s.event.brandBn) + F.text(e + 'tagline', 'ট্যাগলাইন', s.event.tagline) + '</div>') +
       F.card('অনুষ্ঠান পরিচিতি', '<div class="g2">' + F.text(e + 'programme', 'অনুষ্ঠানের নাম', s.event.programme) + F.text(e + 'subtitle', 'উপশিরোনাম', s.event.subtitle) + F.text(e + 'season', 'সিজন', s.event.season) + F.text(e + 'year', 'বছর / শিক্ষাবর্ষ', s.event.year) + F.text(e + 'organizer', 'আয়োজক', s.event.organizer) + F.text(e + 'venue', 'স্থান', s.event.venue) + F.text(e + 'date', 'তারিখ', s.event.date) + F.text(e + 'presenter', 'উপস্থাপক', s.event.presenter) + F.text(e + 'quizMaster', 'কুইজ মাস্টার', s.event.quizMaster) + F.text(e + 'compiler', 'প্রশ্ন সংকলক', s.event.compiler) + F.text(e + 'editor', 'সম্পাদক', s.event.editor) + F.text(e + 'conductedBy', 'পরিচালনায়', s.event.conductedBy) + F.text(e + 'sponsors', 'স্পনসর', s.event.sponsors) + '</div>' + F.area(e + 'credits', 'বিশেষ কৃতজ্ঞতা', s.event.credits, 3) + F.area(e + 'welcomeNote', 'স্বাগত বার্তা', s.event.welcomeNote, 2) + '<div class="row">' + F.text(e + 'ticker', 'নিচের চলমান লেখা (টিকার)', s.event.ticker) + F.check(e + 'showTicker', 'টিকার দেখাও', s.event.showTicker) + '</div>') +
       F.card('আয়োজক দল', '<div class="list">' + crew + '</div><div class="row" style="margin-top:.5rem">' + F.btn('crewAdd', '+ সদস্য যোগ', 'primary') + '</div><div class="row" style="margin-top:.5rem">' + F.media('groupPhoto', 'দলগত ছবি', s.groupPhoto) + '<div style="flex:1">' + F.text('groupCaption', 'ক্যাপশন', s.groupCaption) + '</div></div>');
@@ -369,9 +370,9 @@ Object.assign(Actions, {
 });
 
 function stamp() { const d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0'); }
-function download(name, text) {
+function download(name, data) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: 'application/json' }));
   a.download = name; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
@@ -381,6 +382,12 @@ const Importer = {
   async run(data) {
     if (Array.isArray(data)) { this.questions(data); return; }
     if (!isObj(data)) throw new Error('অচেনা ফাইল');
+    if (Legacy.isV100(data)) {
+      if (!confirm('পুরনো Quiz Corner V100 ব্যাকআপ পাওয়া গেছে। দল, ছবি, প্রশ্ন, স্কোর ও আয়োজক দল নতুন ইঞ্জিনে আনবেন? (বর্তমান ইভেন্ট প্রতিস্থাপিত হবে — আনডু করা যাবে)')) return;
+      Store.replace(await Legacy.convert(data), 'import-v100');
+      UI.toast('V100 ব্যাকআপ আমদানি সম্পূর্ণ', 'ok');
+      return;
+    }
     if (data.qc66 && data.kind === 'questions') { this.questions(arr(data.questions), arr(data.prelim)); return; }
     if (data.qc66 && data.state) {
       if (!confirm('এই ফাইল দিয়ে বর্তমান ইভেন্ট প্রতিস্থাপন করবেন? (আনডু করা যাবে)')) return;

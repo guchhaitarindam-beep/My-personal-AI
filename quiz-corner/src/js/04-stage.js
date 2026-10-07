@@ -55,7 +55,7 @@ const Scenes = {
     return { key: 'THEME', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<div class="eq">' + bars + '</div><div class="s-sub" style="text-align:center">♪ ' + esc(s.event.programme) + ' — থিম সং ♪</div>', 'center-col') };
   },
   CREW(s) {
-    const crew = s.crew.map((c, i) => '<div class="crew-card glass" style="--i:' + i + '">' + H.photo(c.photo, c.name) + '<b>' + esc(c.name) + '</b><small>' + esc(c.role) + '</small></div>').join('');
+    const crew = s.crew.map((c, i) => '<div class="crew-card glass" style="--i:' + i + '">' + H.photo(c.photo, c.name) + '<b>' + esc(c.name) + '</b><small>' + esc(c.role) + '</small>' + (c.about ? '<small class="about">' + esc(c.about) + '</small>' : '') + '</div>').join('');
     const n = s.crew.length;
     const cols = s.groupPhoto ? (n <= 4 ? 2 : 3) : n <= 4 ? Math.max(1, n) : Math.ceil(n / 2);
     const group = s.groupPhoto ? '<div class="glass" style="padding:1.2cqh;max-width:40cqw;flex:0 0 auto;display:flex;flex-direction:column;gap:1cqh;align-items:center"><img data-media="' + esc(s.groupPhoto) + '" alt="" style="max-height:52cqh;border-radius:1.4cqh;object-fit:contain"><small class="s-sub" style="font-size:2cqh;text-align:center">' + esc(s.groupCaption) + '</small></div>' : '';
@@ -69,7 +69,7 @@ const Scenes = {
   intro(s, p, finalist) {
     const t = Sel.team(p.teamId);
     if (!t) return { key: 'INTRO:none', html: H.part('body', '<h1 class="s-title">দল পাওয়া যায়নি</h1>', 'center-col') };
-    const players = [['CAPTAIN', t.captain, t.photo ? '' : '']].concat(t.players.map((n, i) => ['PLAYER ' + (i + 1), n, t.playerPhotos[i]]));
+    const players = [['CAPTAIN', t.captain, t.captainPhoto || '']].concat(t.players.map((n, i) => ['PLAYER ' + (i + 1), n, t.playerPhotos[i]]));
     const pr = finalist ? Sel.prelimRanking().find((r) => r.team.id === t.id) : null;
     const tag = finalist ? 'FINALIST ' + p.n + (pr ? ' • প্রাথমিক র‍্যাঙ্ক ' + bn(pr.rank) + ' • ' + bn(pr.score) + ' পয়েন্ট' : '') : 'TEAM ' + String(p.n).padStart(2, '0');
     const playerHtml = players.filter((x) => x[1]).map((x, i) => '<div class="player" style="--i:' + i + '">' + H.photo(x[2], x[1]) + '<small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');

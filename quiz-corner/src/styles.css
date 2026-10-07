@@ -654,3 +654,7 @@ body.role-host .preview-box { max-width: 900px; }
 .btn.glow { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 18px color-mix(in srgb, var(--gold) 70%, transparent); animation: glowPulse 1.6s ease-in-out infinite; }
 @keyframes glowPulse { 50% { box-shadow: 0 0 0 2px var(--gold), 0 0 4px transparent; } }
 .host-line { font-size: 1.05rem; line-height: 1.6; padding: .5rem .7rem; border-left: 4px solid var(--accent); background: #0b0a22; border-radius: 8px; }
+
+.drop { border: 2px dashed #4b48a0; border-radius: 12px; padding: 1rem; text-align: center; margin-bottom: .6rem; }
+.drop.over { border-color: var(--gold); background: #1a1440; }
+.crew-card small.about { font-size: 1.6cqh; line-height: 1.4; opacity: .85; }
