@@ -152,7 +152,11 @@ img { max-width: 100%; }
   background: linear-gradient(100deg, color-mix(in srgb, var(--correct) 45%, #001a10), rgba(0, 30, 20, .9)); border: .35cqh solid var(--correct); box-shadow: 0 0 4cqh color-mix(in srgb, var(--correct) 60%, transparent);
   animation: aFlip .8s cubic-bezier(.2, .9, .2, 1) both; }
 .answer-bar .lbl { font-weight: 800; color: var(--correct); font-size: 3cqh; white-space: nowrap; }
-.answer-bar .ans { flex: 1; min-width: 0; font-weight: 800; font-size: 4.6cqh; line-height: 1.35; overflow-wrap: anywhere; padding-block: .1em; }
+.answer-bar { max-height: 24cqh; }
+.answer-bar .ans-box { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; overflow: hidden; }
+.answer-bar .ans { width: 100%; min-width: 0; font-weight: 800; font-size: 4.6cqh; line-height: 1.4; overflow-wrap: anywhere; padding-block: .1em; }
+.answer-bar .ans.fitted { font-size: var(--fit-size); }
+.answer-bar .ans.fitted .exp { font-size: .55em; }
 .answer-bar .exp { display: block; font-size: 2.5cqh; font-weight: 600; color: var(--muted); }
 
 /* Side column: team + timer */
@@ -361,14 +365,14 @@ img { max-width: 100%; }
 /* Winner */
 .winner { flex: 1; display: grid; grid-template-columns: 1fr 1.1fr; gap: 3cqw; align-items: center; min-height: 0; }
 .winner .wphoto { height: 70cqh; border-width: .6cqh; border-color: var(--gold); box-shadow: 0 0 8cqh color-mix(in srgb, var(--gold) 70%, transparent); animation: photoReveal 1.8s .6s cubic-bezier(.16, 1, .3, 1) both; }
-.winner .wtxt { display: flex; flex-direction: column; gap: 1.6cqh; align-items: flex-start; min-width: 0; }
+.winner .wtxt { display: flex; flex-direction: column; gap: 1.4cqh; align-items: flex-start; justify-content: center; min-width: 0; height: 100%; max-height: 90cqh; min-height: 0; }
 .winner .champ { font-family: var(--font-en); font-weight: 900; letter-spacing: .3em; font-size: 4cqh; color: var(--gold); text-shadow: 0 0 3cqh var(--gold); animation: aZoom 1s both; }
-.winner .name-box { height: 30cqh; width: 100%; display: flex; align-items: flex-end; }
+.winner .name-box { flex: 0 1 30cqh; min-height: 9cqh; width: 100%; display: flex; align-items: flex-end; }
 .winner .wname { width: 100%; font-size: 10cqh; font-weight: 800; line-height: 1.45; padding-block: .14em; overflow-wrap: anywhere; background: linear-gradient(90deg, #fff6d5, var(--gold), #fff6d5); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 4s linear infinite, aFlip 1.2s .3s both; }
 .winner .wschool { font-size: 3.8cqh; color: #fff; font-weight: 700; line-height: 1.4; animation: aSlide 1s .7s both; }
 .winner .wcap { font-size: 2.8cqh; color: var(--muted); animation: aSlide 1s .9s both; }
 .winner .wscore { font-family: var(--font-timer); font-size: 8cqh; font-weight: 700; color: var(--gold); animation: aZoom 1s 1.1s both; }
-.trophy { width: 20cqh; animation: trophyIn 1.6s cubic-bezier(.2, 1.4, .4, 1) both, orbFloat 4s 1.6s ease-in-out infinite; filter: drop-shadow(0 0 4cqh var(--gold)); }
+.trophy { flex: 0 0 auto; width: 16cqh; animation: trophyIn 1.6s cubic-bezier(.2, 1.4, .4, 1) both, orbFloat 4s 1.6s ease-in-out infinite; filter: drop-shadow(0 0 4cqh var(--gold)); }
 @keyframes trophyIn { from { opacity: 0; transform: translateY(-40cqh) rotate(-30deg) scale(.4); } }
 
 /* Crew / credits */
@@ -554,3 +558,6 @@ body.role-quizmaster .qm-box .a, body.role-host .qm-box .a { font-size: 1.6rem; 
 body.role-host .deck, body.role-host #adjTeam, body.role-host .team-chips + .row { display: none; }
 body.role-host .preview-box { max-width: 900px; }
 .lock-on { background: linear-gradient(180deg, #8a1c1c, #4a0b0b) !important; border-color: var(--wrong) !important; }
+
+/* Auto-fit always wins over the element's default size (set by fitText). */
+.stage .layer [data-fit].fitted { font-size: var(--fit-size); }

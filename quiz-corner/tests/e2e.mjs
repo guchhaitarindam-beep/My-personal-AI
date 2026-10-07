@@ -205,6 +205,48 @@ await ctl.selectOption('#roleSel', 'controller');
 await ctl.evaluate(() => { window.QC.Store.commit('t', (s) => { s.sceneFx.SCOREBOARD = { anim: 'cube', cue: 'none', bg: '' }; }); window.QC.Show.scoreboard(); });
 await stage.waitForTimeout(500);
 check('Scene Engine per-scene animation applies', await stage.evaluate(() => document.querySelector('.layer:not(.exiting)').dataset.anim === 'cube'));
+// ---- stress: long Bengali text at maximum font scale, 4K viewport ----
+await stage.setViewportSize({ width: 3840, height: 2160 });
+await ctl.evaluate(() => {
+  const QC = window.QC;
+  QC.Store.commit('stress', (s) => {
+    s.design.qScale = 1.6; s.design.optScale = 1.6; s.design.titleScale = 1.6;
+    const q = s.questions.find((x) => x.roundId === 'R1');
+    q.text = 'পশ্চিমবঙ্গের স্কুলগুলিতে পিএম পোষণ (মিড-ডে মিল) প্রকল্প বাস্তবায়নের সঙ্গে যুক্ত যে অলাভজনক সংস্থাটি আগে ‘ISKCON Food Relief Foundation’ নামে পরিচিত ছিল এবং যার কলকাতার তারাতলায় একটি বিশাল কেন্দ্রীয় রান্নাঘর (মেগা কিচেন) রয়েছে, সেটির বর্তমান নাম কী? '.repeat(2);
+    q.options = q.options.map((o) => (o + ' — দীর্ঘ বিকল্প পাঠ্য যা স্টেজে ফিট হতে হবে ').repeat(2));
+    s.teams[0].name = 'খেজুরি আদর্শ প্রাথমিক বিদ্যালয় জ্ঞানদীপ্ত কুইজ দল (লাল)';
+    s.teams[0].school = 'খেজুরি আদর্শ প্রাথমিক বিদ্যালয়, পূর্ব মেদিনীপুর, পশ্চিমবঙ্গ';
+    s.ledger.push({ id: 'Lx', t: Date.now(), team: s.teams[0].id, delta: 999, reason: 'stress', round: 'R1', q: '' });
+  });
+  const q = QC.Store.state.questions.find((x) => x.roundId === 'R1');
+  QC.Show.jump('QUESTION', { key: q.id, roundId: 'R1', qid: q.id });
+  QC.Game.setActive(QC.Store.state.teams[0].id);
+  QC.Game.showOptions();
+  QC.Game.reveal();
+});
+const overflowAt = async (label) => {
+  await stage.waitForTimeout(1800);
+  await stage.screenshot({ path: path.join(shots, 'stress-' + label + '.png') });
+  return stage.evaluate(() => {
+    const bad = [];
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    document.querySelectorAll('.layer:not(.exiting) [data-fit]').forEach((el) => { if (el.scrollHeight > el.parentElement.clientHeight + 2 || el.scrollWidth > el.parentElement.clientWidth + 2) bad.push(el.className); });
+    document.querySelectorAll('.layer:not(.exiting) .glass, .layer:not(.exiting) .opt, .layer:not(.exiting) .answer-bar, .layer:not(.exiting) .sb-row').forEach((el) => { const r = el.getBoundingClientRect(); if (r.width && (r.bottom > st.bottom + 2 || r.right > st.right + 2)) bad.push(el.className + ' off-stage'); });
+    return bad;
+  });
+};
+const sq = await overflowAt('question-4k');
+check('4K + max font + long Bengali question/options/answer: no overflow', sq.length === 0, sq.join(', '));
+await ctl.evaluate(() => window.QC.Actions.teamIntroNow(window.QC.Store.state.teams[0].id));
+const si = await overflowAt('team-intro-long-name');
+check('Long team name intro: no overflow', si.length === 0, si.join(', '));
+await ctl.evaluate(() => window.QC.Show.scoreboard());
+const ss = await overflowAt('scoreboard-long');
+check('Scoreboard with long names: no overflow', ss.length === 0, ss.join(', '));
+await ctl.evaluate(() => window.QC.Show.jump('WINNER'));
+const sw = await overflowAt('winner-long');
+check('Winner with long name: no overflow', sw.length === 0, sw.join(', '));
+await ctl.evaluate(() => window.QC.Store.undo());
 const relevant = errors.filter((e) => !/favicon/i.test(e));
 check('No JS errors in any window', relevant.length === 0, relevant.slice(0, 5).join(' | '));
 await browser.close();

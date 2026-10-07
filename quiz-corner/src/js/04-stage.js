@@ -102,7 +102,7 @@ const Scenes = {
     if (!q || !q.text) return { key: 'PQ:' + i, html: H.head(s, '<span class="round-tag">বাছাই পর্ব</span>', '<span class="qnum">প্রশ্ন ' + bn(i + 1) + '</span>') + H.part('body', '<div class="s-sub">প্রশ্ন ' + bn(i + 1) + ' এখনও লেখা হয়নি</div>', 'center-col') };
     const dr = Scenes.drone(s.prelimLive.deliverAt, s.prelim.drone);
     const img = q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
-    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><span class="ans">' + esc(q.answer) + '</span>', 'answer-bar') : '';
+    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + esc(q.answer) + '</div></div>', 'answer-bar') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: dr.style,
       html: H.head(s, '<span class="round-tag">বাছাই পর্ব</span>' + (q.star ? '<span class="star-badge">★ তারকা প্রশ্ন</span>' : ''), '<span class="qnum">প্রশ্ন ' + bn(i + 1) + ' / ' + bn(qs.length) + '</span>') +
@@ -190,7 +190,7 @@ const Scenes = {
     }).join(''), 'opts', dr.delivered ? '--opt-delay:' + (Show.droneMs() * 0.0008).toFixed(2) + 's' : '') : '';
     const poll = l.poll ? H.part('poll', l.poll.map((v, i) => (q.options[i] ? '<div class="bar"><span class="pct">' + bn(v) + '%</span><div class="fill" style="--h:' + Math.max(2, v) + '%"></div><span class="lab">' + OPT_LABELS[i] + '</span></div>' : '<div></div>')).join(''), 'poll glass') : '';
     const ansText = q.answerText || q.options[q.answer] || '';
-    const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><span class="ans">' + (q.options[q.answer] && !q.answerText ? '(' + OPT_LABELS[q.answer] + ') ' : '') + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</span>', 'answer-bar') : '';
+    const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + (q.options[q.answer] && !q.answerText ? '(' + OPT_LABELS[q.answer] + ') ' : '') + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
     const stamp = l.result ? '<div class="stamp ' + l.result + '" data-part="stamp-' + l.resultAt + '">' + ({ correct: 'সঠিক ✓', wrong: 'ভুল ✗', noscore: 'নো স্কোর' }[l.result]) + '</div>' + (l.lastPoints ? '<div class="points-fly" data-part="pts-' + l.resultAt + '">' + signed(l.lastPoints) + '</div>' : '') : '';
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
