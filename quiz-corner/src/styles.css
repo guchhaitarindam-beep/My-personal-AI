@@ -529,3 +529,11 @@ body.big-ui .btn { min-height: 46px; }
   .topbar { gap: .35rem; }
   .deck { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
 }
+
+/* ---------- additions: photo layering, equalizer ---------- */
+.team-photo { position: relative; }
+.team-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.eq { display: flex; align-items: flex-end; gap: .5cqw; height: 9cqh; margin: 1cqh 0; }
+.eq i { width: 1cqw; height: 100%; border-radius: .6cqh; background: linear-gradient(to top, var(--accent2), var(--accent), var(--gold)); transform-origin: bottom; animation: eqBar .9s ease-in-out infinite alternate; box-shadow: 0 0 1.2cqh var(--accent); }
+.eq i:nth-child(3n) { animation-duration: .7s; } .eq i:nth-child(4n) { animation-duration: 1.15s; } .eq i:nth-child(5n) { animation-duration: .55s; }
+@keyframes eqBar { from { transform: scaleY(.15); } to { transform: scaleY(1); } }
