@@ -102,6 +102,7 @@ const THEMES = {
   royal: { label: 'রাজকীয় সোনালি', bg: '#07040a', bg2: '#2a1606', text: '#fffaf0', muted: '#ead9b8', accent: '#ffcf5a', accent2: '#b5651d', gold: '#ffd700', neon: '#ffcf5a', panel: '#140b04', correct: '#4dffa6', wrong: '#ff5a5a', timer: '#ffcf5a', warn: '#ff9f1c', crit: '#ff3b3b', glow: 1 },
 };
 const AUDIO_CUES = {
+  question: 'প্রশ্ন খোলা (rising bells)', option: 'বিকল্প আসা (pop)', score: 'নম্বর যোগ (coin)', laser: 'প্রশ্ন-নম্বর বাছা (laser)', buzzer: 'সময় শেষ (siren + buzzer)', drumroll: 'ড্রামরোল', applause: 'হাততালি', suspense: 'সাসপেন্স', gong: 'গং', ding: 'ডিং', siren: 'সাইরেন', heartbeat: 'হার্টবিট', click: 'ক্লিক', round: 'রাউন্ড স্টিংগার',
   transition: 'দৃশ্য পরিবর্তন', delivery: 'প্রশ্ন আগমন', drone: 'ড্রোন', countdown: 'কাউন্টডাউন বিপ', impact: 'কাউন্টডাউন শেষ (ইমপ্যাক্ট)',
   tick: 'টিক (শেষ ১০ সেকেন্ড)', warning: 'সতর্কতা (১০/৫ সেকেন্ড)', timeout: 'সময় শেষ', correct: 'সঠিক', wrong: 'ভুল', reveal: 'উত্তর প্রকাশ',
   pass: 'পাস', challenge: 'চ্যালেঞ্জ', lifeline: 'লাইফলাইন', scoreboard: 'স্কোরবোর্ড', fanfare: 'বিজয়ী ফ্যানফেয়ার', teamintro: 'দল পরিচিতি', roundintro: 'রাউন্ড শুরু',
@@ -233,7 +234,7 @@ function defaultState() {
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 0.9, output: 'control', cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 0.8, mute: false, media: '' }])),
+      master: 0.9, output: 'control', bgm: { on: true, vol: 0.35, tagore: true }, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 0.8, mute: false, media: '' }])),
       music: {
         theme: { media: 'asset:theme', vol: 0.85, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
         welcome: { media: 'asset:welcome', vol: 0.85, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },

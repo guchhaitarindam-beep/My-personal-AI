@@ -262,7 +262,7 @@ const Authority = {
       const step = Math.floor((now() - s.show.startedAt) / s.settings.countdownStepMs);
       if (step !== this.cdStep && step <= from && step >= 0) {
         this.cdStep = step;
-        if (step < from) { Cue.play('countdown'); if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else Cue.play('impact');
+        if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(0); }
       }
     }
   },
@@ -290,6 +290,6 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

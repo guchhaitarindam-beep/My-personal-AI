@@ -214,6 +214,26 @@ await phone.waitForFunction(() => window.QC && window.QC.Store.state);
 check('Control at phone width: no horizontal page scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), await phone.evaluate(() => document.documentElement.scrollWidth + ' vs ' + window.innerWidth));
 await phone.screenshot({ path: path.join(shots, '82-control-phone.png') });
 
+// ---- audio: V100 sound library + generative music ----
+const audio = await ctl.evaluate(async () => {
+  const QC = window.QC;
+  const rms = (b) => { if (!b) return 0; const d = b.getChannelData(0); let t = 0; for (let i = 0; i < d.length; i++) t += d[i] * d[i]; return Math.sqrt(t / d.length); };
+  const names = QC.Sfx.names();
+  const lib = ['applause', 'drumroll', 'gong', 'ding', 'suspense', 'siren', 'laser', 'heartbeat', 'buzzer', 'score', 'option', 'click', 'cdhit', 'rin1', 'rin6', 'rq1', 'rq6'].every((n) => names.includes(n));
+  const applause = rms(await QC.Sfx.render('applause'));
+  const music = await QC.Music.render('calm', 2);
+  let m = 0; for (let i = 0; i < music.l.length; i++) m += music.l[i] * music.l[i];
+  const st = QC.Store.state;
+  const q = QC.Sel.roundQuestions('R1')[0];
+  QC.Show.jump('QUESTION', { key: q.id, roundId: 'R1', qid: q.id });
+  const focus = QC.SoundDirector.moodFor(QC.Store.state) === 'focus';
+  const tagore = QC.SoundDirector.tagoreWanted(QC.Store.state);
+  return { lib, applause, music: Math.sqrt(m / music.l.length), focus, tagore };
+});
+check('V100 sound library present (applause, drumroll, gong, rin1–6, rq1–6 …)', audio.lib);
+check('Built-in applause renders audible sound', audio.applause > 0.001, String(audio.applause));
+check('Generative background music renders', audio.music > 0.001, String(audio.music));
+check('Music mood follows scene; Tagore plays in round 1', audio.focus && audio.tagore);
 // ---- host script window + roles ----
 const host = await ctx.newPage(); watch(host, 'host');
 await host.goto(url + '#host');

@@ -75,7 +75,7 @@ const Show = {
       case 'TEAM_INTRO': case 'FINALIST_INTRO': play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
       case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); break; // the countdown clock emits its own beeps
       case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
-      case 'ROUND_INTRO': play('roundintro'); { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); } break;
+      case 'ROUND_INTRO': if (override) play(); { const n = s.rounds.filter((x) => x.enabled).findIndex((x) => x.id === p.roundId) + 1; if (!override) Cue.play('roundintro', { n }); } { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); } break;
       case 'QUESTION': if (s.live.qid !== p.qid) Game.load(p.qid, Game.turnFor(p.roundId)); else if (override) play(); break;
       case 'SCOREBOARD': {
         play('scoreboard');
@@ -90,7 +90,7 @@ const Show = {
         break;
       }
       case 'TOP3': play('fanfare'); break;
-      case 'WINNER': Cue.music('winner', 'play'); play('fanfare'); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
+      case 'WINNER': Cue.music('winner', 'play'); play('fanfare'); setTimeout(() => Cue.play('applause'), 3300); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
       default: play('transition');
     }
   },
@@ -114,7 +114,7 @@ const Show = {
     const n = Sel.finalistIds().length;
     if (Store.state.finalReveal >= n) return false;
     Store.commit('final-reveal', (s) => { s.finalReveal = Math.min(n, s.finalReveal + 1); }, { undo: false });
-    Cue.play(Store.state.finalReveal >= n ? 'fanfare' : 'reveal');
+    if (Store.state.finalReveal >= n) { Cue.play('fanfare'); setTimeout(() => Cue.play('applause'), 3300); } else Cue.play('reveal');
     return true;
   },
   toggleBlackout() { Store.commit('blackout', (s) => { s.show.blackout = !s.show.blackout; }, { undo: false }); },

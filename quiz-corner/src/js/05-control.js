@@ -50,7 +50,8 @@ const UI = {
     <button class="btn" data-act="blackout" title="B">◼ ব্ল্যাকআউট <kbd>B</kbd></button>
     <button class="btn" data-act="undo" id="btnUndo" title="Ctrl+Z">↶ আনডু</button>
     <button class="btn" data-act="redo" id="btnRedo" title="Ctrl+Y">↷ রিডু</button>
-    <button class="btn" data-act="stopAudio" title="M">🔇 থামাও <kbd>M</kbd></button>
+    <button class="btn" data-act="stopAudio" title="সব সংগীত ও ভয়েস থামাও">■ সংগীত থামাও</button>
+    <button class="btn" data-act="mute" id="btnMute" title="M">🔇 মিউট <kbd>M</kbd></button>
     <button class="btn" data-act="shortcuts" title="?">⌨ শর্টকাট</button>
     <select id="roleSel" aria-label="ভূমিকা" style="width:auto;min-height:38px">
       <option value="controller">কন্ট্রোলার</option><option value="quizmaster">কুইজ মাস্টার</option><option value="host">হোস্ট (শুধু দেখা)</option>
@@ -184,6 +185,7 @@ const UI = {
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);
     out += this.teamDeck(s);
+    out += '<div class="card"><div class="row"><button class="btn sm' + (this.boardOpen ? ' on' : '') + '" data-act="soundboardToggle">🎛 সাউন্ডবোর্ড</button></div>' + (this.boardOpen ? '<div class="deck" style="margin-top:.5rem">' + SOUNDBOARD.map(([k, l]) => b('pad', l, 'sm', k)).join('') + '</div>' : '') + '</div>';
     out += '<div class="card"><div class="row"><button class="btn sm' + (this.hostOpen ? ' on' : '') + '" data-act="hostToggle">🎙 হোস্ট সহায়ক (ধারাভাষ্য)</button></div>' + (this.hostOpen ? '<p class="host-line">' + esc(this.hostLine || HostLines.line('open')) + '</p><div class="deck">' + b('hostLine', 'স্কোর মন্তব্য', '', 'score') + b('hostLine', 'ভুল উত্তরের লাইন', '', 'wrong') + b('hostLine', 'সাসপেন্স', '', 'tension') + b('hostLine', 'রাউন্ড শুরুর লাইন', '', 'open') + b('hostLine', 'বিজয়ী লাইন', '', 'win') + b('hostSpeak', '🔊 বলো', 'good') + '</div>' : '') + '</div>';
     return out;
   },
@@ -326,6 +328,18 @@ const Actions = {
   blackout() { Show.toggleBlackout(); },
   undo() { const l = Store.undo(); UI.toast(l ? 'আনডু: ' + l : 'আনডু করার কিছু নেই', l ? 'ok' : ''); },
   redo() { const l = Store.redo(); UI.toast(l ? 'রিডু: ' + l : 'রিডু করার কিছু নেই', l ? 'ok' : ''); },
+  mute() {
+    AudioDirector.unlock();
+    SoundDirector.setMuted(!SoundDirector.muted);
+    Sync.send({ type: 'mute', on: SoundDirector.muted });
+    const b = $('#btnMute'); if (b) { b.classList.toggle('on', SoundDirector.muted); b.innerHTML = (SoundDirector.muted ? '🔈 আনমিউট' : '🔇 মিউট') + ' <kbd>M</kbd>'; }
+    UI.toast(SoundDirector.muted ? 'সব শব্দ মিউট' : 'শব্দ চালু', 'ok');
+  },
+  volume(d) { Store.commit('volume', (s) => { s.audio.master = Math.round(clamp(s.audio.master + num(d), 0, 1) * 10) / 10; }, { undo: false }); AudioDirector.setMaster(Store.state.audio.master); UI.toast('মাস্টার ভলিউম ' + Math.round(Store.state.audio.master * 100) + '%'); },
+  pad(name) { AudioDirector.unlock(); Cue.play(name); },
+  moodPreview(m) { AudioDirector.unlock(); if (m) Music.preview(m); else Music.stopPreview(); },
+  testTone(pan) { AudioDirector.unlock(); Sfx.testTone(num(pan)); },
+  soundboardToggle() { UI.boardOpen = !UI.boardOpen; UI.liveSig = ''; UI.renderLive(); },
   stopAudio() { AudioDirector.stopAll(); Cue.music('theme', 'stop'); Cue.music('welcome', 'stop'); Cue.music('winner', 'stop'); Cue.music('background', 'stop'); Speech.stop(); },
   shortcuts() { UI.modal('কিবোর্ড শর্টকাট', '<div class="kbd-grid">' + SHORTCUTS.map(([k, d]) => '<div><kbd>' + esc(k) + '</kbd><span>' + esc(d) + '</span></div>').join('') + '</div>'); },
   prev() { Show.prev(); },
@@ -371,7 +385,7 @@ const Actions = {
     if (nq && nq.id !== s.live.qid) { if (int(d) > 0) Game.advanceTurn(r.id); Show.jump('QUESTION', { key: nq.id, roundId: r.id, qid: nq.id }); }
   },
   gotoGrid() { const r = Sel.currentRound(); if (r) Show.jump('GRID', { key: r.id, roundId: r.id }); },
-  loadQ(qid) { const q = Sel.question(qid); if (!q) return; if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
+  loadQ(qid) { const q = Sel.question(qid); if (!q) return; Cue.play('laser'); if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
   showQ(qid) { Actions.loadQ(qid); },
   prelimAnswer() { Show.prelimToggleAnswer(); },
   prelimShow(i) { Show.prelimShow(int(i), false); },
@@ -391,11 +405,12 @@ const Actions = {
   confirmFinalists() { const l = Show.confirmFinalists(); UI.toast('চূড়ান্ত দল নিশ্চিত: ' + l.length + 'টি', 'ok'); },
 };
 
+const SOUNDBOARD = [['drumroll', '🥁 ড্রামরোল'], ['applause', '👏 হাততালি'], ['suspense', '😱 সাসপেন্স'], ['gong', '🔔 গং'], ['ding', '✨ ডিং'], ['fanfare', '🎺 ফ্যানফেয়ার'], ['correct', '✓ সঠিক'], ['wrong', '✗ ভুল'], ['buzzer', '⏰ বাজার'], ['tick', '⏱ টিক-টক'], ['pass', '➜ পাস'], ['option', '◉ পপ'], ['siren', '🚨 সাইরেন'], ['laser', '⚡ লেজার'], ['heartbeat', '❤ হার্টবিট']];
 const SHORTCUTS = [
   ['Space', 'টাইমার চালু / বিরতি'], ['→ / PgDn', 'পরের দৃশ্য'], ['← / PgUp', 'আগের দৃশ্য'], ['D', 'সরাসরি টাইমার (৬০s)'], ['P', 'পাস: পরের দল + ৪৫s'], ['Shift+P', 'শুধু ৪৫s টাইমার'],
   ['R', 'উত্তর দেখাও / পরের স্থান প্রকাশ'], ['C', 'সঠিক'], ['X', 'ভুল'], ['N', 'নো স্কোর'], ['H', 'চ্যালেঞ্জ (তারপর ১–৮)'], ['V', 'বিকল্প দেখাও/লুকাও'],
   ['1–9', 'উত্তরদাতা দল বেছে নাও'], ['Alt+1/2/3', '৫০:৫০ / পোল / ফ্লিপ'], ['0', 'টাইমার রিসেট'], ['+ / −', '১০ সেকেন্ড যোগ / বিয়োগ'], ['S', 'স্কোরবোর্ড'], ['W', 'বিজয়ী'],
-  ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['Shift+L', 'পুরো স্কোর পড়ে শোনাও'], ['G', 'বোনাস'], ['Shift+1–8', 'হাত তোলা / বাজার'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'সব সংগীত/ভয়েস থামাও'],
+  ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['Shift+L', 'পুরো স্কোর পড়ে শোনাও'], ['G', 'বোনাস'], ['Shift+1–8', 'হাত তোলা / বাজার'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'মিউট / আনমিউট'], ['[ / ]', 'মাস্টার ভলিউম কম / বেশি'],
   ['G', 'প্রশ্ন বোর্ড'], ['Ctrl+Z', 'আনডু'], ['Ctrl+Y', 'রিডু'], ['Ctrl+S', 'এখনই সংরক্ষণ'], ['?', 'এই তালিকা'], ['Esc', 'বাতিল / বন্ধ'],
 ];
 
@@ -476,7 +491,9 @@ const Keys = {
       case 'e': Actions.speak('question'); return true;
       case 'a': Actions.speak('answer'); return true;
       case 't': Actions.speak('team'); return true;
-      case 'm': Actions.stopAudio(); return true;
+      case 'm': Actions.mute(); return true;
+      case '[': Actions.volume(-0.1); return true;
+      case ']': Actions.volume(0.1); return true;
       case '?': case 'F1': Actions.shortcuts(); return true;
       case 'Escape': if (UI.picker) { Actions.cancelPicker(); return true; } return false;
       case 'Home': Actions.goStep(0); return true;

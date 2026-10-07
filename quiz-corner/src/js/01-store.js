@@ -333,7 +333,7 @@ const Timer = {
     const warnAt = s.settings.warnAt;
     const critAt = s.settings.critAt;
     if (sec === warnAt || sec === critAt) Cue.play('warning');
-    else if (sec < warnAt) Cue.play('tick');
+    if (sec <= warnAt) Cue.play('tick', { low: sec <= critAt });
     const v = s.speech.timerVoice;
     if (v !== 'off' && s.speech.enabled) {
       const say = (v === 'marks' && (sec % 10 === 0 || sec <= 5)) || (v === 'last10' && sec <= 10) || (v === 'all' && (sec % 10 === 0 || sec <= 10));
@@ -496,7 +496,7 @@ const Game = {
     const q = Sel.liveQuestion();
     if (!q || q.options.filter(Boolean).length < 2) { UI.toast('এই প্রশ্নে বিকল্প নেই', 'err'); return false; }
     Store.commit('options', (s) => { s.live.optionsShown = !s.live.optionsShown; });
-    Cue.play('reveal', { soft: true });
+    if (Store.state.live.optionsShown) Cue.play('option');
     return true;
   },
   wrongIndexes(q) {
@@ -581,6 +581,9 @@ const Game = {
       s.timer = { mode: 'direct', duration: d, base: d, remaining: d, startedAt: 0, running: false, token: (s.timer.token || 0) + 1, expired: false };
     });
     Cue.play(drone ? 'drone' : 'delivery');
+    setTimeout(() => Cue.play('question'), drone ? Show.droneMs() * 0.6 : 250);
+    const rn = Store.state.rounds.filter((x) => x.enabled).indexOf(r) + 1;
+    if (rn > 0) setTimeout(() => Cue.play('rq' + Math.min(6, rn)), (drone ? Show.droneMs() * 0.6 : 250) + 120);
     if (Store.state.settings.autoTimer) Timer.start('direct', Timer.durationFor('direct'), drone ? Show.droneMs() : 900);
     if (Store.state.speech.autoQuestion) setTimeout(() => Speech.readQuestion(), drone ? Show.droneMs() : 800);
     return true;
@@ -588,7 +591,7 @@ const Game = {
   adjust(teamId, delta, reason) {
     if (!Sel.team(teamId) || !delta) return false;
     Store.commit('adjust', (s) => this.addEntry(s, teamId, delta, reason || 'ম্যানুয়াল সমন্বয়', { kind: 'adjust' }));
-    Cue.play(delta > 0 ? 'correct' : 'wrong', { soft: true });
+    Cue.play(delta > 0 ? 'score' : 'wrong', { soft: delta < 0 });
     return true;
   },
   removeEntry(id) { return Store.commit('ledger-remove', (s) => { const i = s.ledger.findIndex((e) => e.id === id); if (i < 0) return false; s.ledger.splice(i, 1); }); },

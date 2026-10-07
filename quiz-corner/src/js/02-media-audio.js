@@ -223,6 +223,7 @@ const AudioDirector = {
       const comp = this.ctx.createDynamicsCompressor();
       this.master.connect(comp); comp.connect(this.ctx.destination);
       this.unlocked = true;
+      SoundDirector.start(this.ctx);
       Bus.emit('audio-unlocked');
     } catch (e) { Log.err('audio-init', e); }
   },
@@ -290,6 +291,16 @@ const AudioDirector = {
     this.unlock();
     if (!this.ctx) return;
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    if (SoundDirector.muted) return;
+    if (name !== 'tick') SoundDirector.duck(HEAVY_SFX.has(name) ? 0.3 : 0.6, HEAVY_SFX.has(name) ? 1600 : 700);
+    // The V100 crafted library is preferred; names it does not have use the V66 synth.
+    const lib = { roundintro: 'rin' + clamp(int(opts.n, 1), 1, 6), countdown: 'cdhit', timeout: 'buzzer', impact: 'round' }[name] || name;
+    if (Sfx.names().includes(lib)) {
+      Sfx.setVolume(clamp(cfg.vol * Store.state.audio.master * (opts.soft ? 0.5 : 1), 0, 1));
+      safe('sfx:' + lib, () => Sfx.play(lib, lib === 'cdhit' ? opts.n : lib === 'tick' ? !!opts.low : undefined));
+      if (name === 'impact') safe('synth:impact', () => this.synth('impact', cfg.vol * 0.6, opts.soft));
+      return;
+    }
     safe('synth:' + name, () => this.synth(name, cfg.vol, opts.soft));
   },
   playFile(id, vol) {
@@ -350,6 +361,12 @@ const Cue = {
     if (Store.sandbox) return;
     if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'cue', name, opts });
     if (AudioDirector.isOutput()) AudioDirector.playCue(name, opts);
+  },
+  /** V100 CountVoice: a clear English voice counts "Ten … One, Go!" on the audio window. */
+  voice(n) {
+    if (Store.sandbox) return;
+    if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'countvoice', n });
+    if (AudioDirector.isOutput() && !SoundDirector.muted) CountVoice.say(n);
   },
   music(slot, action, media) {
     if (Store.sandbox) return;
@@ -472,6 +489,8 @@ const Sync = {
     else if (m.type === 'speech' && AudioDirector.isOutput()) { if (m.stop) Speech.supported && speechSynthesis.cancel(); else Speech.say(m.text, m.category, m.force); }
     else if (m.type === 'media') { Media.forget(m.id); Media.loadIndex().then(() => Bus.emit('change', { label: 'media' })); }
     else if (m.type === 'fx') Bus.emit('fx', m.fx);
+    else if (m.type === 'countvoice' && AudioDirector.isOutput()) CountVoice.say(m.n);
+    else if (m.type === 'mute') SoundDirector.setMuted(m.on);
   },
   applyState(st, rehearsal) {
     if (!isObj(st)) return;
