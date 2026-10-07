@@ -67,6 +67,15 @@ for (let i = 0; i < rd.length; i++) {
     if (ov.length) overflowIssues.push(sc + ': ' + ov.slice(0, 3).join('; '));
   }
 }
+await ctl.evaluate(() => window.QC.Show.jump('LOGO'));
+await stage.waitForTimeout(1500);
+check('Built-in logo image renders on stage', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .logo-orb img'); return !!i && i.naturalWidth > 0; }));
+const hasSongs = await ctl.evaluate(() => !!document.getElementById('asset-theme'));
+if (hasSongs) check('Built-in theme + welcome songs resolve', await ctl.evaluate(async () => (await window.QC.Media.url('asset:theme')).startsWith('blob:') && (await window.QC.Media.url('asset:welcome')).startsWith('blob:')));
+await ctl.evaluate(() => { const QC = window.QC; QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); });
+await stage.waitForTimeout(1500);
+check('Question image (V100 Q01) renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img'); return !!i && i.naturalWidth > 0; }));
+check('Timer ring fully inside stage', await stage.evaluate(() => { const st = document.querySelector('.stage').getBoundingClientRect(); const c = document.querySelector('.layer:not(.exiting) .timer .ring').getBoundingClientRect(); return c.bottom <= st.bottom + 1 && c.right <= st.right + 1 && c.width > 50; }));
 check('Every scene type visited', [...want].every((s) => shot.has(s)), [...want].filter((s) => !shot.has(s)).join(','));
 check('Control → Stage sync on every step', syncIssues === 0, syncIssues + ' late');
 check('No text overflow / off-stage elements', overflowIssues.length === 0, overflowIssues.join(' || '));

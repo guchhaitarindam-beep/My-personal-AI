@@ -4,11 +4,13 @@
    reveal only swaps the changed part: no flicker, no re-animated options.
    ===================================================================== */
 const H = {
-  photo(mediaId, name, cls = '', color) {
-    const initial = esc(str(name || '?').trim().charAt(0) || '?');
+  photo(mediaId, name, cls = '', color, label) {
+    const initial = esc(label || str(name || '?').trim().charAt(0) || '?');
     const style = color ? ' style="--team:' + esc(color) + '"' : '';
     return '<div class="team-photo ' + cls + '"' + style + '>' + (mediaId ? '<img data-media="' + esc(mediaId) + '" alt="" hidden>' : '') + '<span class="initial"' + (mediaId ? ' data-fallback' : '') + '>' + initial + '</span></div>';
   },
+  /** Team photo with the team number as a broadcast-style fallback. */
+  tphoto(t, cls = '') { return H.photo(t.photo, t.name, cls, '', bn(Sel.teamIndex(t.id) + 1)); },
   teamVars(t) { return t ? '--team:' + esc(t.color) + ';' : ''; },
   roundVars(r) { return r ? '--r-primary:' + esc(r.design.primary) + ';--r-secondary:' + esc(r.design.secondary) + ';--r-accent:' + esc(r.design.accent) + ';' : ''; },
   logo(s, cls = 'logo-chip') { return s.logo ? '<img class="' + cls + '" data-media="' + esc(s.logo) + '" alt="">' : ''; },
@@ -21,9 +23,9 @@ const H = {
   },
   teamCard(t, tag, score) {
     if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">দল নির্বাচন করুন</div></div>';
-    return '<div class="team-card glass" data-part="team" style="' + H.teamVars(t) + '"><div class="flowtag">' + esc(tag) + '</div>' + H.photo(t.photo, t.name) + '<div class="tname">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool">' + esc(t.school) + '</div>' : '') + '<div class="tscore">' + bn(score) + ' পয়েন্ট</div></div>';
+    return '<div class="team-card glass" data-part="team" style="' + H.teamVars(t) + '"><div class="flowtag">' + esc(tag) + '</div>' + H.tphoto(t) + '<div class="tname">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool">' + esc(t.school) + '</div>' : '') + '<div class="tscore">' + bn(score) + ' পয়েন্ট</div></div>';
   },
-  mini(t, label) { return t ? '<div class="mini-team" style="' + H.teamVars(t) + '">' + H.photo(t.photo, t.name) + '<small>' + esc(label) + '</small><b>' + esc(t.name) + '</b></div>' : '<div></div>'; },
+  mini(t, label) { return t ? '<div class="mini-team" style="' + H.teamVars(t) + '">' + H.tphoto(t) + '<small>' + esc(label) + '</small><b>' + esc(t.name) + '</b></div>' : '<div></div>'; },
 };
 
 const Scenes = {
@@ -35,7 +37,7 @@ const Scenes = {
       return { key: 'ORG:' + p.media, anim: p.anim, bare: true, html: '<div class="poster" data-part="poster" style="background:' + esc(p.bg) + '">' + img + '</div>' };
     }
     const e = s.event;
-    return { key: 'ORG', anim: p.anim, html: H.part('body', '<div class="glass" style="padding:5cqh 5cqw;max-width:86cqw;display:flex;flex-direction:column;gap:2cqh;align-items:center">' + H.logo(s, 'logo-chip') + '<div class="s-kicker">' + esc(e.organizer || 'আয়োজক') + '</div><h1 class="s-title">' + esc(e.programme) + '</h1><div class="s-sub">' + esc(e.subtitle) + '</div><div class="banner-lines">' + esc([e.year, e.venue ? 'স্থান: ' + e.venue : '', e.conductedBy ? 'পরিচালনায়: ' + e.conductedBy : ''].filter(Boolean).join('\n')) + '</div></div>', 'center-col') };
+    return { key: 'ORG', anim: p.anim, html: H.part('body', '<div class="glass" style="padding:4cqh 5cqw;max-width:86cqw;display:flex;flex-direction:column;gap:1.6cqh;align-items:center">' + H.logo(s, 'logo-hero') + '<div class="s-kicker">' + esc(e.organizer || 'আয়োজক') + '</div><h1 class="s-title">' + esc(e.programme) + '</h1><div class="s-sub">' + esc(e.subtitle) + '</div><div class="banner-lines">' + esc([e.year, e.venue ? 'স্থান: ' + e.venue : '', e.conductedBy ? 'পরিচালনায়: ' + e.conductedBy : ''].filter(Boolean).join('\n')) + '</div></div>', 'center-col') };
   },
   LOGO(s) { return { key: 'LOGO', anim: 'zoom', html: H.part('brand', Scenes.brand(s, true), 'brand-stage') }; },
   brand(s, big) {
@@ -61,7 +63,7 @@ const Scenes = {
   },
   teamGrid(teams, extra) {
     const cols = teams.length <= 8 ? 4 : teams.length <= 12 ? 4 : teams.length <= 18 ? 6 : 8;
-    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.photo(t.photo, t.name) + '<b>' + esc(t.name) + '</b>' + (t.school ? '<small>' + esc(t.school) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
+    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + esc(t.name) + '</b>' + (t.school ? '<small>' + esc(t.school) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
   },
   TEAMS_ALL(s) { return { key: 'TEAMS_ALL', anim: 'flip', html: H.head(s, '<span class="round-tag">অংশগ্রহণকারী দলসমূহ</span>', '<span class="qnum">' + bn(s.teams.length) + ' টি দল</span>') + H.part('grid', Scenes.teamGrid(s.teams), '', 'flex:1;display:flex;min-height:0') }; },
   intro(s, p, finalist) {
@@ -73,7 +75,7 @@ const Scenes = {
     const playerHtml = players.filter((x) => x[1]).map((x, i) => '<div class="player" style="--i:' + i + '">' + H.photo(x[2], x[1]) + '<small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
-      html: H.part('body', H.photo(t.photo, t.name, 'big-photo') + '<div class="intro-info"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name" data-fit="8">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (playerHtml ? '<div class="player-row">' + playerHtml + '</div>' : '') + '</div>', 'intro-card'),
+      html: H.part('body', H.tphoto(t, 'big-photo') + '<div class="intro-info"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name" data-fit="8">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (playerHtml ? '<div class="player-row">' + playerHtml + '</div>' : '') + '</div>', 'intro-card'),
     };
   },
   TEAM_INTRO(s, p) { return Scenes.intro(s, p, false); },
@@ -121,7 +123,7 @@ const Scenes = {
   WELCOME(s) {
     const bars = Array.from({ length: 24 }, (_, i) => '<i style="animation-delay:' + (i * 0.07).toFixed(2) + 's"></i>').join('');
     const names = Sel.finalists().map((t) => esc(t.name)).join('  ✦  ');
-    return { key: 'WELCOME', anim: 'zoom', html: H.part('body', H.logo(s, 'logo-chip') + '<h1 class="s-title gold">স্বাগতম</h1><div class="s-sub" style="max-width:78cqw">' + esc(s.event.welcomeNote) + '</div><div class="eq">' + bars + '</div><div class="s-sub" style="color:var(--accent)">' + names + '</div>', 'center-col') };
+    return { key: 'WELCOME', anim: 'zoom', html: H.part('body', H.logo(s, 'logo-hero') + '<h1 class="s-title gold">স্বাগতম</h1><div class="s-sub" style="max-width:78cqw">' + esc(s.event.welcomeNote) + '</div><div class="eq">' + bars + '</div><div class="s-sub" style="color:var(--accent)">' + names + '</div>', 'center-col') };
   },
   GIFT(s, p) {
     const t = Sel.team(p.teamId);
@@ -130,7 +132,7 @@ const Scenes = {
     return {
       key: 'GIFT:' + t.id, anim: 'flip', style: H.teamVars(t),
       html: H.head(s, '<span class="round-tag">বিশেষ উপস্থাপনা</span>', '<span class="qnum">দল ' + bn(p.n) + '</span>') +
-        H.part('body', '<div class="team-card glass" style="' + H.teamVars(t) + ';height:100%">' + H.photo(t.photo, t.name) + '<div class="tname" style="font-size:5cqh">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool" style="font-size:2.8cqh">' + esc(t.school) + '</div>' : '') + '</div>' +
+        H.part('body', '<div class="team-card glass" style="' + H.teamVars(t) + ';height:100%">' + H.tphoto(t) + '<div class="tname" style="font-size:5cqh">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool" style="font-size:2.8cqh">' + esc(t.school) + '</div>' : '') + '</div>' +
           '<div class="gift-item glass">' + (g.image ? '<img class="gimg" data-media="' + esc(g.image) + '" alt="">' : '') + '<div class="cat">' + esc(g.category || 'বিশেষ পরিচয়') + '</div><div class="item">' + esc(g.item || '—') + '</div></div>', 'gift-card'),
     };
   },
@@ -176,7 +178,7 @@ const Scenes = {
       side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh"><div class="flowtag" style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--warn);color:#000">CHALLENGE</div><div class="vs-row">' + H.mini(Sel.team(l.challenger), 'CHALLENGER') + '<span class="vs">VS</span>' + H.mini(active, 'TARGET') + '</div></div>';
     } else if ((l.flow === 'pass' || l.flow === 'bonus') && l.passChain.length) {
       const from = Sel.team(l.passChain[l.passChain.length - 1]);
-      side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh;' + H.teamVars(active) + 'border-color:var(--team)"><div style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--team);color:#000">' + flowTag + '</div>' + (active ? H.photo(active.photo, active.name) + '<div class="tname" style="font-size:3.2cqh;font-weight:800;text-align:center;line-height:1.3">' + esc(active.name) + '</div>' : '') + '<div style="text-align:center;color:var(--muted);font-size:1.9cqh">' + (from ? 'পাস এসেছে: ' + esc(from.name) : '') + (l.flow === 'bonus' ? ' • মান ' + bn(Game.pointsFor('correct')) : '') + '</div></div>';
+      side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh;' + H.teamVars(active) + 'border-color:var(--team)"><div style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--team);color:#000">' + flowTag + '</div>' + (active ? H.tphoto(active) + '<div class="tname" style="font-size:3.2cqh;font-weight:800;text-align:center;line-height:1.3">' + esc(active.name) + '</div>' : '') + '<div style="text-align:center;color:var(--muted);font-size:1.9cqh">' + (from ? 'পাস এসেছে: ' + esc(from.name) : '') + (l.flow === 'bonus' ? ' • মান ' + bn(Game.pointsFor('correct')) : '') + '</div></div>';
     } else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const img = q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
@@ -204,7 +206,7 @@ const Scenes = {
       const hidden = i < revealFrom;
       const mv = r.move > 0 ? '<span class="mv up">▲ ' + bn(r.move) + '</span>' : r.move < 0 ? '<span class="mv down">▼ ' + bn(-r.move) + '</span>' : '<span class="mv same">—</span>';
       if (hidden) return '<div class="sb-row" style="--i:' + i + ';--team:#555"><span class="rank">' + bn(r.rank) + '</span><div class="team-photo"><span class="initial">?</span></div><div class="nm"><b>? ? ?</b></div><span class="rs"></span><span class="tot">—</span><span></span></div>';
-      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.photo(r.team.photo, r.team.name) + '<div class="nm"><b>' + esc(r.team.name) + '</b>' + (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '') + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
+      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + esc(r.team.name) + '</b>' + (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '') + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
     }).join('');
   },
   SCOREBOARD(s, p) {
@@ -228,7 +230,7 @@ const Scenes = {
     const photo = s.winnerPhoto || t.photo;
     return {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
-      html: H.part('body', H.photo(photo, t.name, 'wphoto') + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
+      html: H.part('body', H.photo(photo, t.name, 'wphoto', '', bn(Sel.teamIndex(t.id) + 1)) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
   },
   END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">ধন্যবাদ</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },
