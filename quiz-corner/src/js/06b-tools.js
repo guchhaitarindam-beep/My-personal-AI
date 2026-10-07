@@ -14,7 +14,7 @@ function cleanStr(v, max = 2000, multiline = false) {
   return s.slice(0, max);
 }
 function hashId(v) { let h = 2166136261; const t = String(v || ''); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-const ROUND_META = [['R1', 'মজার মিশেল', 'Warm-up'], ['R2', 'চিন্তা ও চয়েস', 'Challenge'], ['R3', 'দেখো তো চিনতে পারো কিনা', 'Audio / Visual'], ['R4', 'সূত্র সন্ধান', 'Strategic'], ['R5', 'বাজাও বাজার', 'Rapid Fire'], ['R6', 'ঝটপট জবাব', 'Final'], ['R7', 'সংরক্ষিত প্রশ্ন', 'Reserve']];
+const ROUND_META = [['R1', 'মজার মিশেল', 'Warm-up'], ['R2', 'চিন্তা ও চয়েস', 'Challenge'], ['R3', 'বুদ্ধির টক্কর', 'Challenge'], ['R4', 'সূত্র সন্ধান', 'Strategic'], ['R5', 'বাজাও বাজার', 'Rapid Fire'], ['R6', 'ঝটপট জবাব', 'Final'], ['R7', 'সংরক্ষিত প্রশ্ন', 'Reserve']];
 /** A V100-shaped question {round,num,text,options,optionCount,answer,timeLimit,hint,explain,difficulty} → V66 question. */
 function buildQuestion(q, i) {
   const n = q.optionCount === 2 ? 2 : 4;

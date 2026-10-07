@@ -157,8 +157,8 @@ function roundFromSeed(r, i) {
     id: str(r.id || 'R' + (i + 1), 12), name: str(r.name || 'রাউন্ড ' + bn(i + 1), 120), label: str(r.label, 160), rules: str(r.rules, 4000),
     description: '', type, enabled: !r.skip, // WA0002: rounds marked skip stay in the file but are left out of the show
     features: {
-      options: type === 'rapid' ? true : !!p.options, judgeOptions: !!p.judge, pass: type !== 'rapid', passAfterOptions: !!p.passOpt,
-      challenge: !!p.hands, singleChallenger: p.single !== false, lifelines: type === 'standard', twoOptions: type === 'rapid',
+      options: type === 'rapid' ? true : !!p.options, judgeOptions: !!p.judge, pass: type !== 'rapid' && p.pass !== false, passAfterOptions: !!p.passOpt,
+      challenge: !!p.hands, singleChallenger: p.single !== false, lifelines: type === 'standard' && p.lifelines !== false, twoOptions: type === 'rapid',
     },
     scoring: Object.assign(defaultScoring(), type === 'bonus' ? { direct: 10, pass: 10, bonusStep: 2 } : {}),
     timers: { direct: 60, pass: 45, raise: 5 },

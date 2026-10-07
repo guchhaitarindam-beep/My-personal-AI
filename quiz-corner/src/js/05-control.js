@@ -450,6 +450,8 @@ const Actions = {
   setActive(id) {
     const s = Store.state; const r = Sel.round(s.live.roundId);
     if (s.show.scene === 'QUESTION' && s.live.qid && s.live.result === 'wrong' && !s.live.revealed && id !== s.live.active && r && r.features.pass) { Game.pass(id); return; }
+    // Challenge round (e.g. round 3): another team's number = that team pressed the buzzer.
+    if (s.show.scene === 'QUESTION' && s.live.qid && r && r.features.challenge && r.type !== 'rapid' && id !== s.live.active && !s.live.revealed) { Game.raiseHand(id); return; }
     Game.setActive(id);
   },
   options() { Game.showOptions(); },

@@ -423,12 +423,14 @@ const Game = {
     Store.commit('judge-' + kind, (st) => {
       this.addEntry(st, team, pts, label + ' • ' + this.flowName(st.live.flow), { kind, flow: st.live.flow });
       st.live.result = kind; st.live.resultAt = now(); st.live.lastPoints = pts; st.live.resultTeam = team;
-      if (kind === 'correct' && st.settings.autoRevealOnCorrect) st.live.revealed = true;
+      // In a challenge round the answer stays hidden after the team answers, so another team can still buzz and challenge.
+      const holdForChallenge = r0 && r0.features.challenge && r0.type !== 'rapid';
+      if (kind === 'correct' && st.settings.autoRevealOnCorrect && !holdForChallenge) st.live.revealed = true;
       if (kind === 'wrong' && r0) {
         // Rapid Fire: the buzzing team's wrong answer finishes the question.
         if (r0.type === 'rapid') { st.live.closed = true; st.live.revealed = true; }
         // Nobody left to pass to, or options were taken where passing is not allowed: show the answer.
-        else if (st.live.flow !== 'challenge' && (!this.nextPassTeam() || (st.live.optionsShown && !r0.features.passAfterOptions && r0.type !== 'bonus') || !r0.features.pass)) st.live.revealed = true;
+        else if (st.live.flow !== 'challenge' && !holdForChallenge && (!this.nextPassTeam() || (st.live.optionsShown && !r0.features.passAfterOptions && r0.type !== 'bonus') || !r0.features.pass)) st.live.revealed = true;
       }
     });
     Cue.play(kind === 'correct' ? 'correct' : kind === 'wrong' ? 'wrong' : 'reveal', { round: s.live.roundId });
@@ -457,6 +459,7 @@ const Game = {
       this.addEntry(st, teamId, pts, (right ? 'হাত তোলা সঠিক' : 'হাত তোলা ভুল'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
       st.live.handsJudged = Object.assign({}, st.live.handsJudged, { [teamId]: right ? 'right' : 'wrong' });
       st.live.lastPoints = pts; st.live.resultAt = now(); st.live.result = right ? 'correct' : 'wrong'; st.live.resultTeam = teamId;
+      if (right && st.settings.autoRevealOnCorrect) st.live.revealed = true; // a correct challenge settles the question
     });
     Cue.play(right ? 'correct' : 'wrong');
     return true;
