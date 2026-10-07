@@ -13,6 +13,7 @@ const UI = {
   preview: null,
 
   toast(msg, kind = '') {
+    if (Store.sandbox) return;
     if (MODE === 'stage') { Log.add(kind === 'err' ? 'ERR' : 'INFO', msg); return; }
     let host = $('.toast-host');
     if (!host) { host = document.createElement('div'); host.className = 'toast-host'; host.setAttribute('role', 'status'); host.setAttribute('aria-live', 'polite'); document.body.appendChild(host); }

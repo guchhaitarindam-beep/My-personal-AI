@@ -335,10 +335,12 @@ const AudioDirector = {
 /** Cue router: plays locally when this window owns audio, otherwise forwards to the owner. */
 const Cue = {
   play(name, opts = {}) {
+    if (Store.sandbox) return;
     if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'cue', name, opts });
     if (AudioDirector.isOutput()) AudioDirector.playCue(name, opts);
   },
   music(slot, action, media) {
+    if (Store.sandbox) return;
     if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'music', slot, action, media });
     if (AudioDirector.isOutput()) AudioDirector.music(slot, action, media);
   },
@@ -361,7 +363,7 @@ const Speech = {
     return this.voices.find((v) => v.name === want) || this.voices.find((v) => /^bn(-|_)IN/i.test(v.lang)) || this.voices.find((v) => /^bn/i.test(v.lang)) || null;
   },
   say(text, category = 'general', force = false) {
-    if (!text) return;
+    if (!text || Store.sandbox) return;
     if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'speech', text, category, force });
     if (!AudioDirector.isOutput()) return;
     const sp = Store.state.speech;
@@ -432,7 +434,7 @@ const Sync = {
   },
   send(msg) { this.post(msg); },
   queueState() {
-    if (this.sendQueued) return;
+    if (this.sendQueued || Store.sandbox) return;
     this.sendQueued = true;
     queueMicrotask(() => { this.sendQueued = false; this.post({ type: 'state', state: Store.state, rehearsal: Store.rehearsal }); });
   },

@@ -11,9 +11,11 @@ const Store = {
   realSnapshot: null,
   saveTimer: 0,
   storageOk: true,
+  sandbox: false, // true only while the self-test runs
 
   init() {
-    const raw = MODE === 'control' ? this.readLS(LS_KEY) : null;
+    // Stage/Host read the same saved show so they recover even before Control reconnects.
+    const raw = this.readLS(LS_KEY);
     this.state = normalizeState(raw || defaultState());
     // A refresh mid-show must never leave a timer "running" from a stale clock domain.
     if (this.state.timer.running && !(this.state.timer.startedAt > 0)) this.state.timer.running = false;
@@ -34,7 +36,7 @@ const Store = {
     } catch (e) {
       Log.err('commit:' + label, e);
       if (before) this.state = before; // roll back a half-applied mutation
-      if (typeof UI !== 'undefined') UI.toast('ত্রুটি: ' + (e.message || e), 'err');
+      UI.toast('ত্রুটি: ' + (e.message || e), 'err');
       return undefined;
     }
     if (result === false) { return false; } // mutation declined, nothing changed
@@ -50,6 +52,7 @@ const Store = {
   touch(label) {
     this.state.rev += 1;
     this.state.updatedAt = Date.now();
+    if (this.sandbox) return;
     this.schedulePersist();
     Bus.emit('change', { label, rev: this.state.rev });
   },
@@ -86,12 +89,12 @@ const Store = {
   },
 
   schedulePersist() {
-    if (MODE !== 'control') return;
+    if (MODE !== 'control' || this.sandbox) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.persist(), 250);
   },
   persist() {
-    if (MODE !== 'control') return;
+    if (MODE !== 'control' || this.sandbox) return;
     try {
       localStorage.setItem(this.rehearsal ? LS_REH : LS_KEY, JSON.stringify(this.state));
       if (!this.storageOk) { this.storageOk = true; Bus.emit('storage', true); }
