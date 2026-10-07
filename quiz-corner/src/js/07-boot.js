@@ -8,7 +8,7 @@ const Stage = {
     document.title = 'Quiz Corner — STAGE';
     document.body.innerHTML = '<div id="stageRoot" style="position:fixed;inset:0;background:#000"></div>';
     this.view = new StageView($('#stageRoot'));
-    Bus.on('change', () => { DesignSystem.apply(); this.view.render(); this.audioGate(); });
+    Bus.on('change', () => { DesignSystem.apply(); AudioDirector.setBoost(); this.view.render(); this.audioGate(); });
     DesignSystem.apply();
     this.view.render();
     document.addEventListener('dblclick', () => this.toggleFullscreen());
@@ -79,7 +79,7 @@ const SelfTest = {
       T('ডিফল্ট: ৭টি রাউন্ড', () => s().rounds.length === 7);
       T('ডিফল্ট: সরাসরি টাইমার ৬০ সেকেন্ড (সব রাউন্ড)', () => s().rounds.every((r) => r.timers.direct === 60));
       T('ডিফল্ট: পাস/বোনাস টাইমার ৪৫ সেকেন্ড (সব রাউন্ড)', () => s().rounds.every((r) => r.timers.pass === 45));
-      T('ডিফল্ট: বাছাই ২০টি প্রশ্ন, প্রতিটির উত্তর আছে', () => Sel.prelimQuestions().length === 20 && Sel.prelimQuestions().every((q) => q.text && q.answer));
+      T('ডিফল্ট: বাছাই ১৫টি প্রশ্ন (সর্বশেষ নিয়ম), প্রতিটির উত্তর আছে', () => Sel.prelimQuestions().length === 15 && Sel.prelimQuestions().every((q) => q.text && q.answer));
       T('ডিফল্ট: শীর্ষ ৮ দল চূড়ান্ত', () => s().prelim.finalistCount === 8 && Sel.finalistIds().length === 8);
       T('V100 প্রশ্ন ব্যাংক সংরক্ষিত', () => s().questions.length >= 70 ? 'প্রশ্ন: ' + s().questions.length : false);
       T('ক্ষতিগ্রস্ত ডেটা স্বাভাবিকীকরণ', () => { const n = normalizeState({ teams: 'x', rounds: [null], questions: [{}], ledger: [1, null], timer: { duration: 'abc' } }); return n.teams.length > 0 && n.rounds.length === 1 && n.timer.duration === 60000; });
@@ -180,8 +180,14 @@ const SelfTest = {
       Game.bonus();
       T('ম্যানুয়াল বোনাস একবারই', () => Sel.score(a) === sa2 + 5 && Game.bonus() === false);
       // auto reveal when options were taken in a round without pass-after-options
+      // latest rules: in round 1 a wrong answer after the options still passes to the next team
       Game.load(Sel.roundQuestions('R1')[4].id, a); Game.showOptions(); Game.judge('wrong');
-      T('বিকল্প নেওয়ার পর ভুল: উত্তর নিজে দেখায়', () => s().live.revealed === true);
+      T('রাউন্ড ১: বিকল্পের পরে ভুল হলেও পাস খোলা থাকে', () => s().live.revealed === false && Game.pass() === true && s().live.flow === 'pass');
+      // a round set to "no pass after options" reveals the answer by itself
+      Sel.round('R1').features.passAfterOptions = false;
+      Game.load(Sel.roundQuestions('R1')[6].id, a); Game.showOptions(); Game.judge('wrong');
+      T('বিকল্প নেওয়ার পর ভুল (পাস-বন্ধ রাউন্ড): উত্তর নিজে দেখায়', () => s().live.revealed === true);
+      Sel.round('R1').features.passAfterOptions = true;
       T('একই প্রশ্নে দুবার সঠিক নয়', () => { Game.load(Sel.roundQuestions('R1')[5].id, a); Game.judge('correct'); return Game.judge('correct') === false; });
       // rapid: wrong closes
       Game.load(Sel.roundQuestions('R5')[1].id, b); Game.judge('wrong');
@@ -212,7 +218,106 @@ const SelfTest = {
       rd.forEach((step) => { Store.state.show.scene = step.scene; Store.state.show.params = step.params; if (step.scene === 'QUESTION') Store.state.live.qid = step.params.qid; try { const out = (Scenes[step.scene])(Store.state, step.params); if (!out || typeof out.html !== 'string' || !out.key) bad.push(step.key); } catch (e) { bad.push(step.key + ': ' + e.message); } });
       T('রেন্ডার: রানডাউনের প্রতিটি দৃশ্য (' + rd.length + ')', () => (bad.length ? bad.slice(0, 3).join('; ') && false : true));
       T('রানডাউন: পূর্ণ শো-প্রবাহ', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'GIFT', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
-      T('রানডাউন: ৭টি রাউন্ড সূচনা', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === 7);
+      T('রানডাউন: ১৩ অক্টোবরের ৩টি মূল রাউন্ড', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3');
+
+      // ---- the latest rules (DOC-20261004-WA0002) for the 13 October main stage ----
+      Store.state = normalizeState(defaultState());
+      const R = (id) => Sel.round(id);
+      T('নিয়ম: মূল পর্বের ৩টি রাউন্ডের নাম', () => R('R1').name === 'মজার মিশেল' && R('R2').name === 'চিন্তা ও চয়েস' && R('R3').name === 'দেখো তো চিনতে পারো কিনা');
+      T('নিয়ম: রাউন্ড ১–৩ চালু, ৪–৭ ফাইলে আছে কিন্তু বন্ধ', () => ['R1', 'R2', 'R3'].every((id) => R(id).enabled) && ['R4', 'R5', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled));
+      T('নিয়ম: নিয়মের লেখায় সময় ৬০ ও ৪৫ সেকেন্ড', () => ['R1', 'R2'].every((id) => R(id).rules.includes('৬০ সেকেন্ড') && R(id).rules.includes('৪৫ সেকেন্ড')));
+      T('নিয়ম: কোথাও পুরনো ৩০/১৫ সেকেন্ড নেই', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
+      T('নিয়ম: রাউন্ড ১ — সরাসরি ১০, চার বিকল্পে ৫, দুই বিকল্পে ৩', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
+      T('নিয়ম: রাউন্ড ১ — পাসের পর পরের দলে ৫, ভুলে ০', () => R('R1').scoring.pass === 5 && R('R1').scoring.wrong === 0);
+      T('নিয়ম: রাউন্ড ১ — বিকল্প আছে, উপস্থাপক বোতামে নম্বর দেন', () => R('R1').features.options && !R('R1').features.judgeOptions && R('R1').features.passAfterOptions);
+      T('নিয়ম: রাউন্ড ১ ও ২ — চ্যালেঞ্জ নেই', () => !R('R1').features.challenge && !R('R2').features.challenge);
+      T('নিয়ম: রাউন্ড ২ — কোনো বিকল্প নেই', () => R('R2').features.options === false);
+      T('নিয়ম: রাউন্ড ৩ — দৃশ্য-শ্রাব্য বোনাস, প্রতি ধাপে +২', () => R('R3').type === 'bonus' && R('R3').scoring.bonusStep === 2 && R('R3').scoring.direct === 10);
+      T('নিয়ম: বাছাই পর্ব — ১৫টি প্রশ্ন, ৩/৬/৯/১২/১৫ তারকা', () => s().prelim.rules.includes('১৫টি') && Sel.prelimQuestions().map((q, i) => (q.star ? i + 1 : 0)).filter(Boolean).join() === '3,6,9,12,15');
+      T('প্রশ্ন: রাউন্ড ১–৩-এ ১০টি করে, নম্বর ১–১০', () => ['R1', 'R2', 'R3'].every((id) => { const qs = Sel.roundQuestions(id); return qs.length === 10 && qs.map((q) => q.number).sort((x, y) => x - y).join() === '1,2,3,4,5,6,7,8,9,10'; }));
+      T('প্রশ্ন: প্রতি রাউন্ডে অন্তত একটি পুরাণের প্রশ্ন', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /রাম|রাবণ|রামায়ণ|মহাভারত|কুরুক্ষেত্র|গীতা|দুর্গা|অর্জুন/.test(q.text))));
+      T('প্রশ্ন: প্রতি রাউন্ডে অন্তত একটি গল্প/কার্টুনের প্রশ্ন', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /টুনটুনি|সুকুমার|খিচুড়ি|গুপী|বাঘা|প্রদোষচন্দ্র|মগজাস্ত্র|ঠাকুরমার/.test(q.text))));
+      T('প্রশ্ন: ৭০টি প্রশ্নের একটিও বাদ যায়নি', () => s().questions.length === 70 && new Set(s().questions.map((q) => q.id)).size === 70);
+      T('প্রশ্ন: সব প্রশ্নের সঠিক উত্তর বিকল্পের মধ্যে আছে', () => s().questions.every((q) => q.options[q.answer]));
+      {
+        const [ta, tb, tc] = Sel.finalistIds();
+        Store.state.show.scene = 'QUESTION';
+        Game.load(Sel.roundQuestions('R1')[7].id, ta);
+        T('খেলা: রাউন্ড ১ সরাসরি সঠিক = ১০', () => Game.pointsFor('correct') === 10);
+        Game.showOptions();
+        T('খেলা: রাউন্ড ১ চার বিকল্পে = ৫', () => Game.pointsFor('correct') === 5);
+        Game.useLifeline('fifty');
+        T('খেলা: রাউন্ড ১ দুই বিকল্পে = ৩', () => Game.pointsFor('correct') === 3);
+        Game.load(Sel.roundQuestions('R2')[0].id, ta);
+        T('খেলা: রাউন্ড ২ — বিকল্প চাইলেও আসে না', () => Game.showOptions() === false && !s().live.optionsShown);
+        T('খেলা: সরাসরি টাইমার ৬০ সেকেন্ড', () => Timer.durationFor('direct') === 60 && s().timer.duration === 60000);
+        Game.judge('wrong'); Game.pass();
+        T('খেলা: পাসে টাইমার ৪৫ সেকেন্ড', () => s().timer.duration === 45000 && Timer.durationFor('pass') === 45);
+        T('খেলা: পাসের পর সঠিক = ৫', () => Game.pointsFor('correct') === 5);
+        Game.load(Sel.roundQuestions('R3')[1].id, ta);
+        T('খেলা: রাউন্ড ৩ প্রথম দলে সঠিক = ১০', () => Game.pointsFor('correct') === 10);
+        Game.judge('wrong'); Game.pass();
+        T('খেলা: রাউন্ড ৩ পরের দলে = ১২', () => Game.pointsFor('correct') === 12);
+        Game.judge('wrong'); Game.pass();
+        T('খেলা: রাউন্ড ৩ তার পরের দলে = ১৪', () => Game.pointsFor('correct') === 14);
+        T('খেলা: রাউন্ড ৩ ভুলে মাইনাস নেই', () => Game.pointsFor('wrong') === 0);
+        Game.load(Sel.roundQuestions('R1')[8].id, ta); Game.judge('wrong');
+        const target = Sel.finalistIds()[4];
+        Actions.setActive(target);
+        T('খেলা: ভুলের পরে দলের নম্বর চাপলে সেই দলে পাস', () => s().live.active === target && s().live.flow === 'pass' && s().timer.duration === 45000);
+        const before = Sel.score(target); Game.judge('correct');
+        T('খেলা: সঠিক উত্তরে নম্বর নিজে থেকে যোগ হয়', () => Sel.score(target) === before + 5);
+        T('খেলা: নম্বর কী ১ = দল A / 1', () => Sel.teamByKey(1) === s().teams[0].id && Sel.teamByKey(8) === s().teams[7].id);
+        void tb; void tc;
+      }
+      // ---- team codes, members, our identity / our team ----
+      Store.state = normalizeState(defaultState());
+      T('দল: ডিফল্ট ৮টি দল A / 1 … H / 8', () => s().teams.length === 8 && s().teams.map((t) => t.name).join('|') === 'A / 1|B / 2|C / 3|D / 4|E / 5|F / 6|G / 7|H / 8');
+      T('দল: কোড অবস্থান অনুযায়ী', () => teamCode(0) === 'A / 1' && teamCode(7) === 'H / 8' && Sel.code(s().teams[2]) === 'C / 3');
+      T('দল: নাম দিলে কোড + নাম', () => { s().teams[1].name = 'উত্তর কলমদান'; const ok = Sel.label(s().teams[1]) === 'B / 2 উত্তর কলমদান' && Sel.label(s().teams[0]) === 'A / 1'; s().teams[1].name = 'B / 2'; return ok; });
+      T('দল: পুরনো "দল ৩" নাম কোডে বদলায়', () => normalizeState({ teams: [{ name: 'দল ১' }, { name: 'Team 2' }, { name: '' }] }).teams.map((t) => t.name).join('|') === 'A / 1|B / 2|C / 3');
+      T('দল: নিজের দেওয়া নাম অক্ষত থাকে', () => normalizeState({ teams: [{ name: 'সূর্যমুখী' }] }).teams[0].name === 'সূর্যমুখী');
+      T('সদস্য: শুরুতে কোনো সদস্য নেই', () => Sel.members(s().teams[0]).length === 0);
+      s().teams[0].captain = 'রিয়া'; s().teams[0].players[0] = 'সোহম'; s().teams[0].captainPhoto = 'm_test1'; s().teams[0].playerPhotos[0] = 'm_test2';
+      T('সদস্য: প্রতি দলে ২ জন (ছবিসহ)', () => { const m = Sel.members(s().teams[0]); return m.length === 2 && m[0].photo === 'm_test1' && m[1].photo === 'm_test2'; });
+      T('সদস্য: দলের ছবি না থাকলে দুই সদস্যের মুখ', () => H.tphoto(s().teams[0]).includes('duo n2'));
+      Show._rd = null;
+      const rd2 = Show.rundown();
+      const iTheme = rd2.findIndex((x) => x.scene === 'THEME'); const iId = rd2.findIndex((x) => x.scene === 'IDENTITY'); const iCrew = rd2.findIndex((x) => x.scene === 'CREW'); const iTeams = rd2.findIndex((x) => x.scene === 'TEAMS_ALL');
+      T('পরিচয়: থিম সং → আমাদের পরিচয় → আমাদের টিম → সব দল', () => iTheme >= 0 && iTheme < iId && iId < iCrew && iCrew < iTeams);
+      const introStep = rd2.find((x) => x.scene === 'TEAM_INTRO' && x.params.teamId === s().teams[0].id);
+      Show.go(introStep);
+      T('পরিচিতি: প্রথমে শুধু দল (সদস্য লুকানো)', () => s().show.params.sub === 0 && (Scenes.TEAM_INTRO(s(), s().show.params).html.match(/mem-card[^"]*hidden/g) || []).length === 2);
+      Show.next();
+      T('পরিচিতি: পরের চাপে সদস্য ১', () => s().show.scene === 'TEAM_INTRO' && s().show.params.sub === 1);
+      Show.next();
+      T('পরিচিতি: তারপর সদস্য ২', () => s().show.params.sub === 2 && !/mem-card[^"]*hidden/.test(Scenes.TEAM_INTRO(s(), s().show.params).html));
+      Show.next();
+      T('পরিচিতি: তারপর পরের দল', () => s().show.scene === 'TEAM_INTRO' && s().show.params.teamId === s().teams[1].id);
+      Show.prev();
+      T('পরিচিতি: পিছনে গেলে আগের দল সব সদস্যসহ', () => s().show.params.teamId === s().teams[0].id && s().show.params.sub === 2);
+      T('পরিচিতি: দলের কোড বড় করে', () => (Scenes.TEAM_INTRO(s(), s().show.params).html.includes('TEAM A / 1') && Scenes.TEAM_INTRO(s(), s().show.params).html.includes('data-fit="15"')));
+      Show.go(rd2[iCrew]);
+      const nCrew = Sel.crew().length;
+      T('আমাদের টিম: প্রথম কার্ড (অধিনায়ক) দিয়ে শুরু', () => s().show.params.sub === 1 && nCrew >= 2);
+      for (let k = 0; k < nCrew + 3; k++) Show.sub(1);
+      T('আমাদের টিম: সব কার্ড এলে থামে', () => s().show.params.sub === nCrew);
+      T('আমাদের টিম: অধিনায়ক মাঝখানে', () => { const html = Scenes.CREW(s(), s().show.params).html; const parts = html.match(/data-part="c\d+"/g) || []; return parts.length === nCrew && parts[Math.floor((nCrew - 1) / 2)] === 'data-part="c0"'; });
+      T('আমাদের পরিচয়: OUR IDENTITY ও প্রতিটি কৃতজ্ঞতা কার্ড', () => { const html = Scenes.IDENTITY(s()).html; return html.includes('OUR IDENTITY') && (html.match(/class="id-credit"/g) || []).length === s().event.credits.split('\n').filter((x) => x.trim()).length; });
+      // ---- design and sound ----
+      T('নকশা: কোণে ঘুরন্ত লোগো চালু', () => s().design.corner.show && s().design.corner.spin && s().design.corner.pos === 'tr');
+      T('নকশা: দৃশ্য বদলে স্পষ্ট রঙিন সুইপ', () => s().design.wipe === 'sweep');
+      T('নকশা: নিয়ম — বড় শিরোনাম, নিচে দাগ, প্রতিটি নিয়ম আলাদা কার্ডে', () => { const sc = Scenes.ROUND_RULES(s(), { roundId: 'R1' }); const n = (R('R1').rules.match(/^[০-৯]+\./gm) || []).length; return sc.html.includes('rules-title') && sc.html.includes('rules-underline') && (sc.html.match(/class="rule-item"/g) || []).length === n && sc.html.includes('rule-key'); });
+      T('নকশা: রাউন্ডের নাম বিশাল (১৯cqh পর্যন্ত)', () => Scenes.ROUND_INTRO(s(), { roundId: 'R1' }).html.includes('data-fit="19"'));
+      Store.state.show.scene = 'QUESTION';
+      Game.load(Sel.roundQuestions('R1')[0].id, s().teams[0].id);
+      T('নকশা: প্রশ্নের সময় কোণে দলের ছবি ও "TEAM A / 1"', () => { const html = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return html.includes('TEAM A / 1') && html.includes('team-photo'); });
+      T('নকশা: লাইফলাইনের চিপ টিভিতে লুকানো (নিয়মে নেই)', () => s().settings.showLifelines === false && !Scenes.QUESTION(s(), { qid: s().live.qid }).html.includes('lifeline-row'));
+      T('সাউন্ড: জোরালো — বুস্ট ও লিমিটার', () => s().audio.boost >= 1.5 && s().audio.musicBoost >= 1.5 && s().audio.master === 1);
+      T('সাউন্ড: প্রতিটি এফেক্ট পূর্ণ ভলিউমে', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
+      T('সাউন্ড: প্রশ্ন, বিকল্প, সঠিক, ভুল, পাস — সব সাউন্ড আছে', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
+      T('সাউন্ড: থিম সং পূর্ণ ভলিউমে', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
+      T('কাউন্টডাউন: একটু ধীরে (১.৫ সেকেন্ড/সংখ্যা)', () => s().settings.countdownStepMs >= 1400);
 
       // ---- text fitting with long Bengali ----
       T('লেখা ফিট: দীর্ঘ বাংলা প্রশ্ন বাক্সের বাইরে যায় না', () => {
@@ -255,6 +360,13 @@ const Authority = {
     if (Store.sandbox) return;
     Timer.tick();
     const s = Store.state;
+    // "Our team": after the first card the others arrive by themselves, one every crewStepMs (V100).
+    if (s.show.scene === 'CREW' && s.settings.crewAuto) {
+      const cur = int(s.show.params.sub, 1);
+      const key = s.show.startedAt + ':' + cur;
+      if (key !== this.crewKey) { this.crewKey = key; this.crewAt = now(); }
+      else if (cur < Sel.crew().length && now() - this.crewAt >= int(s.settings.crewStepMs, 2800, 800, 20000)) { this.crewKey = ''; Show.sub(1); }
+    }
     if (s.show.scene === 'PRELIM_COUNTDOWN' || s.show.scene === 'MAIN_COUNTDOWN') {
       const key = s.show.scene + s.show.startedAt;
       if (key !== this.cdKey) { this.cdKey = key; this.cdStep = -1; }

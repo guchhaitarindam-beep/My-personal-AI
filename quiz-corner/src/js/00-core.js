@@ -130,9 +130,13 @@ function defaultTextStyles() {
   };
 }
 
+/** V100 team codes: the teams are always called A / 1 … H / 8 (then I / 9 …). */
+function teamCode(i) { return String.fromCharCode(65 + (i % 26)) + ' / ' + (i + 1); }
+const GENERIC_TEAM_NAME = /^(দল\s*[০-৯0-9]+|Team\s*[0-9]+|[A-Z]\s*\/\s*[0-9]+)?$/;
+
 function defaultTeam(i) {
   return {
-    id: 'T' + (i + 1), name: 'দল ' + bn(i + 1), school: '', captain: '', players: ['', '', ''],
+    id: 'T' + (i + 1), name: teamCode(i), school: '', captain: '', players: ['', '', ''],
     photo: '', captainPhoto: '', playerPhotos: ['', '', ''], color: TEAM_COLORS[i % TEAM_COLORS.length], emblem: '',
     prelim: { marks: [], manual: null, stars: null },
     gift: { category: (DEFAULT_GIFTS[i] || ['', ''])[0], item: (DEFAULT_GIFTS[i] || ['', ''])[1], image: '' },
@@ -151,7 +155,7 @@ function roundFromSeed(r, i) {
   const palette = [['#7c3aed', '#38e8ff', '#ffd166'], ['#2563eb', '#22d3ee', '#ffd166'], ['#db2777', '#f472b6', '#ffe066'], ['#059669', '#34d399', '#ffd166'], ['#ea580c', '#fbbf24', '#fff1a8'], ['#0891b2', '#67e8f9', '#ffd166'], ['#4f46e5', '#a5b4fc', '#ffd166']][i % 7];
   return {
     id: str(r.id || 'R' + (i + 1), 12), name: str(r.name || 'রাউন্ড ' + bn(i + 1), 120), label: str(r.label, 160), rules: str(r.rules, 4000),
-    description: '', type, enabled: true,
+    description: '', type, enabled: !r.skip, // WA0002: rounds marked skip stay in the file but are left out of the show
     features: {
       options: type === 'rapid' ? true : !!p.options, judgeOptions: !!p.judge, pass: type !== 'rapid', passAfterOptions: !!p.passOpt,
       challenge: !!p.hands, singleChallenger: p.single !== false, lifelines: type === 'standard', twoOptions: type === 'rapid',
@@ -219,16 +223,16 @@ function defaultState() {
     winnerPhoto: '',
     poster: { media: '', fit: 'contain', posX: 50, posY: 50, zoom: 1, opacity: 1, anim: 'zoom', bg: '#000000' },
     gallery: [],
-    teams: Array.from({ length: 12 }, (_, i) => defaultTeam(i)),
+    teams: Array.from({ length: 8 }, (_, i) => defaultTeam(i)),
     prelim: {
-      count: 20, points: 5, finalistCount: 8, rules: str(show.prelimRules), questions: defaultPrelim(),
+      count: 15, points: 5, finalistCount: 8, rules: str(show.prelimRules), questions: defaultPrelim(),
       useMatrix: true, drone: true,
     },
     finalists: [], finalistsLocked: false,
     rounds,
     questions: arr(SEED.questions).map(questionFromSeed),
     testQuestions: arr(SEED.testQuestions).map(questionFromSeed),
-    flipPool: 'R7',
+    flipPool: 'R6',
     giftCategories: GIFT_CATEGORIES.slice(),
     sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
@@ -237,23 +241,24 @@ function defaultState() {
       text: defaultTextStyles(),
       box: { show: true, width: 0.28, radius: 2.2, opacity: 0.88 },
       qSpacing: 0, qLeading: 1.42,
+      corner: { show: true, pos: 'tr', size: 1, spin: true }, wipe: 'sweep',
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 0.9, output: 'control', bgm: { on: true, vol: 0.35, tagore: true }, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 0.8, mute: false, media: '' }])),
+      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true }, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
       music: {
-        theme: { media: 'asset:theme', vol: 0.85, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
-        welcome: { media: 'asset:welcome', vol: 0.85, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
-        winner: { media: '', vol: 0.9, fadeIn: 0.5, fadeOut: 2, loop: false, delay: 0 },
+        theme: { media: 'asset:theme', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
+        welcome: { media: 'asset:welcome', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
+        winner: { media: '', vol: 1, fadeIn: 0.5, fadeOut: 2, loop: false, delay: 0 },
         background: { media: '', vol: 0.35, fadeIn: 2, fadeOut: 2, loop: true, delay: 0 },
       },
     },
     speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true },
     display: { webgl: true, strobe: true, fireworks: true, calib: 'off', aspect: '16:9', safeMargin: 0, testCard: false },
     settings: {
-      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1100, warnAt: 10, critAt: 5,
-      autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: true, operatorRole: 'controller',
-      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66',
+      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,
+      autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
+      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800,
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },
@@ -294,7 +299,7 @@ function normalizeState(raw) {
   const s = mergeDefaults(def, raw);
   s.schema = SCHEMA;
   s.teams = arr(s.teams).slice(0, 60).map((t, i) => mergeDefaults(defaultTeam(i), t));
-  s.teams.forEach((t, i) => { t.id = str(t.id || 'T' + (i + 1), 24); t.players = arr(t.players).concat(['', '', '']).slice(0, 3).map((p) => str(p, 80)); t.playerPhotos = arr(t.playerPhotos).concat(['', '', '']).slice(0, 3).map((p) => str(p, 120)); });
+  s.teams.forEach((t, i) => { t.id = str(t.id || 'T' + (i + 1), 24); t.players = arr(t.players).concat(['', '', '']).slice(0, 3).map((p) => str(p, 80)); t.playerPhotos = arr(t.playerPhotos).concat(['', '', '']).slice(0, 3).map((p) => str(p, 120)); if (GENERIC_TEAM_NAME.test(str(t.name).trim())) t.name = teamCode(i); });
   if (!s.teams.length) s.teams = Array.from({ length: 8 }, (_, i) => defaultTeam(i));
   s.rounds = arr(s.rounds).map((r, i) => mergeDefaults(roundFromSeed({ id: r && r.id }, i), r));
   s.questions = arr(s.questions).map((q, i) => mergeDefaults(questionFromSeed({}, i), q));

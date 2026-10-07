@@ -105,9 +105,9 @@ check('Wrong then P passes with 45s timer', passState.flow === 'pass' && passSta
 await stage.waitForTimeout(900);
 await stage.screenshot({ path: path.join(shots, '91-pass.png') });
 // challenge in R4
-await ctl.evaluate(() => { const QC = window.QC; const st = QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.roundId === 'R4'); QC.Show.go(st); });
+const chKey = await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-enable-r4', (s) => { QC.Sel.round('R4').enabled = true; }); const st = QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.roundId === 'R4'); QC.Show.go(st); const act = QC.Store.state.live.active; const id = QC.Sel.finalistIds().find((x) => x !== act); return String(QC.Sel.teamIndex(id) + 1); });
 await ctl.keyboard.press('h');
-await ctl.keyboard.press('2');
+await ctl.keyboard.press(chKey);
 const ch = await ctl.evaluate(() => window.QC.Store.state.live);
 check('H then 2 starts challenge', ch.flow === 'challenge' && !!ch.challenger && ch.challenger !== ch.active);
 await stage.waitForTimeout(900);

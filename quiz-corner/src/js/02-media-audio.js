@@ -221,14 +221,19 @@ const AudioDirector = {
       conv.buffer = buf;
       this.verb = this.ctx.createGain(); this.verb.gain.value = 0.22;
       this.verb.connect(conv); conv.connect(this.master);
+      // Loud, hall-filling output: a boost stage into a limiter, so the cues are loud but never distort.
       const comp = this.ctx.createDynamicsCompressor();
-      this.master.connect(comp); comp.connect(this.ctx.destination);
+      comp.threshold.value = -9; comp.knee.value = 4; comp.ratio.value = 14; comp.attack.value = 0.003; comp.release.value = 0.22;
+      this.boost = this.ctx.createGain(); this.boost.gain.value = clamp(num(Store.state.audio.boost, 1.8), 0.5, 4);
+      this.musicBus = this.ctx.createGain(); this.musicBus.gain.value = clamp(num(Store.state.audio.musicBoost, 1.6), 0.5, 4);
+      this.master.connect(this.boost); this.boost.connect(comp); this.musicBus.connect(comp); comp.connect(this.ctx.destination);
       this.unlocked = true;
       SoundDirector.start(this.ctx);
       Bus.emit('audio-unlocked');
     } catch (e) { Log.err('audio-init', e); }
   },
   setMaster(v) { if (this.master) this.master.gain.value = v; },
+  setBoost() { const a = Store.state.audio; if (this.boost) this.boost.gain.value = clamp(num(a.boost, 1.8), 0.5, 4); if (this.musicBus) this.musicBus.gain.value = clamp(num(a.musicBoost, 1.6), 0.5, 4); },
   tone(freq, dur, opts = {}) {
     const c = this.ctx; if (!c) return;
     const t0 = c.currentTime + (opts.at || 0);
@@ -325,6 +330,8 @@ const AudioDirector = {
     this.stopNow(slot);
     const el = new Audio(u);
     el.loop = !!cfg.loop; el.volume = 0;
+    // Songs go through the loud music bus (theme song / welcome song play big in the hall).
+    if (this.ctx && this.musicBus) { try { this.ctx.createMediaElementSource(el).connect(this.musicBus); } catch (e) { Log.err('music-route', e); } }
     this.musicEls[slot] = el;
     const target = clamp(cfg.vol * Store.state.audio.master, 0, 1);
     const begin = () => {

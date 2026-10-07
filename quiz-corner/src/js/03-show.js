@@ -4,7 +4,7 @@
    A step is identified by a stable key, never by a fragile index.
    ===================================================================== */
 const SCENES = {
-  ORGANIZER: 'আয়োজক ব্যানার', LOGO: 'কুইজ কর্নার লোগো', PROGRAMME: 'অনুষ্ঠান পরিচিতি', THEME: 'থিম সং', CREW: 'আয়োজক দল ও কৃতজ্ঞতা',
+  ORGANIZER: 'আয়োজক ব্যানার', LOGO: 'কুইজ কর্নার লোগো', PROGRAMME: 'অনুষ্ঠান পরিচিতি', THEME: 'থিম সং', IDENTITY: 'আমাদের পরিচয়', CREW: 'আমাদের টিম',
   TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', OVERVIEW: 'আজকের অনুষ্ঠান', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
   PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
   MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
@@ -16,14 +16,15 @@ const Show = {
   _rdSig: '',
   rundown() {
     const s = Store.state;
-    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), s.crew.length].join('|');
+    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto)].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENES[scene] });
     add('ORGANIZER'); add('LOGO'); add('PROGRAMME'); add('THEME');
-    if (s.crew.length || s.event.credits) add('CREW');
+    if (s.event.credits || s.groupPhoto) add('IDENTITY');
+    if (Sel.crew().length) add('CREW');
     add('TEAMS_ALL');
-    s.teams.forEach((t, i) => add('TEAM_INTRO', { key: t.id, teamId: t.id, n: i + 1 }, 'দল পরিচিতি • ' + t.name));
+    s.teams.forEach((t, i) => add('TEAM_INTRO', { key: t.id, teamId: t.id, n: i + 1 }, 'দল পরিচিতি • ' + Sel.label(t)));
     add('OVERVIEW'); add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
     Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'বাছাই প্রশ্ন ' + bn(i + 1) + (q.star ? ' ★' : '')));
     add('PRELIM_RESULT'); add('FINALISTS');
@@ -47,12 +48,14 @@ const Show = {
   index() { const k = this.currentKey(); return this.rundown().findIndex((x) => x.key === k); },
 
   /** Activate a rundown step (or an ad-hoc scene). Runs the scene's enter actions. */
-  go(step) {
+  go(step, sub) {
     if (!step) return false;
     const prev = Store.state.show.scene;
     if (prev === 'SCOREBOARD' || prev === 'FINAL') this.snapshotRanks();
     Store.commit('scene:' + step.key, (s) => {
       s.show.scene = step.scene; s.show.params = clone(step.params || {}); s.show.startedAt = now(); s.show.blackout = false;
+      const sr = Show.subRange(step.scene, s.show.params);
+      if (sr) s.show.params.sub = sub === 'end' ? sr[1] : sr[0];
       if (step.scene === 'PRELIM_Q') { s.prelimLive = { idx: step.params.idx, reveal: false, deliverAt: now() }; }
       if (step.scene === 'FINAL') s.finalReveal = 0;
       if (step.scene !== 'QUESTION' && step.scene !== 'SCOREBOARD') {
@@ -94,8 +97,29 @@ const Show = {
       default: play('transition');
     }
   },
-  next() { const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]); },
-  prev() { const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.max(0, i - 1)] || rd[0]); },
+  /** Scenes revealed in small steps inside one rundown entry (V100): the organising team card by card,
+      a team's two members one by one. Returns [first, last] or null. */
+  subRange(scene, p) {
+    if (scene === 'CREW') return [1, Math.max(1, Sel.crew().length)];
+    if (scene === 'TEAM_INTRO') return [0, Sel.members(Sel.team(p && p.teamId)).length];
+    return null;
+  },
+  /** Move one sub-step; false when the scene has no more steps that way. */
+  sub(d) {
+    const sh = Store.state.show; const r = this.subRange(sh.scene, sh.params);
+    if (!r) return false;
+    const cur = int(sh.params.sub, r[0]); const n = cur + d;
+    if (n < r[0] || n > r[1]) return false;
+    Store.commit('sub-step', (s) => { s.show.params.sub = n; }, { undo: false });
+    if (d > 0) {
+      Cue.play('transition');
+      const st = Store.state;
+      if (sh.scene === 'TEAM_INTRO' && st.speech.announceTeam) { const m = Sel.members(Sel.team(sh.params.teamId))[n - 1]; if (m && m.name) Speech.say(m.name, 'team'); }
+    }
+    return true;
+  },
+  next() { if (this.sub(1)) return true; const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]); },
+  prev() { if (this.sub(-1)) return true; const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.max(0, i - 1)] || rd[0], 'end'); },
   jump(scene, params = {}) {
     const key = scene + (params.key ? ':' + params.key : '');
     const step = this.rundown().find((x) => x.key === key) || { key, scene, params, label: SCENES[scene] };

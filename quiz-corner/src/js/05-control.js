@@ -113,6 +113,25 @@ const UI = {
       if (el.dataset.rerender) this.renderTab(true);
     };
     document.addEventListener('input', (e) => { if (e.target.type === 'range' || e.target.type === 'color') onBind(e); });
+    const dropOf = (e) => (e.target && e.target.closest ? e.target.closest('[data-drop]') : null);
+    document.addEventListener('dragover', (e) => { const z = dropOf(e); if (z) { e.preventDefault(); z.classList.add('over'); } });
+    document.addEventListener('dragleave', (e) => { const z = dropOf(e); if (z) z.classList.remove('over'); });
+    document.addEventListener('drop', (e) => {
+      const z = dropOf(e); if (!z) return;
+      e.preventDefault(); z.classList.remove('over');
+      const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find((x) => /^image\//.test(x.type) || /\.(jpe?g|png|webp|gif)$/i.test(x.name));
+      if (f) Actions.memPhotoFile(z.dataset.drop, f); else UI.toast('একটি ছবির ফাইল (JPG/PNG/WEBP) টেনে আনুন', 'err');
+    });
+    document.addEventListener('mouseover', (e) => { this.hoverDrop = dropOf(e); });
+    document.addEventListener('paste', (e) => {
+      const a = document.activeElement;
+      const z = this.hoverDrop || (a && a.closest ? a.closest('[data-drop]') : null);
+      if (!z || !document.body.contains(z)) return;
+      const it = Array.from((e.clipboardData && e.clipboardData.items) || []).find((x) => x.type && x.type.startsWith('image/'));
+      if (!it) return;
+      e.preventDefault();
+      const f = it.getAsFile(); if (f) Actions.memPhotoFile(z.dataset.drop, new File([f], 'pasted-' + Date.now() + '.png', { type: f.type || 'image/png' }));
+    });
     document.addEventListener('change', onBind);
     document.addEventListener('focusout', () => setTimeout(() => { if (this.tabDirty && !this.typing()) this.renderTab(); }, 0));
     $('#roleSel').addEventListener('change', () => { this.applyRole(); this.savePref('role', $('#roleSel').value); });
@@ -131,6 +150,7 @@ const UI = {
   typing() { const a = document.activeElement; return !!(a && a.closest('#tabBody') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'range' && a.type !== 'color'); },
   onChange(c) {
     DesignSystem.apply();
+    AudioDirector.setBoost();
     this.preview.render();
     const label = (c && c.label) || '';
     Announcer.onChange(c, Store.state);
@@ -186,6 +206,7 @@ const UI = {
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);
     out += this.teamDeck(s);
+    out += this.photoDeck(s);
     out += '<div class="card"><div class="row"><button class="btn sm' + (this.boardOpen ? ' on' : '') + '" data-act="soundboardToggle">🎛 সাউন্ডবোর্ড</button></div>' + (this.boardOpen ? '<div class="deck" style="margin-top:.5rem">' + SOUNDBOARD.map(([k, l]) => b('pad', l, 'sm', k)).join('') + '</div>' : '') + '</div>';
     out += '<div class="card"><div class="row"><button class="btn sm' + (this.hostOpen ? ' on' : '') + '" data-act="hostToggle">🎙 হোস্ট সহায়ক (ধারাভাষ্য)</button></div>' + (this.hostOpen ? '<p class="host-line">' + esc(this.hostLine || HostLines.line('open')) + '</p><div class="deck">' + b('hostLine', 'স্কোর মন্তব্য', '', 'score') + b('hostLine', 'ভুল উত্তরের লাইন', '', 'wrong') + b('hostLine', 'সাসপেন্স', '', 'tension') + b('hostLine', 'রাউন্ড শুরুর লাইন', '', 'open') + b('hostLine', 'বিজয়ী লাইন', '', 'win') + b('hostSpeak', '🔊 বলো', 'good') + '</div>' : '') + '</div>';
     return out;
@@ -235,6 +256,29 @@ const UI = {
     if (sc !== 'QUESTION' && sc !== 'PRELIM_Q') h += '<div class="card"><div class="deck">' + timerRow + '</div></div>';
     return h;
   },
+  /** V100 quick photos: two members per team (16 for A / 1 … H / 8). Click, drop a file, or hover and press Ctrl+V.
+      It opens by itself while the teams are being introduced. */
+  photoDeck(s) {
+    const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(s.show.scene);
+    const open = this.photosOpen == null ? auto : this.photosOpen;
+    const filled = s.teams.reduce((n, t) => n + (t.captainPhoto ? 1 : 0) + (t.playerPhotos[0] ? 1 : 0), 0);
+    let h = '<div class="card"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 সদস্যদের ছবি — প্রতি দলে ২ জন (' + bn(filled) + ' / ' + bn(s.teams.length * 2) + ')</button><button class="btn sm" data-act="memBulk">⇪ একসাথে অনেক ছবি</button></div>';
+    if (open) {
+      h += '<p class="muted" style="margin:.4rem 0">ছবির ঘরে ক্লিক করুন • ফাইল টেনে এনে ঘরে ছাড়ুন • অথবা ছবি কপি করে ঘরের ওপর মাউস রেখে <kbd>Ctrl</kbd>+<kbd>V</kbd></p><div class="mem-grid">';
+      h += s.teams.map((t, i) => {
+        const cur = (s.show.scene === 'TEAM_INTRO' || s.show.scene === 'FINALIST_INTRO') && s.show.params.teamId === t.id;
+        const slot = (k) => {
+          const path = k === 0 ? 'teams.' + i + '.captainPhoto' : 'teams.' + i + '.playerPhotos.0';
+          const npath = k === 0 ? 'teams.' + i + '.captain' : 'teams.' + i + '.players.0';
+          const id = k === 0 ? t.captainPhoto : t.playerPhotos[0]; const nm = k === 0 ? t.captain : t.players[0];
+          return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="সদস্য ' + (k + 1) + ' — ক্লিক / টেনে আনুন / Ctrl+V">' + (id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>সদস্য ' + bn(k + 1) + '</small></span>') + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="সদস্য ' + bn(k + 1) + (k === 0 ? ' (অধিনায়ক)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' সদস্য ' + (k + 1) + '">' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="ছবি সরান">✕</button>' : '') + '</div>';
+        };
+        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><span class="mt-name">' + esc(t.name === Sel.code(t) ? '' : t.name) + '</span></div>' + slot(0) + slot(1) + '</div>';
+      }).join('');
+      h += '</div>';
+    }
+    return h + '</div>';
+  },
   /** V100 host panel: the answer stays hidden on the laptop until asked for (or always, by setting). */
   ansHtml(text, s) {
     if (s.settings.hostAnswer === 'always' || this.showAns) return '<div class="a">উত্তর: ' + esc(text) + '</div>';
@@ -248,7 +292,7 @@ const UI = {
     h += ids.map((id, i) => {
       const t = Sel.team(id); if (!t) return '';
       const sel = pick ? false : (l.active === id || l.challenger === id);
-      return '<button class="chip' + (sel ? ' sel' : '') + '" style="--team:' + esc(t.color) + '" data-act="' + (pick ? 'challenge' : 'setActive') + '" data-arg="' + esc(id) + '"><span class="dot">' + (t.photo ? '<img data-media="' + esc(t.photo) + '" alt="">' : bn(i + 1)) + '</span>' + esc(t.name) + ' <span class="pts">' + bn(Sel.score(id)) + '</span></button>';
+      return '<button class="chip' + (sel ? ' sel' : '') + '" style="--team:' + esc(t.color) + '" data-act="' + (pick ? 'challenge' : 'setActive') + '" data-arg="' + esc(id) + '"><span class="dot">' + (t.photo ? '<img data-media="' + esc(t.photo) + '" alt="">' : esc(Sel.code(t).charAt(0) || bn(i + 1))) + '</span>' + esc(Sel.label(t)) + ' <span class="pts">' + bn(Sel.score(id)) + '</span></button>';
     }).join('');
     h += '</div>';
     if (pick) h += '<div class="row" style="margin-top:.5rem"><button class="btn sm" data-act="cancelPicker">বাতিল (Esc)</button></div>';
@@ -376,6 +420,23 @@ const Actions = {
   judgeHand(arg) { const [id, ok] = String(arg).split('|'); Game.judgeHand(id, ok === '1'); },
   timerRaise() { const r = Sel.currentRound(); Timer.start('raise', (r && r.timers.raise) || 5); },
   timerPreset(v) { Timer.start(Store.state.timer.mode === 'pass' ? 'pass' : 'direct', int(v, 30)); },
+  photosToggle() { const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(Store.state.show.scene); UI.photosOpen = !(UI.photosOpen == null ? auto : UI.photosOpen); UI.liveSig = ''; UI.renderLive(); },
+  async memPhoto(path) { const id = await pickMedia('image/*', 'image'); if (id) Store.commit('media:' + path, (s) => setPath(s, path, id)); },
+  async memPhotoFile(path, file) {
+    try { const id = await Media.add(file, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.toast('ছবি যুক্ত হয়েছে ✓', 'ok'); } catch (e) { UI.toast(e.message || 'ছবি যোগ করা যায়নি', 'err'); Log.err('photo', e); }
+  },
+  /** Many pictures at once: they fill the empty member slots in order (A / 1 member 1, member 2, B / 2 …). */
+  memBulk() {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.onchange = async () => {
+      const files = Array.from(inp.files || []); if (!files.length) return;
+      const slots = []; Store.state.teams.forEach((t, i) => { if (!t.captainPhoto) slots.push('teams.' + i + '.captainPhoto'); if (!t.playerPhotos[0]) slots.push('teams.' + i + '.playerPhotos.0'); });
+      let n = 0;
+      for (const f of files) { const path = slots[n]; if (!path) break; try { const id = await Media.add(f, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); n += 1; } catch (e) { UI.toast(e.message, 'err'); } }
+      UI.toast(bn(n) + 'টি ছবি যুক্ত হয়েছে' + (files.length > n ? ' • খালি ঘর না থাকায় ' + bn(files.length - n) + 'টি বাকি' : ''), n ? 'ok' : 'err');
+    };
+    inp.click();
+  },
   quickToggle() { UI.quickOpen = !UI.quickOpen; UI.liveSig = ''; UI.renderLive(); },
   quick(arg) { const [id, v] = String(arg).split('|'); Game.adjust(id, int(v), 'দ্রুত ' + signed(int(v))); },
   speakStandings() { AudioDirector.unlock(); Speech.say(Sel.standingsText(), 'standings', true); const t = Sel.ties(); if (t.length) Speech.say(t.join('। '), 'standings', true); },
@@ -385,7 +446,12 @@ const Actions = {
   challengePick() { UI.picker = UI.picker === 'challenge' ? '' : 'challenge'; UI.liveSig = ''; UI.renderLive(); },
   cancelPicker() { UI.picker = ''; UI.liveSig = ''; UI.renderLive(); },
   challenge(id) { UI.picker = ''; Game.challenge(id); UI.liveSig = ''; UI.renderLive(); },
-  setActive(id) { Game.setActive(id); },
+  /** A team number (key or chip): after a wrong answer it passes the question to that team, otherwise it marks the answering team. */
+  setActive(id) {
+    const s = Store.state; const r = Sel.round(s.live.roundId);
+    if (s.show.scene === 'QUESTION' && s.live.qid && s.live.result === 'wrong' && !s.live.revealed && id !== s.live.active && r && r.features.pass) { Game.pass(id); return; }
+    Game.setActive(id);
+  },
   options() { Game.showOptions(); },
   pick(i) { Game.pick(int(i)); },
   lifeline(k) { Game.useLifeline(k); },
@@ -455,7 +521,7 @@ const Keys = {
     if (k === 's') { if (s.timer.running) return true; if (s.timer.base < s.timer.duration && !s.timer.expired) Timer.resume(); else Actions.timerDirect(); return true; }
     if (k === 't' && live) { Actions.lifeline('fifty'); return true; }
     if (/^[1-8]$/.test(k)) {
-      const id = Sel.finalistIds()[int(k) - 1]; if (!id) return false;
+      const id = Sel.teamByKey(int(k)); if (!id) return false;
       const r = Sel.round(s.live.roundId);
       if (live && r && r.features.challenge && id !== s.live.active) Actions.raiseHand(id); else Actions.setActive(id);
       return true;
@@ -483,13 +549,13 @@ const Keys = {
       return false;
     }
     if (m.shift && /^Digit[1-9]$/.test(code)) {
-      const id = Sel.finalistIds()[int(code.slice(5)) - 1];
+      const id = Sel.teamByKey(int(code.slice(5)));
       if (id) { Actions.raiseHand(id); return true; }
       return false;
     }
     if (s.settings.keyLayout === 'v100' && !m.ctrl && !m.alt && this.v100(k, m, s)) return true;
     if (/^[1-9]$/.test(k)) {
-      const id = Sel.finalistIds()[int(k) - 1];
+      const id = Sel.teamByKey(int(k));
       if (!id) return false;
       if (UI.picker === 'challenge') Actions.challenge(id); else Actions.setActive(id);
       return true;

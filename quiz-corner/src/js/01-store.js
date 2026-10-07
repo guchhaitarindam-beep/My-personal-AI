@@ -164,6 +164,15 @@ const Sel = {
   s() { return Store.state; },
   team(id) { return Store.state.teams.find((t) => t.id === id) || null; },
   teamIndex(id) { return Store.state.teams.findIndex((t) => t.id === id); },
+  /** 'A / 1' … by registration position (V100 team codes). */
+  code(t) { const i = t ? Store.state.teams.indexOf(t) : -1; return i < 0 ? '' : teamCode(i); },
+  /** The code plus the name, unless the name is just the code. */
+  label(t) { if (!t) return ''; const c = Sel.code(t); const n = str(t.name).trim(); return !n || n === c ? c : c + ' ' + n; },
+  /** The two members shown on stage: member 1 = captain, member 2 = first player (V100 rule). */
+  members(t) { return t ? [{ slot: 0, name: str(t.captain).trim(), photo: t.captainPhoto || '' }, { slot: 1, name: str(t.players[0]).trim(), photo: t.playerPhotos[0] || '' }].filter((m) => m.name || m.photo) : []; },
+  crew() { return Store.state.crew.filter((c) => str(c.name).trim()); },
+  /** Number key k (1–9): the finalist whose team code is k (A / 1 → 1), else the k-th finalist. */
+  teamByKey(k) { const ids = Sel.finalistIds(); return ids.find((id) => Sel.teamIndex(id) === k - 1) || ids[k - 1] || ''; },
   round(id) { return Store.state.rounds.find((r) => r.id === id) || null; },
   roundIndex(id) { return Store.state.rounds.findIndex((r) => r.id === id); },
   question(id) { return Store.state.questions.find((q) => q.id === id) || null; },
@@ -519,6 +528,8 @@ const Game = {
   showOptions() {
     const q = Sel.liveQuestion();
     if (!q || q.options.filter(Boolean).length < 2) { UI.toast('এই প্রশ্নে বিকল্প নেই', 'err'); return false; }
+    const r = Sel.round(Store.state.live.roundId);
+    if (r && !r.features.options && !Store.state.live.optionsShown) { UI.toast('এই রাউন্ডে বিকল্প নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
     Store.commit('options', (s) => { s.live.optionsShown = !s.live.optionsShown; });
     if (Store.state.live.optionsShown) Cue.play('option');
     return true;

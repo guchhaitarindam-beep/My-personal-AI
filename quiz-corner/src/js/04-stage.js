@@ -10,12 +10,25 @@ const H = {
     return '<div class="team-photo ' + cls + '"' + style + '>' + (mediaId ? '<img data-media="' + esc(mediaId) + '" alt="" hidden>' : '') + '<span class="initial"' + (mediaId ? ' data-fallback' : '') + '>' + initial + '</span></div>';
   },
   /** Team photo with the team number as a broadcast-style fallback. */
-  tphoto(t, cls = '') { return H.photo(t.photo, t.name, cls, '', bn(Sel.teamIndex(t.id) + 1)); },
+  tphoto(t, cls = '') {
+    const letter = Sel.code(t).charAt(0) || bn(Sel.teamIndex(t.id) + 1);
+    if (t.photo) return H.photo(t.photo, t.name, cls, '', letter);
+    const faces = Sel.members(t).filter((m) => m.photo);
+    if (faces.length) return '<div class="team-photo duo n' + faces.length + ' ' + cls + '">' + faces.map((m) => '<img data-media="' + esc(m.photo) + '" alt="" hidden>').join('') + '<span class="initial" data-fallback>' + esc(letter) + '</span></div>';
+    return H.photo('', t.name, cls, '', letter);
+  },
+  /** Team code badge (A / 1 …) followed by the name, unless the name is only the code. */
+  tn(t) {
+    if (!t) return '';
+    const c = Sel.code(t); const n = str(t.name).trim();
+    return '<span class="tcode">' + esc(c) + '</span>' + (n && n !== c ? ' ' + esc(n) : '');
+  },
+  letters(text) { return Array.from(str(text)).map((ch, i) => '<span style="--i:' + i + '">' + (ch === ' ' ? '&nbsp;' : esc(ch)) + '</span>').join(''); },
   teamVars(t) { return t ? '--team:' + esc(t.color) + ';' : ''; },
   roundVars(r) { return r ? '--r-primary:' + esc(r.design.primary) + ';--r-secondary:' + esc(r.design.secondary) + ';--r-accent:' + esc(r.design.accent) + ';' : ''; },
   logo(s, cls = 'logo-chip') { return s.logo ? '<img class="' + cls + '" data-media="' + esc(s.logo) + '" alt="">' : ''; },
   head(s, left, right = '') {
-    return '<div class="s-head" data-part="head">' + H.logo(s) + left + '<span class="spacer"></span>' + right + '</div>';
+    return '<div class="s-head" data-part="head">' + (s.design.corner.show ? '' : H.logo(s)) + left + '<span class="spacer"></span>' + right + '</div>';
   },
   part(name, html, cls = '', style = '') { return '<div data-part="' + name + '" class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + html + '</div>'; },
   timer() {
@@ -23,7 +36,8 @@ const H = {
   },
   teamCard(t, tag, score) {
     if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">দল নির্বাচন করুন</div></div>';
-    return '<div class="team-card glass" data-part="team" style="' + H.teamVars(t) + '"><div class="flowtag">' + esc(tag) + '</div>' + H.tphoto(t) + '<div class="tname">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool">' + esc(t.school) + '</div>' : '') + '<div class="tscore">' + bn(score) + ' পয়েন্ট</div></div>';
+    const c = Sel.code(t); const nm = str(t.name).trim();
+    return '<div class="team-card glass" data-part="team-' + esc(t.id) + '" style="' + H.teamVars(t) + '"><div class="flowtag">' + esc(tag) + '</div>' + H.tphoto(t) + '<div class="tcode-big">TEAM ' + esc(c) + '</div>' + (nm && nm !== c ? '<div class="tname">' + esc(nm) + '</div>' : '') + (t.school ? '<div class="tschool">' + esc(t.school) + '</div>' : '') + '<div class="tscore">' + bn(score) + ' পয়েন্ট</div></div>';
   },
   mini(t, label) { return t ? '<div class="mini-team" style="' + H.teamVars(t) + '">' + H.tphoto(t) + '<small>' + esc(label) + '</small><b>' + esc(t.name) + '</b></div>' : '<div></div>'; },
 };
@@ -54,35 +68,82 @@ const Scenes = {
     const bars = Array.from({ length: 24 }, (_, i) => '<i style="animation-delay:' + (i * 0.07).toFixed(2) + 's"></i>').join('');
     return { key: 'THEME', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<div class="eq">' + bars + '</div><div class="s-sub" style="text-align:center">♪ ' + esc(s.event.programme) + ' — থিম সং ♪</div>', 'center-col') };
   },
-  CREW(s) {
-    const crew = s.crew.map((c, i) => '<div class="crew-card glass" style="--i:' + i + '">' + H.photo(c.photo, c.name) + '<b>' + esc(c.name) + '</b><small>' + esc(c.role) + '</small>' + (c.about ? '<small class="about">' + esc(c.about) + '</small>' : '') + '</div>').join('');
-    const n = s.crew.length;
-    const cols = s.groupPhoto ? (n <= 4 ? 2 : 3) : n <= 4 ? Math.max(1, n) : Math.ceil(n / 2);
-    const group = s.groupPhoto ? '<div class="glass" style="padding:1.2cqh;max-width:40cqw;flex:0 0 auto;display:flex;flex-direction:column;gap:1cqh;align-items:center"><img data-media="' + esc(s.groupPhoto) + '" alt="" style="max-height:52cqh;border-radius:1.4cqh;object-fit:contain"><small class="s-sub" style="font-size:2cqh;text-align:center">' + esc(s.groupCaption) + '</small></div>' : '';
-    return { key: 'CREW', anim: 'slide', html: H.head(s, '<span class="round-tag">আয়োজক দল ও কৃতজ্ঞতা</span>') + H.part('body', group + '<div class="crew-grid" style="--cols:' + cols + '">' + crew + '</div>', '', 'flex:1;display:flex;gap:2cqw;align-items:center;min-height:0;margin-top:2cqh') };
+  /** V100 "OUR IDENTITY": the brand, the event, numbered credit cards and the group photo. */
+  IDENTITY(s) {
+    const e = s.event;
+    const lines = str(e.credits).split('\n').map((x) => x.trim()).filter(Boolean);
+    const cards = lines.map((l, i) => '<div class="id-credit" style="--i:' + i + '"><span class="id-idx">' + String(i + 1).padStart(2, '0') + '</span><span class="id-line">' + esc(l) + '</span></div>').join('');
+    const photo = s.groupPhoto ? '<figure class="id-photo"><img data-media="' + esc(s.groupPhoto) + '" alt=""><figcaption>' + esc(s.groupCaption) + '</figcaption></figure>' : '';
+    return {
+      key: 'IDENTITY', anim: 'zoom',
+      html: H.part('id', '<div class="id-rays"></div><div class="id-orbit"><i></i><i></i><i></i></div><div class="id-grid"></div>' +
+        '<div class="id-brand">' + (s.logo ? '<img class="id-logo" data-media="' + esc(s.logo) + '" alt="">' : '') + '<span class="id-letters">' + H.letters(e.brandEn) + '</span><span class="id-tag">' + esc(str(e.tagline).toUpperCase()) + '</span></div>' +
+        '<div class="id-kicker">OUR IDENTITY • OFFICIAL BROADCAST IDENTITY</div><div class="id-event-box"><div class="id-event" data-fit="6">' + esc(e.programme) + '</div></div><div class="id-divider"></div>' +
+        '<div class="id-body' + (photo ? ' has-photo' : '') + '">' + (cards ? '<div class="id-credits">' + cards + '</div>' : '') + photo + '</div>' +
+        '<div class="id-footer">একটি অনুষ্ঠান • একটি মঞ্চ • জ্ঞানের শক্তি</div>', 'identity-scene'),
+    };
+  },
+  /** V100 "OUR TEAM": the captain stands in the middle, the others arrive one by one from the left and the right. */
+  CREW(s, p) {
+    const crew = Sel.crew(); const n = crew.length;
+    if (!n) return { key: 'CREW:none', html: H.part('body', '<h1 class="s-title">আমাদের টিম</h1>', 'center-col') };
+    const shown = clamp(int(p.sub, 1), 1, n);
+    const left = []; const right = [];
+    crew.slice(1).forEach((m, j) => (j % 2 === 0 ? left : right).push({ m, j: j + 1 }));
+    const row = left.reverse().concat([{ m: crew[0], j: 0 }], right);
+    const cards = row.map(({ m, j }) => {
+      const vis = j < shown;
+      const side = j === 0 ? 'from-top' : j % 2 ? 'from-left' : 'from-right';
+      return '<div data-part="c' + j + '" class="crew-card2 ' + side + (vis ? '' : ' hidden') + (j === 0 ? ' captain' : '') + '">' + (vis ? H.photo(m.photo, m.name, 'crew-face') + '<b class="mem-name">' + esc(m.name) + '</b>' + (m.role || j === 0 ? '<small class="mem-role">' + esc(m.role || 'অধিনায়ক') + '</small>' : '') : '') + '</div>';
+    }).join('');
+    const cur = crew[shown - 1];
+    return {
+      key: 'CREW', anim: 'slide',
+      html: H.head(s, '<span class="round-tag">QUIZ CORNER • আমাদের টিম</span>', '<span class="qnum">' + bn(shown) + ' / ' + bn(n) + '</span>') +
+        '<div data-part="crew" data-morph class="crew-row2" style="--n:' + n + '">' + cards + '</div>' +
+        H.part('about', cur && cur.about ? '<div class="crew-about2" data-fit="3.2">' + esc(cur.about) + '</div>' : '', 'crew-about-box'),
+    };
   },
   teamGrid(teams, extra) {
     const cols = teams.length <= 8 ? 4 : teams.length <= 12 ? 4 : teams.length <= 18 ? 6 : 8;
-    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + esc(t.name) + '</b>' + (t.school ? '<small>' + esc(t.school) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
+    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + H.tn(t) + '</b>' + (t.school ? '<small>' + esc(t.school) + '</small>' : '') + (Sel.members(t).some((m) => m.name) ? '<small class="tmem">' + esc(Sel.members(t).map((m) => m.name).filter(Boolean).join(' • ')) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
   },
   TEAMS_ALL(s) { return { key: 'TEAMS_ALL', anim: 'flip', html: H.head(s, '<span class="round-tag">অংশগ্রহণকারী দলসমূহ</span>', '<span class="qnum">' + bn(s.teams.length) + ' টি দল</span>') + H.part('grid', Scenes.teamGrid(s.teams), '', 'flex:1;display:flex;min-height:0') }; },
   intro(s, p, finalist) {
     const t = Sel.team(p.teamId);
     if (!t) return { key: 'INTRO:none', html: H.part('body', '<h1 class="s-title">দল পাওয়া যায়নি</h1>', 'center-col') };
-    const players = [['CAPTAIN', t.captain, t.captainPhoto || '']].concat(t.players.map((n, i) => ['PLAYER ' + (i + 1), n, t.playerPhotos[i]]));
+    const mem = Sel.members(t);
+    const shown = finalist ? mem.length : clamp(int(p.sub, 0), 0, mem.length);
+    const code = Sel.code(t); const nm = str(t.name).trim();
     const pr = finalist ? Sel.prelimRanking().find((r) => r.team.id === t.id) : null;
-    const tag = finalist ? 'FINALIST ' + p.n + (pr ? ' • প্রাথমিক র‍্যাঙ্ক ' + bn(pr.rank) + ' • ' + bn(pr.score) + ' পয়েন্ট' : '') : 'TEAM ' + String(p.n).padStart(2, '0');
-    const playerHtml = players.filter((x) => x[1]).map((x, i) => '<div class="player" style="--i:' + i + '">' + H.photo(x[2], x[1]) + '<small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');
+    const tag = finalist ? 'FINALIST ' + p.n + (pr ? ' • প্রাথমিক র‍্যাঙ্ক ' + bn(pr.rank) + ' • ' + bn(pr.score) + ' পয়েন্ট' : '') : (nm && nm !== code ? 'TEAM ' + code + ' • ' : 'TEAM ') + p.n + ' OF ' + s.teams.length;
+    const extra = t.players.slice(1).map((x) => str(x).trim()).filter(Boolean);
+    const cards = mem.map((m, k) => '<div data-part="m' + k + '" class="mem-card ' + (k % 2 ? 'from-right' : 'from-left') + (k < shown ? '' : ' hidden') + '">' + (k < shown ? H.photo(m.photo, m.name || '?', 'mem-face') + '<b class="mem-name">' + esc(m.name || '—') + '</b><small class="mem-role">' + (k === 0 ? 'সদস্য ১ • অধিনায়ক' : 'সদস্য ২') + '</small>' : '') + '</div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
-      html: H.part('body', H.tphoto(t, 'big-photo') + '<div class="intro-info"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name" data-fit="8">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (playerHtml ? '<div class="player-row">' + playerHtml + '</div>' : '') + '</div>', 'intro-card'),
+      html: '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(code.charAt(0)) + '</div>' +
+        '<div data-part="ph" class="intro-ph">' + H.tphoto(t, 'big-photo') + '</div>' +
+        '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + '</div>' +
+        '<div data-part="mem" data-morph class="mem-row">' + cards + '</div>' +
+        H.part('extra', extra.length ? '<div class="mem-extra">সঙ্গে: ' + esc(extra.join(' • ')) + '</div>' : '') + '</div></div>',
     };
   },
   TEAM_INTRO(s, p) { return Scenes.intro(s, p, false); },
   FINALIST_INTRO(s, p) { return Scenes.intro(s, p, true); },
+  /** Rules as a designed page: a big title with an underline, numbered rule cards and the key line highlighted. */
   rulesScene(s, title, rules, key, r) {
     const pic = r ? r.rulesImage : Store.state.prelim.rulesImage;
-    return { key, anim: 'flip', style: H.roundVars(r), html: H.head(s, '<span class="round-tag">' + esc(title) + '</span>', '<span class="qnum">নিয়মাবলি</span>') + (pic ? H.part('rules', '<img data-media="' + esc(pic) + '" alt="' + esc(rules) + '" style="width:100%;height:100%;object-fit:contain">', 'rules-box glass') : H.part('rules', '<div class="rules-text" data-fit="3.6">' + esc(rules || 'নিয়ম লেখা হয়নি') + '</div>', 'rules-box glass')) };
+    const head = '<div class="rules-head" data-part="rhead"><div class="rules-kicker">নিয়মাবলি • RULES</div><div class="rules-title-box"><div class="rules-title" data-fit="9">' + esc(title) + '</div></div><div class="rules-underline"></div></div>';
+    if (pic) return { key, anim: 'flip', style: H.roundVars(r), html: head + H.part('rules', '<img data-media="' + esc(pic) + '" alt="' + esc(rules) + '" style="width:100%;height:100%;object-fit:contain">', 'rules-box glass') };
+    const lines = str(rules).split('\n').map((x) => x.trim()).filter(Boolean);
+    let n = 0;
+    const items = lines.map((l) => {
+      const m = l.match(/^([০-৯0-9]+)[.)।]\s*(.*)$/);
+      if (m) { n += 1; return '<div class="rule-item" style="--i:' + n + '"><span class="rule-n">' + esc(m[1]) + '</span><span class="rule-t">' + esc(m[2]) + '</span></div>'; }
+      if (/^[★⚡]/.test(l)) return '<div class="rule-key" style="--i:' + (n + 1) + '">' + esc(l) + '</div>';
+      return '<div class="rule-note" style="--i:' + (n + 1) + '">' + esc(l) + '</div>';
+    }).join('');
+    return { key, anim: 'flip', style: H.roundVars(r), html: head + H.part('rules', '<div class="rules-list" data-fit="6.4">' + (items || '<div class="rule-note">নিয়ম লেখা হয়নি</div>') + '</div>', 'rules-box2') };
   },
   OVERVIEW(s) {
     const played = s.rounds.filter((r) => r.enabled && Sel.roundQuestions(r.id).length);
@@ -141,7 +202,7 @@ const Scenes = {
     return {
       key: 'GIFT:' + t.id, anim: 'flip', style: H.teamVars(t),
       html: H.head(s, '<span class="round-tag">বিশেষ উপস্থাপনা</span>', '<span class="qnum">দল ' + bn(p.n) + '</span>') +
-        H.part('body', '<div class="team-card glass" style="' + H.teamVars(t) + ';height:100%">' + H.tphoto(t) + '<div class="tname" style="font-size:5cqh">' + esc(t.name) + '</div>' + (t.school ? '<div class="tschool" style="font-size:2.8cqh">' + esc(t.school) + '</div>' : '') + '</div>' +
+        H.part('body', '<div class="team-card glass" style="' + H.teamVars(t) + ';height:100%">' + H.tphoto(t) + '<div class="tname" style="font-size:5cqh">' + H.tn(t) + '</div>' + (t.school ? '<div class="tschool" style="font-size:2.8cqh">' + esc(t.school) + '</div>' : '') + '</div>' +
           '<div class="gift-item glass">' + (g.image ? '<img class="gimg" data-media="' + esc(g.image) + '" alt="">' : '') + '<div class="cat">' + esc(g.category || 'বিশেষ পরিচয়') + '</div><div class="item">' + esc(g.item || '—') + '</div></div>', 'gift-card'),
     };
   },
@@ -157,7 +218,7 @@ const Scenes = {
     const fx = a === 'door' ? '<div class="doors" data-part="doors"><i></i><i></i></div>' : a === 'sweep' || a === 'glass' ? '<div class="sweep" data-part="sweep"></div>' : '';
     return {
       key: 'RI:' + r.id, anim: a === 'burst' ? 'zoom' : ['flip', 'cube', 'zoom', 'spin', 'slide', 'door', 'push', 'orbit'].includes(a) ? a : 'fade', style: H.roundVars(r), burst: a === 'burst' || a === 'sweep', bg: r.design.bg,
-      html: H.part('body', '<div class="rnum">ROUND ' + n + '</div><div class="rname" data-fit="13" style="' + (r.design.titleFont ? 'font-family:' + esc(FONT_MAP[r.design.titleFont] || r.design.titleFont) : '') + '">' + esc(r.name) + '</div>' + (r.label ? '<div class="rlabel">' + esc(r.label) + '</div>' : '') + (r.description ? '<div class="rdesc">' + esc(r.description) + '</div>' : ''), 'round-intro ri-anim-' + a) + fx,
+      html: H.part('body', '<div class="rnum">ROUND ' + n + '</div><div class="rname-box"><div class="rname" data-fit="19" style="' + (r.design.titleFont ? 'font-family:' + esc(FONT_MAP[r.design.titleFont] || r.design.titleFont) : '') + '">' + esc(r.name) + '</div></div><div class="rules-underline big"></div>' + (r.label ? '<div class="rlabel">' + esc(r.label) + '</div>' : '') + (r.description ? '<div class="rdesc">' + esc(r.description) + '</div>' : ''), 'round-intro ri-anim-' + a) + fx,
     };
   },
   ROUND_RULES(s, p) { const r = Sel.round(p.roundId); return Object.assign(Scenes.rulesScene(s, r ? r.name : '', r ? r.rules : '', 'RR:' + p.roundId, r), { bg: r && r.design.bg }); },
@@ -170,7 +231,7 @@ const Scenes = {
     const tiles = qs.length ? qs.map((q, i) => '<div class="tile' + (s.board.played[q.id] ? ' played' : '') + (s.live.qid === q.id ? ' current' : '') + '" style="--i:' + i + '">' + bn(q.number) + '</div>').join('') : '<div class="s-sub" style="grid-column:1/-1;text-align:center;align-self:center">এই রাউন্ডে এখনও প্রশ্ন যোগ করা হয়নি</div>';
     return {
       key: 'GRID:' + r.id, anim: 'flip', style: H.roundVars(r), bg: r.design.bg,
-      html: H.head(s, '<span class="round-tag">' + esc(r.name) + '</span>', turn ? '<span class="qnum" style="' + H.teamVars(turn) + 'color:var(--team)">পালা: ' + esc(turn.name) + '</span>' : '') + H.part('board', tiles, 'board', 'grid-template-columns:repeat(' + cols + ',1fr)'),
+      html: H.head(s, '<span class="round-tag">' + esc(r.name) + '</span>', turn ? '<span class="qnum" style="' + H.teamVars(turn) + 'color:var(--team)">পালা: ' + H.tn(turn) + '</span>' : '') + H.part('board', tiles, 'board', 'grid-template-columns:repeat(' + cols + ',1fr)'),
     };
   },
   QUESTION(s, p) {
@@ -187,9 +248,9 @@ const Scenes = {
       side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh"><div class="flowtag" style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--warn);color:#000">CHALLENGE</div><div class="vs-row">' + H.mini(Sel.team(l.challenger), 'CHALLENGER') + '<span class="vs">VS</span>' + H.mini(active, 'TARGET') + '</div></div>';
     } else if ((l.flow === 'pass' || l.flow === 'bonus') && l.passChain.length) {
       const from = Sel.team(l.passChain[l.passChain.length - 1]);
-      side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh;' + H.teamVars(active) + 'border-color:var(--team)"><div style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--team);color:#000">' + flowTag + '</div>' + (active ? H.tphoto(active) + '<div class="tname" style="font-size:3.2cqh;font-weight:800;text-align:center;line-height:1.3">' + esc(active.name) + '</div>' : '') + '<div style="text-align:center;color:var(--muted);font-size:1.9cqh">' + (from ? 'পাস এসেছে: ' + esc(from.name) : '') + (l.flow === 'bonus' ? ' • মান ' + bn(Game.pointsFor('correct')) : '') + '</div></div>';
+      side = '<div class="glass team-swap" data-part="team-' + esc(l.active) + '" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh;' + H.teamVars(active) + 'border-color:var(--team)"><div style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--team);color:#000">' + flowTag + '</div>' + (active ? H.tphoto(active) + '<div class="tcode-big">TEAM ' + esc(Sel.code(active)) + '</div>' + (str(active.name).trim() !== Sel.code(active) ? '<div class="tname" style="font-size:3cqh;font-weight:800;text-align:center;line-height:1.3">' + esc(active.name) + '</div>' : '') : '') + '<div style="text-align:center;color:var(--muted);font-size:1.9cqh">' + (from ? 'পাস এসেছে: ' + esc(Sel.label(from)) : '') + (l.flow === 'bonus' ? ' • মান ' + bn(Game.pointsFor('correct')) : '') + '</div></div>';
     } else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
-    const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + esc(t.name) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
+    const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + H.tn(t) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
     const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
@@ -218,7 +279,7 @@ const Scenes = {
       const hidden = i < revealFrom;
       const mv = r.move > 0 ? '<span class="mv up">▲ ' + bn(r.move) + '</span>' : r.move < 0 ? '<span class="mv down">▼ ' + bn(-r.move) + '</span>' : '<span class="mv same">—</span>';
       if (hidden) return '<div class="sb-row" style="--i:' + i + ';--team:#555"><span class="rank">' + bn(r.rank) + '</span><div class="team-photo"><span class="initial">?</span></div><div class="nm"><b>? ? ?</b></div><span class="rs"></span><span class="tot">—</span><span></span></div>';
-      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + esc(r.team.name) + '</b>' + (titles ? '<small class="rtitle">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</small>' : (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
+      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + H.tn(r.team) + '</b>' + (titles ? '<small class="rtitle">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</small>' : (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
     }).join('');
   },
   SCOREBOARD(s, p) {
@@ -229,7 +290,7 @@ const Scenes = {
       key: 'SB:' + (r ? r.id : 'all'), anim: 'slide', style: H.roundVars(r),
       html: H.head(s, '<span class="round-tag">স্কোরবোর্ড' + (r ? ' • ' + esc(r.name) : '') + '</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') +
         H.part('sb', '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span>' + (r ? 'ROUND' : '') + '</span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, r ? r.id : ''), 'sb') +
-        (star ? H.part('star', '★ রাউন্ড স্টার: ' + star.teams.map((t) => esc(t.name)).join(' ও ') + ' — এই রাউন্ডে +' + bn(star.pts), 'round-star') : ''),
+        (star ? H.part('star', '★ রাউন্ড স্টার: ' + star.teams.map((t) => esc(Sel.label(t))).join(' ও ') + ' — এই রাউন্ডে +' + bn(star.pts), 'round-star') : ''),
     };
   },
   FINAL(s) {
@@ -244,14 +305,14 @@ const Scenes = {
     const photo = s.winnerPhoto || t.photo;
     return {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
-      html: H.part('body', H.photo(photo, t.name, 'wphoto', '', bn(Sel.teamIndex(t.id) + 1)) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
+      html: H.part('body', H.photo(photo, t.name, 'wphoto', '', bn(Sel.teamIndex(t.id) + 1)) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + H.tn(t) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
   },
   TOP3(s) {
     const rows = Sel.standings().slice(0, 3);
     const order = [[rows[1], 2], [rows[0], 1], [rows[2], 3]].filter((x) => x[0]);
     // Column height follows the podium position; titles and crowns follow the real (possibly tied) rank.
-    const cols = order.map(([r, pos]) => '<div class="pod pod' + pos + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '<div class="crown" style="visibility:hidden">👑</div>') + H.tphoto(r.team) + '<b>' + esc(r.team.name) + '</b><small>' + Sel.rankTitle(r.rank) + '</small><div class="pod-block"><span>' + bn(r.rank) + '</span><em>' + bn(r.score) + '</em></div></div>').join('');
+    const cols = order.map(([r, pos]) => '<div class="pod pod' + pos + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '<div class="crown" style="visibility:hidden">👑</div>') + H.tphoto(r.team) + '<b>' + H.tn(r.team) + '</b><small>' + Sel.rankTitle(r.rank) + '</small><div class="pod-block"><span>' + bn(r.rank) + '</span><em>' + bn(r.score) + '</em></div></div>').join('');
     return { key: 'TOP3', anim: 'push', confetti: true, html: H.head(s, '<span class="round-tag">বিজয়ী মঞ্চ</span>', '<span class="qnum">CONGRATULATIONS</span>') + H.part('podium', cols, 'podium3') };
   },
   END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">ধন্যবাদ</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },
@@ -263,7 +324,7 @@ class StageView {
   constructor(host, opts = {}) {
     this.host = host; this.opts = opts;
     host.classList.add('stage-host');
-    host.innerHTML = '<div class="stage"><div class="bg-image" data-bg></div><canvas class="gl"></canvas><div class="mood"></div><canvas class="fx"></canvas><div class="light-rays"></div><div class="grid-floor"></div><div class="layers"></div><div class="ticker" hidden><span></span></div><div class="strobe"></div><div class="calib" hidden></div><div class="testcard" hidden></div><div class="blackout" hidden></div></div>';
+    host.innerHTML = '<div class="stage"><div class="bg-image" data-bg></div><canvas class="gl"></canvas><div class="mood"></div><canvas class="fx"></canvas><div class="light-rays"></div><div class="grid-floor"></div><div class="layers"></div><div class="corner-logo" hidden aria-hidden="true"><div class="cl-in"><span class="cl-fb">QC</span><img alt="" hidden></div><div class="cl-sweep"></div></div><div class="wipe" aria-hidden="true"><i class="w1"></i><i class="w2"></i><i class="w3"></i><div class="wl"><img alt="" hidden></div></div><div class="ticker" hidden><span></span></div><div class="strobe"></div><div class="calib" hidden></div><div class="testcard" hidden></div><div class="blackout" hidden></div></div>';
     this.stage = $('.stage', host);
     this.layers = $('.layers', host);
     this.fx = safe('fx-init', () => new FxField($('canvas.fx', host)), null);
@@ -296,9 +357,13 @@ class StageView {
     tpl.innerHTML = sc.html;
     if (sc.key !== this.curKey || !this.cur) {
       const old = this.cur;
-      if (old) { old.classList.remove('enter'); old.classList.add('exiting'); setTimeout(() => old.remove(), 700); }
+      // A clear, branded wipe between scenes; a lighter flash between steps of the same scene.
+      const sceneChanged = this.lastSceneName !== s.show.scene; this.lastSceneName = s.show.scene;
+      const wipe = old && s.design.motion && s.design.wipe !== 'none' ? (sceneChanged ? s.design.wipe : 'flash') : '';
+      if (wipe) this.wipe(wipe, s);
+      if (old) { old.classList.remove('enter'); old.classList.add('exiting'); if (wipe === 'sweep') old.classList.add('under-wipe'); setTimeout(() => old.remove(), 800); }
       const layer = document.createElement('div');
-      layer.className = 'layer enter' + (sc.bare ? ' bare' : '');
+      layer.className = 'layer enter' + (sc.bare ? ' bare' : '') + (wipe === 'sweep' ? ' after-wipe' : '');
       if (sc.bare) layer.style.padding = '0';
       layer.dataset.anim = s.design.motion ? (sc.anim || s.design.anim) : 'none';
       layer.setAttribute('style', (sc.bare ? 'padding:0;' : '') + (sc.style || ''));
@@ -320,6 +385,7 @@ class StageView {
     const bg = $('[data-bg]', this.stage);
     if (bg.getAttribute('data-media') !== (bgId || '')) { bg.style.backgroundImage = ''; delete bg.dataset.loaded; if (bgId) bg.setAttribute('data-media', bgId); else bg.removeAttribute('data-media'); Media.hydrate(this.stage); }
     $('.blackout', this.stage).hidden = !s.show.blackout;
+    this.corner(s, sc);
     this.layout();
     // Round mood glow + palette for the 3D background.
     const mood = s.design.motion ? stageMood(s) : '';
@@ -338,6 +404,27 @@ class StageView {
       if (Store.rehearsal && !b) { b = document.createElement('div'); b.className = 'rehearsal-badge'; b.textContent = 'REHEARSAL'; this.stage.appendChild(b); }
       if (!Store.rehearsal && b) b.remove();
     }
+  }
+  /** The spinning show badge in a corner of every scene (V100); it flies in and docks when it appears. */
+  corner(s, sc) {
+    const c = s.design.corner; const el = $('.corner-logo', this.stage);
+    const hide = !c.show || ['LOGO', 'THEME', 'END', 'IDENTITY'].includes(s.show.scene) || !!sc.bare || s.show.blackout;
+    const was = !el.hidden;
+    el.hidden = hide;
+    el.dataset.pos = c.pos;
+    this.stage.dataset.corner = hide ? '' : c.pos;
+    el.style.setProperty('--cl-size', String(clamp(num(c.size, 1), 0.5, 2)));
+    el.classList.toggle('still', !c.spin || !s.design.motion);
+    const img = $('.cl-in img', el);
+    if ((s.logo || '') !== (img.getAttribute('data-media') || '')) { delete img.dataset.loaded; img.hidden = true; img.removeAttribute('src'); if (s.logo) img.setAttribute('data-media', s.logo); else img.removeAttribute('data-media'); Media.hydrate(el); }
+    if (!hide && !was && s.design.motion) { el.classList.remove('intro'); void el.offsetWidth; el.classList.add('intro'); clearTimeout(this.clT); this.clT = setTimeout(() => el.classList.remove('intro'), 2600); }
+  }
+  wipe(kind, s) {
+    const w = $('.wipe', this.stage);
+    const img = $('.wl img', w);
+    if (s.logo && img.getAttribute('data-media') !== s.logo) { img.setAttribute('data-media', s.logo); delete img.dataset.loaded; Media.hydrate(w); }
+    w.dataset.kind = kind; w.classList.remove('go'); void w.offsetWidth; w.classList.add('go');
+    clearTimeout(this.wipeT); this.wipeT = setTimeout(() => w.classList.remove('go'), 1600);
   }
   /** Replace only parts whose source HTML changed; recurse into data-morph containers. */
   patch(oldParent, newParent) {
