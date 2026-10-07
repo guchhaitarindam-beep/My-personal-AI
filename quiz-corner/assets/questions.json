@@ -14,7 +14,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q07.jpg"
+  }
  },
  {
   "id": "Q09",
@@ -31,7 +35,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q09.jpg"
+  }
  },
  {
   "id": "Q03",
@@ -48,7 +56,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q03.jpg"
+  }
  },
  {
   "id": "Q05",
@@ -65,7 +77,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q05.jpg"
+  }
  },
  {
   "id": "Q06",
@@ -82,7 +98,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q06.jpg"
+  }
  },
  {
   "id": "Q10",
@@ -99,7 +119,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q10.jpg"
+  }
  },
  {
   "id": "Q15",
@@ -116,7 +140,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q15.jpg"
+  }
  },
  {
   "id": "Q20",
@@ -133,7 +161,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q20.jpg"
+  }
  },
  {
   "id": "Q38",
@@ -150,7 +182,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q38.jpg"
+  }
  },
  {
   "id": "Q02",
@@ -167,7 +203,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q02.jpg"
+  }
  },
  {
   "id": "Q23",
@@ -184,7 +224,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q23.jpg"
+  }
  },
  {
   "id": "Q16",
@@ -201,7 +245,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q16.jpg"
+  }
  },
  {
   "id": "Q12",
@@ -218,7 +266,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q12.jpg"
+  }
  },
  {
   "id": "Q13",
@@ -235,7 +287,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q13.jpg"
+  }
  },
  {
   "id": "Q14",
@@ -252,7 +308,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q14.jpg"
+  }
  },
  {
   "id": "Q18",
@@ -269,7 +329,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q18.jpg"
+  }
  },
  {
   "id": "Q25",
@@ -286,7 +350,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q25.jpg"
+  }
  },
  {
   "id": "Q28",
@@ -303,7 +371,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q28.jpg"
+  }
  },
  {
   "id": "Q34",
@@ -320,7 +392,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q34.jpg"
+  }
  },
  {
   "id": "Q50",
@@ -337,7 +413,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q50.jpg"
+  }
  },
  {
   "id": "Q01",
@@ -375,7 +455,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q47.jpg"
+  }
  },
  {
   "id": "Q40",
@@ -392,7 +476,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q40.jpg"
+  }
  },
  {
   "id": "Q04",
@@ -430,7 +518,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q17.jpg"
+  }
  },
  {
   "id": "Q11",
@@ -447,7 +539,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q11.jpg"
+  }
  },
  {
   "id": "Q24",
@@ -464,7 +560,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q24.jpg"
+  }
  },
  {
   "id": "Q26",
@@ -481,7 +581,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q26.jpg"
+  }
  },
  {
   "id": "Q42",
@@ -498,7 +602,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q42.jpg"
+  }
  },
  {
   "id": "Q45",
@@ -515,7 +623,11 @@
   "timeLimit": 30,
   "explanation": "",
   "difficulty": "medium",
-  "clue": ""
+  "clue": "",
+  "media": {
+   "kind": "image",
+   "name": "art_Q45.jpg"
+  }
  },
  {
   "id": "Q08",

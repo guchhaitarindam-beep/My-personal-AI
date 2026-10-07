@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 3;
+const RULES_VERSION = 4;
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -297,7 +297,7 @@ function upgradeRules(s, def) {
     return Object.assign({}, r, { name: d.name, label: d.label, rules: d.rules, type: d.type, enabled: d.enabled, features: clone(d.features), scoring: clone(d.scoring), timers: clone(d.timers) });
   });
   const seedQ = new Map(def.questions.map((q) => [q.id, q]));
-  s.questions = arr(s.questions).map((q) => { const d = isObj(q) && seedQ.get(q.id); return d ? Object.assign({}, q, { roundId: d.roundId, number: d.number }) : q; });
+  s.questions = arr(s.questions).map((q) => { const d = isObj(q) && seedQ.get(q.id); return d ? Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {}) : q; });
   if (isObj(s.prelim)) { s.prelim.count = def.prelim.count; s.prelim.rules = def.prelim.rules; }
   s.flipPool = def.flipPool;
   // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.

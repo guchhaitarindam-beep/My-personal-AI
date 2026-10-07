@@ -239,6 +239,8 @@ const SelfTest = {
       T('প্রশ্ন: রাউন্ড ১–৩-এ ১০টি করে, নম্বর ১–১০', () => ['R1', 'R2', 'R3'].every((id) => { const qs = Sel.roundQuestions(id); return qs.length === 10 && qs.map((q) => q.number).sort((x, y) => x - y).join() === '1,2,3,4,5,6,7,8,9,10'; }));
       T('প্রশ্ন: প্রতি রাউন্ডে অন্তত একটি পুরাণের প্রশ্ন', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /রাম|রাবণ|রামায়ণ|মহাভারত|কুরুক্ষেত্র|গীতা|দুর্গা|অর্জুন/.test(q.text))));
       T('প্রশ্ন: প্রতি রাউন্ডে অন্তত একটি গল্প/কার্টুনের প্রশ্ন', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /টুনটুনি|সুকুমার|খিচুড়ি|গুপী|বাঘা|প্রদোষচন্দ্র|মগজাস্ত্র|ঠাকুরমার/.test(q.text))));
+      T('প্রশ্ন: রাউন্ড ১–৩-এর প্রতিটি প্রশ্নে ছবি আছে', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => /^asset:/.test(q.image))));
+      T('প্রশ্ন: পুরনো সেভেও নতুন ছবি আসে, নিজের ছবি বদলায় না', () => { const old = defaultState(); delete old.rulesVersion; old.questions.forEach((q) => { q.image = ''; }); old.questions[1].image = 'm_mine'; const n = normalizeState(old); const d = defaultState(); return n.questions[0].image === d.questions[0].image && !!n.questions[0].image && n.questions[1].image === 'm_mine'; });
       T('প্রশ্ন: ৭০টি প্রশ্নের একটিও বাদ যায়নি', () => s().questions.length === 70 && new Set(s().questions.map((q) => q.id)).size === 70);
       T('প্রশ্ন: সব প্রশ্নের সঠিক উত্তর বিকল্পের মধ্যে আছে', () => s().questions.every((q) => q.options[q.answer]));
       {

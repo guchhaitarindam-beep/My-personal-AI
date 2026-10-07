@@ -29,6 +29,8 @@ seed_json = json.dumps(seed, ensure_ascii=False, separators=(',', ':')).replace(
 assets = [('logo', 'logo.jpg', 'image/jpeg'), ('crew0', 'photo_crew0.jpg', 'image/jpeg'), ('crew1', 'photo_crew1.jpg', 'image/jpeg'),
           ('group', 'photo_group.jpg', 'image/jpeg'), ('Q01_bankim.jpg', 'qmedia_Q01_bankim.jpg', 'image/jpeg'),
           ('Q04_mega_kitchen.jpg', 'qmedia_Q04_mega_kitchen.jpg', 'image/jpeg')]
+# answer-safe illustrations for the main-stage questions (they never show the answer)
+assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jpeg') for f in sorted(glob.glob(os.path.join(A, 'qmedia_art_*.jpg')))]
 if not lite:
     assets += [('theme', 'theme.mp3', 'audio/mpeg'), ('welcome', 'welcome_tagore.mp3', 'audio/mpeg')]
 asset_html = '\n'.join('<script type="text/plain" id="asset-%s">%s</script>' % (aid, data_uri(f, m)) for aid, f, m in assets)

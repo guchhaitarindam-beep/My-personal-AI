@@ -897,3 +897,7 @@ body.role-host .preview-box { max-width: 900px; }
 .intro-info .name.code-only { font-family: var(--font-en); font-weight: 900; letter-spacing: .04em; white-space: nowrap; background: linear-gradient(180deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 2.4cqh color-mix(in srgb, var(--team) 70%, transparent)); }
 .cd-ring .cd-prog { filter: none; }
 .cd-ring svg { filter: drop-shadow(0 0 1cqh #FFEA00) drop-shadow(0 0 2.6cqh rgba(0, 229, 255, .8)); overflow: visible; }
+/* question pictures: larger on the TV, a soft entrance */
+.q-card .q-img { flex: 0 0 42%; align-self: stretch; }
+.q-card .q-img img { width: 100%; height: auto; max-height: 100%; box-shadow: 0 0 3cqh rgba(0, 0, 0, .6), 0 0 2.4cqh color-mix(in srgb, var(--gold) 35%, transparent); animation: qImgIn 1s cubic-bezier(.2, .9, .2, 1) .2s both; }
+@keyframes qImgIn { from { opacity: 0; transform: scale(.85) rotateY(-20deg); filter: blur(6px); } }
