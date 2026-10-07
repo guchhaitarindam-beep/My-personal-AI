@@ -249,8 +249,9 @@ const Scenes = {
   },
   TOP3(s) {
     const rows = Sel.standings().slice(0, 3);
-    const order = [rows[1], rows[0], rows[2]].filter(Boolean);
-    const cols = order.map((r) => '<div class="pod pod' + r.rank + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '') + H.tphoto(r.team) + '<b>' + esc(r.team.name) + '</b><small>' + Sel.rankTitle(r.rank) + '</small><div class="pod-block"><span>' + bn(r.rank) + '</span><em>' + bn(r.score) + '</em></div></div>').join('');
+    const order = [[rows[1], 2], [rows[0], 1], [rows[2], 3]].filter((x) => x[0]);
+    // Column height follows the podium position; titles and crowns follow the real (possibly tied) rank.
+    const cols = order.map(([r, pos]) => '<div class="pod pod' + pos + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '<div class="crown" style="visibility:hidden">👑</div>') + H.tphoto(r.team) + '<b>' + esc(r.team.name) + '</b><small>' + Sel.rankTitle(r.rank) + '</small><div class="pod-block"><span>' + bn(r.rank) + '</span><em>' + bn(r.score) + '</em></div></div>').join('');
     return { key: 'TOP3', anim: 'push', confetti: true, html: H.head(s, '<span class="round-tag">বিজয়ী মঞ্চ</span>', '<span class="qnum">CONGRATULATIONS</span>') + H.part('podium', cols, 'podium3') };
   },
   END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">ধন্যবাদ</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },
