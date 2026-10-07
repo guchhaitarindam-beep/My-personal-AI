@@ -21,6 +21,13 @@ const fontOpts = () => FONT_CHOICES.map((f) => f[0]);
 const TEXT_ELEMENTS = [['question', 'প্রশ্ন'], ['option', 'বিকল্প (ক–ঘ)'], ['title', 'শিরোনাম'], ['team', 'দলের নাম'], ['answer', 'উত্তর']];
 const TEXT_SAMPLES = { question: 'বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্যের নাম কী?', option: 'ক) সুন্দরবন', title: 'রাউন্ড ১ • মজার মিশেল', team: 'দল ১ — উত্তর কলমদান', answer: 'সঠিক উত্তর: সুন্দরবন' };
 
+/** "R1-5.jpg", "r2_10.png", "3-7.mp3", "রাউন্ড১-প্রশ্ন৫.jpg" → { round, n }; null when the name does not say. */
+function bulkMediaTarget(name) {
+  const t = String(name || '').replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d))).replace(/\.[a-z0-9]+$/i, '');
+  const m = t.match(/(?:^|[^0-9])(?:r|round|রাউন্ড)?\s*([1-7])\s*[-_. ]+\s*(?:q|প্রশ্ন)?\s*([0-9]{1,2})(?![0-9])/i);
+  return m ? { round: int(m[1]), n: int(m[2]) } : null;
+}
+
 const TabRender = {
   /* ---------------- SHOW ---------------- */
   show(s) {
@@ -117,7 +124,7 @@ const TabRender = {
         F.area(p + '.explanation', 'ব্যাখ্যা', q.explanation, 2) + '<div class="g2">' + F.text(p + '.hint', 'সংকেত (Hint)', q.hint) + F.select(p + '.difficulty', 'কাঠিন্য', [['easy', 'সহজ'], ['medium', 'মাঝারি'], ['hard', 'কঠিন']], q.difficulty) + '</div>' + F.area(p + '.speech', 'ভয়েসের জন্য লেখা (ঐচ্ছিক)', q.speech, 2) + '<div class="card" style="margin:.5rem 0"><h3>✔ বানান ও গঠন পরীক্ষা (V100 অডিটর)</h3>' + auditHtml(q) + '</div>' +
         '<div class="row">' + F.media(p + '.image', 'প্রশ্নের ছবি', q.image) + F.media(p + '.clip', 'অডিও / ভিডিও ক্লিপ', q.clip, 'audio/*,video/*', 'video') + '<div class="deck" style="flex:1">' + F.btn('showQ', '▶ স্টেজে দেখাও', 'good', q.id) + F.btn('qEdit', 'বন্ধ', '', '') + '</div></div>');
     }
-    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('importOpen', '⇧ আমদানি (CSV / Excel / JSON / লেখা)', 'warn') + F.btn('exportQuestionsCsv', '⇩ প্রশ্ন CSV') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON') + F.btn('bankAudit', '🔎 বানান ও প্রশ্ন-ব্যাংক পরীক্ষা') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
+    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('importOpen', '⇧ আমদানি (CSV / Excel / JSON / লেখা)', 'warn') + F.btn('qMediaBulk', '🖼 একসাথে সব ছবি / অডিও / ভিডিও (নাম: R1-5.jpg)', 'primary') + F.btn('csvTemplate', '⇩ খালি CSV ছাঁচ') + F.btn('exportQuestionsCsv', '⇩ প্রশ্ন CSV') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON') + F.btn('bankAudit', '🔎 বানান ও প্রশ্ন-ব্যাংক পরীক্ষা') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
   },
 
   /* ---------------- ROUNDS ---------------- */
@@ -348,7 +355,28 @@ Object.assign(Actions, {
   async mediaDel(id) { if (!confirm('ফাইলটি স্থায়ীভাবে মুছবেন? যেখানে ব্যবহৃত সেখানে খালি দেখাবে।')) return; await Media.remove(id); UI.renderTab(true); },
   logoReset() { Store.commit('logo-reset', (s) => { s.logo = 'asset:logo'; }); },
   crewAdd() { Store.commit('crew-add', (s) => { s.crew.push({ name: '', role: '', photo: '' }); }); },
-  crewDel(i) { Store.commit('crew-del', (s) => { s.crew.splice(int(i), 1); }); },
+  crewDel(i) { const c = Store.state.crew[int(i)]; if (!c || !confirm('"' + (c.name || 'এই সদস্য') + '"-কে আমাদের টিম থেকে সরাবেন? (Ctrl+Z দিয়ে ফেরানো যায়)')) return; Store.commit('crew-del', (s) => { s.crew.splice(int(i), 1); }); },
+  /** All pictures / sounds / videos for the questions in one go: a file named R1-5.jpg goes to round 1, question 5. */
+  qMediaBulk() {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,audio/*,video/*';
+    inp.onchange = async () => {
+      const files = Array.from(inp.files || []); if (!files.length) return;
+      const done = []; const skipped = [];
+      for (const f of files) {
+        const m = bulkMediaTarget(f.name);
+        const q = m && Store.state.questions.find((x) => x.roundId === 'R' + m.round && x.number === m.n);
+        if (!q) { skipped.push(f.name); continue; }
+        const kind = /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif)$/i.test(f.name) ? 'image' : /^audio\//.test(f.type) || /\.(mp3|wav|m4a|ogg)$/i.test(f.name) ? 'audio' : 'video';
+        try {
+          const id = await Media.add(f, kind);
+          Store.commit('bulk-media', (s) => { const t = s.questions.find((x) => x.id === q.id); if (kind === 'image') t.image = id; else t.clip = id; });
+          done.push(f.name + ' → রাউন্ড ' + bn(m.round) + ', প্রশ্ন ' + bn(m.n));
+        } catch (e) { skipped.push(f.name + ' (' + (e.message || 'খোলা যায়নি') + ')'); }
+      }
+      UI.modal('একসাথে ছবি / অডিও / ভিডিও', '<p class="ok">' + bn(done.length) + 'টি ফাইল প্রশ্নে বসেছে।</p>' + (done.length ? '<div class="list" style="max-height:30vh;overflow:auto">' + done.map((x) => '<div class="li">✔ ' + esc(x) + '</div>').join('') + '</div>' : '') + (skipped.length ? '<p class="badge-warn">' + bn(skipped.length) + 'টি ফাইলের নাম থেকে প্রশ্ন বোঝা যায়নি — নাম এভাবে দিন: R1-5.jpg (রাউন্ড ১, প্রশ্ন ৫)</p><div class="list">' + skipped.map((x) => '<div class="li">✘ ' + esc(x) + '</div>').join('') + '</div>' : ''));
+    };
+    inp.click();
+  },
   async musicPick(slot) { const id = await pickMedia('audio/*,.mp3,.wav,.m4a', 'audio'); if (id) Store.commit('music-pick', (s) => { s.audio.music[slot].media = id; }); },
   musicReset(slot) { Store.commit('music-reset', (s) => { s.audio.music[slot].media = { theme: 'asset:theme', welcome: 'asset:welcome' }[slot] || ''; }); },
   musicClear(slot) { Cue.music(slot, 'stop'); Store.commit('music-clear', (s) => { s.audio.music[slot].media = ''; }); },

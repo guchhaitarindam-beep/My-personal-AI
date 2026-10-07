@@ -944,3 +944,5 @@ body.role-host .preview-box { max-width: 900px; }
 .intro-info .fin-score { align-self: flex-start; font-size: 3.6cqh; font-weight: 800; line-height: 1.4; padding: .6cqh 1.6cqw; border-radius: 1.4cqh; color: #0A0F1D; background: linear-gradient(90deg, #fff3b0, var(--gold)); box-shadow: 0 0 3cqh color-mix(in srgb, var(--gold) 60%, transparent); animation: aSlide 1s .7s both; }
 .intro-info .fin-score b { font-family: var(--font-timer); font-size: 1.2em; }
 .intro-info .fin-score { width: fit-content; max-width: 100%; }
+.blackout-alert { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; background: #7f1d1d !important; border: 2px solid #ef4444 !important; color: #fff; animation: glowPulse 1.6s ease-in-out infinite; }
+.blackout-alert b { font-size: 1.15rem; }

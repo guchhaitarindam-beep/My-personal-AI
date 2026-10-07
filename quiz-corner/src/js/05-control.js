@@ -201,7 +201,9 @@ const UI = {
     const rd = Show.rundown(); const i = Show.index();
     const cur = rd[i]; const nxt = rd[i + 1];
     const b = (act, label, cls = '', arg = '', key = '', dis = false) => '<button class="btn ' + cls + '" data-act="' + act + '"' + (arg !== '' ? ' data-arg="' + esc(arg) + '"' : '') + (dis ? ' disabled' : '') + '>' + label + (key ? ' <kbd>' + key + '</kbd>' : '') + '</button>';
-    let out = '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">ধাপ ' + bn(i + 1) + ' / ' + bn(rd.length) + (nxt ? ' • পরবর্তী: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
+    // a black TV must never be a mystery to the operator
+    let out = s.show.blackout ? '<div class="card blackout-alert"><b>⚠ টিভির পর্দা এখন কালো (ব্ল্যাকআউট)</b><span>দর্শক কিছু দেখছেন না।</span>' + b('blackout', '▶ টিভিতে আবার দেখাও', 'lg good', '', 'B') + '</div>' : '';
+    out += '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">ধাপ ' + bn(i + 1) + ' / ' + bn(rd.length) + (nxt ? ' • পরবর্তী: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
     out += '<div class="deck" style="margin-top:.6rem">' + b('prev', '◀ আগের', 'lg', '', '←') + b('next', 'পরের ▶', 'lg primary', '', '→') + b('timerToggle', '▶ চালু', 'lg', '', '') + b('replay', '↻ দৃশ্য পুনরায়', '') + b('scoreboard', '📊 স্কোরবোর্ড', '', '', 'S') + '</div></div>';
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);

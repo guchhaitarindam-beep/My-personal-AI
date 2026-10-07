@@ -624,7 +624,7 @@ const ImportUI = {
       const legacy = (t) => { try { const j = JSON.parse(t); if (isObj(j) && (j.qc66 || Legacy.isV100(j))) throw new Error('এটি পূর্ণ ইভেন্ট/ব্যাকআপ ফাইল — "সংরক্ষণ ও ব্যাকআপ ▸ আমদানি / পুনরুদ্ধার" ব্যবহার করুন'); if (Array.isArray(j) && j.length && isObj(j[0]) && ('roundId' in j[0])) return j.map((q, i) => questionFromSeed(Object.assign({}, q, { id: uid('Q') }), i)); } catch (e) { if (/ব্যাকআপ/.test(e.message)) throw e; } return []; };
       const r = await NexusImport.preview({ file, text, defaultRound: round, rounds, legacy });
       this.pending = r.list.map((q) => Object.assign(q, { id: uid('Q') }));
-      out.innerHTML = '<p class="ok">' + esc(r.note || (r.list.length + 'টি প্রশ্ন পড়া হয়েছে।')) + '</p><div class="list" style="max-height:40vh;overflow:auto">' + this.pending.slice(0, 60).map((q) => '<div class="li"><span class="n">' + esc(q.roundId) + '</span><div class="t">' + esc(q.text.slice(0, 120)) + '<small>উত্তর: ' + esc(q.options[q.answer] || '') + '</small></div><span></span></div>').join('') + '</div><div class="row" style="margin-top:.5rem">' + F.btn('importAdd', '✔ ' + bn(this.pending.length) + 'টি প্রশ্ন যোগ করুন', 'good') + '</div>';
+      out.innerHTML = '<p class="ok">' + esc(r.note || (r.list.length + 'টি প্রশ্ন পড়া হয়েছে।')) + '</p><div class="list" style="max-height:40vh;overflow:auto">' + this.pending.slice(0, 60).map((q) => '<div class="li"><span class="n">' + esc(q.roundId) + '</span><div class="t">' + esc(q.text.slice(0, 120)) + '<small>উত্তর: ' + esc(q.options[q.answer] || '') + '</small></div><span></span></div>').join('') + '</div><div class="row" style="margin-top:.5rem">' + F.btn('importAdd', '✔ ' + bn(this.pending.length) + 'টি প্রশ্ন যোগ করুন', 'good') + F.btn('importReplace', '⟳ পুরনো সব প্রশ্ন মুছে এগুলো বসাও', 'warn') + '</div>';
     } catch (e) { this.pending = null; out.innerHTML = '<p class="badge-warn">✘ ' + esc(e.message || String(e)) + '</p>'; }
   },
 };
@@ -659,6 +659,13 @@ Object.assign(Actions, {
     const list = ImportUI.pending; if (!list || !list.length) return;
     Store.commit('import-csv', (s) => { s.questions = s.questions.concat(list); });
     ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + 'টি প্রশ্ন যোগ হয়েছে', 'ok');
+  },
+  /** For another event: the imported list becomes the whole question bank (undo brings the old one back). */
+  importReplace() {
+    const list = ImportUI.pending; if (!list || !list.length) return;
+    if (!confirm('পুরনো সব প্রশ্ন মুছে এই ' + list.length + 'টি প্রশ্ন বসবে। (ভুল হলে Ctrl+Z দিয়ে ফেরানো যায়) — নিশ্চিত?')) return;
+    Store.commit('import-replace', (s) => { s.questions = list; s.board.played = {}; s.live = emptyLive(); });
+    ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + 'টি নতুন প্রশ্ন বসেছে', 'ok');
   },
   csvTemplate() { download('QuizCorner_template.csv', csvBlob([['round', 'number', 'text', 'a', 'b', 'c', 'd', 'answer', 'time', 'hint', 'explain', 'difficulty'], ['R1', '1', 'বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্য কোনটি?', 'সুন্দরবন', 'আমাজন', 'কঙ্গো', 'বোর্নিও', 'A', '60', '', '', 'easy']])); },
   exportScoresCsv() { download('QuizCorner_scores.csv', csvBlob([['rank', 'team', 'school', 'score']].concat(Sel.standings().map((r) => [r.rank, r.team.name, r.team.school, r.score])))); },

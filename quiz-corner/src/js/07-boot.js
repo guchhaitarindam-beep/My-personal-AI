@@ -369,6 +369,8 @@ const SelfTest = {
       T('পুরনো সেভ: ১২টি খালি "দল N" → ৮টি দল A / 1 … H / 8', () => { const old = defaultState(); delete old.rulesVersion; old.teams = Array.from({ length: 12 }, (_, i) => Object.assign(defaultTeam(i), { name: 'দল ' + bn(i + 1) })); const n = normalizeState(old); return n.teams.length === 8 && n.teams[7].name === 'H / 8'; });
       T('নতুন সেভ: অপারেটরের নিজের নিয়ম-বদল থাকে', () => { const cur = defaultState(); cur.rounds[0].label = 'আমার লেখা'; return normalizeState(cur).rounds[0].label === 'আমার লেখা'; });
       T('নিয়ম: রাউন্ড ১-এর পাশের লেখায় চ্যালেঞ্জ নেই', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
+      T('একসাথে মিডিয়া: ফাইলের নাম থেকে রাউন্ড ও প্রশ্ন', () => { const a = bulkMediaTarget('R1-5.jpg'); const b = bulkMediaTarget('r2_10.png'); const c = bulkMediaTarget('রাউন্ড৩-প্রশ্ন৭.mp3'); const d = bulkMediaTarget('holiday photo.jpg'); return a.round === 1 && a.n === 5 && b.round === 2 && b.n === 10 && c.round === 3 && c.n === 7 && d === null; });
+      T('ব্ল্যাকআউট হলে কন্ট্রোলে লাল সতর্কতা ও ফেরানোর বোতাম', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
       // ---- design and sound ----
       T('নকশা: কোণে ঘুরন্ত লোগো চালু', () => s().design.corner.show && s().design.corner.spin && s().design.corner.pos === 'tr');
       T('নকশা: দৃশ্য বদলে স্পষ্ট রঙিন সুইপ', () => s().design.wipe === 'sweep');
@@ -492,7 +494,11 @@ function boot() {
     UI.mount();
     Authority.start();
     window.addEventListener('pagehide', () => Store.persist());
-    window.addEventListener('beforeunload', () => Store.persist());
+    window.addEventListener('beforeunload', (e) => {
+      Store.persist();
+      // closing the control window by mistake mid-show asks first (everything is saved either way)
+      if (MODE === 'control' && Store.state.show.scene !== 'ORGANIZER') { e.preventDefault(); e.returnValue = ''; }
+    });
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
