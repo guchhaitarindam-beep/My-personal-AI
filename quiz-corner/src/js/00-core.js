@@ -244,11 +244,11 @@ function defaultState() {
       text: defaultTextStyles(),
       box: { show: true, width: 0.28, radius: 2.2, opacity: 0.88 },
       qSpacing: 0, qLeading: 1.42,
-      corner: { show: true, pos: 'tr', size: 1, spin: true }, wipe: 'sweep',
+      corner: { show: true, pos: 'tr', size: 1, spin: true }, wipe: 'sweep', scoreStrip: true,
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true }, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
+      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
       music: {
         theme: { media: 'asset:theme', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
         welcome: { media: 'asset:welcome', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
@@ -261,7 +261,7 @@ function defaultState() {
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
-      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800,
+      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, autoApplause: true,
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },

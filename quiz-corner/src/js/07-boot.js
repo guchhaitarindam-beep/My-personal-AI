@@ -336,6 +336,17 @@ const SelfTest = {
       Game.load(Sel.roundQuestions('R1')[0].id, s().teams[0].id);
       T('নকশা: প্রশ্নের সময় কোণে দলের ছবি ও "TEAM A / 1"', () => { const html = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return html.includes('TEAM A / 1') && html.includes('team-photo'); });
       T('নকশা: লাইফলাইনের চিপ টিভিতে লুকানো (নিয়মে নেই)', () => s().settings.showLifelines === false && !Scenes.QUESTION(s(), { qid: s().live.qid }).html.includes('lifeline-row'));
+      T('প্রশ্নের নিচে সব দলের স্কোরের পট্টি (A / 1 … H / 8)', () => { const html = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return (html.match(/class="scell/g) || []).length === Sel.finalistIds().length && html.includes('H / 8'); });
+      T('কোণের কার্ডে দলের ছবি, TEAM কোড, নাম ও স্কোর', () => { const html = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return html.includes('tcode-big') && html.includes('class="tscore"') && html.includes('team-photo'); });
+      {
+        const qid3 = Sel.roundQuestions('R3')[5].id; const [x, y] = Sel.finalistIds();
+        Game.load(qid3, x); Game.raiseHand(y);
+        const html = Scenes.QUESTION(s(), { qid: qid3 }).html;
+        T('রাউন্ড ৩: বাজার টিপলে চ্যালেঞ্জার ও উত্তরদাতা — দুই দলের ছবি, কোড ও স্কোর', () => html.includes('CHALLENGE') && html.includes(Sel.code(Sel.team(x))) && html.includes(Sel.code(Sel.team(y))) && (html.match(/class="mscore"/g) || []).length === 2);
+        Game.load(Sel.roundQuestions('R1')[9].id, x); Game.judge('wrong'); Game.pass();
+        T('পাস হলে নতুন দলের ছবি, কোড ও স্কোর কোণে', () => { const h = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return h.includes('PASS TO') && h.includes('TEAM ' + Sel.code(Sel.team(s().live.active))) && h.includes('class="tscore"'); });
+      }
+      T('ডিফল্ট: সঠিক উত্তরে হাততালি, রাউন্ড শুরুতে থিম সংয়ের টুকরো, প্রশ্নে নিচু সুর', () => s().settings.autoApplause && s().audio.themeSting && s().audio.bgm.questionLevel > 0 && s().audio.bgm.questionLevel < 1);
       T('সাউন্ড: জোরালো — বুস্ট ও লিমিটার', () => s().audio.boost >= 1.5 && s().audio.musicBoost >= 1.5 && s().audio.master === 1);
       T('সাউন্ড: প্রতিটি এফেক্ট পূর্ণ ভলিউমে', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('সাউন্ড: প্রশ্ন, বিকল্প, সঠিক, ভুল, পাস — সব সাউন্ড আছে', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));

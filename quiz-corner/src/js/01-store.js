@@ -434,6 +434,7 @@ const Game = {
       }
     });
     Cue.play(kind === 'correct' ? 'correct' : kind === 'wrong' ? 'wrong' : 'reveal', { round: s.live.roundId });
+    if (kind === 'correct') this.applause();
     return true;
   },
   /* ---- Hands-up / buzzer: any number of teams may raise a hand; each is judged once ---- */
@@ -462,7 +463,14 @@ const Game = {
       if (right && st.settings.autoRevealOnCorrect) st.live.revealed = true; // a correct challenge settles the question
     });
     Cue.play(right ? 'correct' : 'wrong');
+    if (right) this.applause();
     return true;
+  },
+  /** A short burst of applause after a correct answer (not in Rapid Fire, where answers come fast). */
+  applause() {
+    const st = Store.state; const r = Sel.round(st.live.roundId);
+    if (!st.settings.autoApplause || (r && r.type === 'rapid')) return;
+    setTimeout(() => Cue.play('applause'), 650);
   },
   /** Manual bonus (once per question, standard rounds). */
   bonus() {
