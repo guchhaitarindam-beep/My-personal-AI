@@ -336,7 +336,11 @@ const Game = {
     if (l.optionsShown && r.features.judgeOptions) return l.eliminated.length >= 2 ? sc.options2 : sc.options4;
     return base;
   },
+  /** A locked question refuses scoring changes until the operator unlocks it. */
+  guard() { if (Store.state.live.locked) { UI.toast('প্রশ্ন লক করা আছে — আগে আনলক করুন (L)', 'err'); return false; } return true; },
+  toggleLock() { if (!Store.state.live.qid) return false; Store.commit('lock', (s) => { s.live.locked = !s.live.locked; }); return true; },
   judge(kind) {
+    if (!this.guard()) return false;
     const s = Store.state;
     const team = Sel.answeringTeam();
     if (!s.live.qid) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
@@ -364,6 +368,7 @@ const Game = {
     return '';
   },
   pass(toTeam) {
+    if (!this.guard()) return false;
     const s = Store.state;
     const r = Sel.round(s.live.roundId);
     if (!s.live.qid) return false;
@@ -383,6 +388,7 @@ const Game = {
     return true;
   },
   challenge(teamId) {
+    if (!this.guard()) return false;
     const s = Store.state;
     const r = Sel.round(s.live.roundId);
     if (!s.live.qid) return false;
@@ -461,6 +467,7 @@ const Game = {
     return Sel.roundQuestions(s.flipPool).find((q) => !s.board.played[q.id] && q.id !== s.live.qid) || null;
   },
   pick(idx) {
+    if (!this.guard()) return false;
     const s = Store.state;
     const q = Sel.liveQuestion();
     const r = Sel.round(s.live.roundId);

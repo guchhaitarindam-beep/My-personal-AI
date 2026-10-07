@@ -193,9 +193,10 @@ const Scenes = {
     const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><span class="ans">' + (q.options[q.answer] && !q.answerText ? '(' + OPT_LABELS[q.answer] + ') ' : '') + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</span>', 'answer-bar') : '';
     const stamp = l.result ? '<div class="stamp ' + l.result + '" data-part="stamp-' + l.resultAt + '">' + ({ correct: 'সঠিক ✓', wrong: 'ভুল ✗', noscore: 'নো স্কোর' }[l.result]) + '</div>' + (l.lastPoints ? '<div class="points-fly" data-part="pts-' + l.resultAt + '">' + signed(l.lastPoints) + '</div>' : '') : '';
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
+    const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
     const qScale = r && r.design.qScale && r.design.qScale !== 1 ? r.design.qScale : 1;
     return {
-      key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
+      key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
       html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', '<span class="qnum">প্রশ্ন ' + bn(q.number) + '</span>') +
         '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (6.2 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + lifelines + H.timer() + '</div></div>' + stamp + dr.html,
@@ -262,6 +263,8 @@ class StageView {
       Log.err('scene:' + s.show.scene, e);
       sc = { key: 'ERR', html: H.part('body', Scenes.brand(s, false), 'center-col') }; // audience sees the logo, never an error
     }
+    const fx = s.sceneFx && s.sceneFx[s.show.scene];
+    if (fx) { if (fx.anim) sc.anim = fx.anim; if (fx.bg) sc.bg = fx.bg; }
     safe('stage-render', () => this.apply(sc, s));
   }
   apply(sc, s) {

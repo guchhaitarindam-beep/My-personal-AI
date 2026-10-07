@@ -210,6 +210,7 @@ function defaultState() {
     testQuestions: arr(SEED.testQuestions).map(questionFromSeed),
     flipPool: 'R7',
     giftCategories: GIFT_CATEGORIES.slice(),
+    sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
       theme: 'broadcast', colors: Object.assign({}, THEMES.broadcast),
       fonts: { bn: 'Hind Siliguri', en: 'Hind Siliguri', title: 'Hind Siliguri', question: 'Hind Siliguri', option: 'Hind Siliguri', timer: 'Mina' },
@@ -242,7 +243,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { locked: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */

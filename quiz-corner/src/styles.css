@@ -127,7 +127,7 @@ img { max-width: 100%; }
 .q-card { flex: 1 1 auto; min-height: 0; display: flex; gap: 2cqw; padding: 2.6cqh 2.6cqw; align-items: stretch; }
 .q-card .q-img { flex: 0 0 34%; display: grid; place-items: center; min-height: 0; }
 .q-card .q-img img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1.4cqh; border: .3cqh solid var(--gold); box-shadow: 0 0 3cqh rgba(0, 0, 0, .6); }
-.q-text-box { flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.q-text-box { flex: 1; min-width: 0; min-height: 0; display: flex; align-items: var(--q-valign, center); justify-content: center; overflow: hidden; }
 .q-text { width: 100%; font-family: var(--font-q); font-weight: var(--q-weight); font-style: var(--q-style); text-align: var(--q-align); letter-spacing: var(--q-spacing); line-height: var(--q-leading); font-size: calc(6cqh * var(--q-scale)); padding-block: .12em; overflow-wrap: anywhere; text-shadow: 0 .4cqh .8cqh rgba(0, 0, 0, .7); }
 .q-text.fitted { font-size: var(--fit-size); }
 .opts { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 11.5cqh; gap: 1.6cqh 1.6cqw; flex: 0 0 auto; }
@@ -544,3 +544,13 @@ body.big-ui .btn { min-height: 46px; }
 .eq i { width: 1cqw; height: 100%; border-radius: .6cqh; background: linear-gradient(to top, var(--accent2), var(--accent), var(--gold)); transform-origin: bottom; animation: eqBar .9s ease-in-out infinite alternate; box-shadow: 0 0 1.2cqh var(--accent); }
 .eq i:nth-child(3n) { animation-duration: .7s; } .eq i:nth-child(4n) { animation-duration: 1.15s; } .eq i:nth-child(5n) { animation-duration: .55s; }
 @keyframes eqBar { from { transform: scaleY(.15); } to { transform: scaleY(1); } }
+
+/* ---------- operator roles ---------- */
+body.role-quizmaster .ctl-main, body.role-host .ctl-main { grid-template-columns: minmax(0, 1fr); }
+body.role-quizmaster .ctl-main > section:last-child, body.role-host .ctl-main > section:last-child { display: none; }
+body.role-quizmaster .live-col, body.role-host .live-col { position: static; max-height: none; }
+body.role-quizmaster .qm-box .q, body.role-host .qm-box .q { font-size: 1.6rem; }
+body.role-quizmaster .qm-box .a, body.role-host .qm-box .a { font-size: 1.6rem; }
+body.role-host .deck, body.role-host #adjTeam, body.role-host .team-chips + .row { display: none; }
+body.role-host .preview-box { max-width: 900px; }
+.lock-on { background: linear-gradient(180deg, #8a1c1c, #4a0b0b) !important; border-color: var(--wrong) !important; }

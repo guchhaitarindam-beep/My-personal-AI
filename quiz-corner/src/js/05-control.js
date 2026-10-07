@@ -189,7 +189,7 @@ const UI = {
       const pc = Game.pointsFor('correct'); const pw = Game.pointsFor('wrong');
       h += '<div class="card"><h3>প্রশ্ন নিয়ন্ত্রণ <span class="hint">' + esc(r ? r.name : '') + ' • ' + Game.flowName(l.flow) + (ans ? ' • উত্তরদাতা: ' + esc(ans.name) : '') + '</span></h3>';
       if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div><div class="a">উত্তর: ' + (q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + esc(q.answerText || q.options[q.answer] || '—') + '</div></div>';
-      h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ সঠিক ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ ভুল ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ নো স্কোর', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও', 'lg gold', '', 'R');
+      h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ সঠিক ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ ভুল ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ নো স্কোর', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও', 'lg gold', '', 'R') + b('lock', l.locked ? '🔒 লক (আনলক করুন)' : '🔓 লক', l.locked ? 'lock-on' : '', '', 'L') + b('replay', '⟲ প্রশ্ন রিসেট');
       h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : 'বিকল্প দেখাও', '', '', 'V', !q || q.options.filter(Boolean).length < 2);
       if (q && l.optionsShown) h += '<div class="deck-sep">দলের বেছে নেওয়া বিকল্প' + (r && r.features.judgeOptions ? ' (সঙ্গে সঙ্গে রায়)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
       if (r && r.features.lifelines) h += '<div class="deck-sep">লাইফলাইন' + (l.active ? ' — ' + esc((Sel.team(l.active) || {}).name || '') : '') + '</div>' + b('lifeline', '½ ৫০:৫০', 'gold', 'fifty', 'Alt+1', l.active && Sel.lifelineUsed(l.active, 'fifty')) + b('lifeline', '📊 দর্শক পোল', 'gold', 'poll', 'Alt+2', l.active && Sel.lifelineUsed(l.active, 'poll')) + b('lifeline', '🔄 ফ্লিপ প্রশ্ন', 'gold', 'flip', 'Alt+3', l.active && Sel.lifelineUsed(l.active, 'flip'));
@@ -281,6 +281,7 @@ const Actions = {
   timerCustom() { const v = prompt('কত সেকেন্ড?', '30'); if (v && num(v) > 0) Timer.start('custom', num(v)); },
   judge(kind) { Game.judge(kind); },
   reveal() { Game.reveal(); },
+  lock() { Game.toggleLock(); },
   pass() { Game.pass(); },
   challengePick() { UI.picker = UI.picker === 'challenge' ? '' : 'challenge'; UI.liveSig = ''; UI.renderLive(); },
   cancelPicker() { UI.picker = ''; UI.liveSig = ''; UI.renderLive(); },
@@ -321,7 +322,7 @@ const SHORTCUTS = [
   ['Space', 'টাইমার চালু / বিরতি'], ['→ / PgDn', 'পরের দৃশ্য'], ['← / PgUp', 'আগের দৃশ্য'], ['D', 'সরাসরি টাইমার (৬০s)'], ['P', 'পাস: পরের দল + ৪৫s'], ['Shift+P', 'শুধু ৪৫s টাইমার'],
   ['R', 'উত্তর দেখাও / পরের স্থান প্রকাশ'], ['C', 'সঠিক'], ['X', 'ভুল'], ['N', 'নো স্কোর'], ['H', 'চ্যালেঞ্জ (তারপর ১–৮)'], ['V', 'বিকল্প দেখাও/লুকাও'],
   ['1–9', 'উত্তরদাতা দল বেছে নাও'], ['Alt+1/2/3', '৫০:৫০ / পোল / ফ্লিপ'], ['0', 'টাইমার রিসেট'], ['+ / −', '১০ সেকেন্ড যোগ / বিয়োগ'], ['S', 'স্কোরবোর্ড'], ['W', 'বিজয়ী'],
-  ['B', 'ব্ল্যাকআউট'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'সব সংগীত/ভয়েস থামাও'],
+  ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'সব সংগীত/ভয়েস থামাও'],
   ['G', 'প্রশ্ন বোর্ড'], ['Ctrl+Z', 'আনডু'], ['Ctrl+Y', 'রিডু'], ['Ctrl+S', 'এখনই সংরক্ষণ'], ['?', 'এই তালিকা'], ['Esc', 'বাতিল / বন্ধ'],
 ];
 
@@ -390,6 +391,7 @@ const Keys = {
       case 'w': Actions.jump('WINNER'); return true;
       case 'g': Actions.gotoGrid(); return true;
       case 'b': Actions.blackout(); return true;
+      case 'l': Actions.lock(); return true;
       case 'f': Actions.previewFull(); return true;
       case 'o': Actions.openStage(); return true;
       case 'e': Actions.speak('question'); return true;

@@ -66,17 +66,20 @@ const Show = {
   onEnter(step) {
     const s = Store.state;
     const p = step.params || {};
+    const override = (s.sceneFx[step.scene] || {}).cue;
+    // Scene cue: per-scene override from the Scene Engine, 'none' silences it.
+    const play = (name) => { const n = override || name; if (n && n !== 'none') Cue.play(n, { round: p.roundId }); };
     switch (step.scene) {
-      case 'THEME': Cue.music('theme', 'play'); break;
-      case 'WELCOME': Cue.music('welcome', 'play'); break;
-      case 'TEAM_INTRO': case 'FINALIST_INTRO': Cue.play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
-      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': break; // the countdown clock emits its own beeps
-      case 'PRELIM_Q': Cue.play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
-      case 'ROUND_INTRO': Cue.play('roundintro'); { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); } break;
-      case 'QUESTION': if (s.live.qid !== p.qid) Game.load(p.qid, Game.turnFor(p.roundId)); break;
-      case 'SCOREBOARD': case 'FINAL': Cue.play('scoreboard'); break;
-      case 'WINNER': Cue.music('winner', 'play'); Cue.play('fanfare'); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
-      default: Cue.play('transition');
+      case 'THEME': if (override) play(); Cue.music('theme', 'play'); break;
+      case 'WELCOME': if (override) play(); Cue.music('welcome', 'play'); break;
+      case 'TEAM_INTRO': case 'FINALIST_INTRO': play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
+      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); break; // the countdown clock emits its own beeps
+      case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
+      case 'ROUND_INTRO': play('roundintro'); { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); } break;
+      case 'QUESTION': if (s.live.qid !== p.qid) Game.load(p.qid, Game.turnFor(p.roundId)); else if (override) play(); break;
+      case 'SCOREBOARD': case 'FINAL': play('scoreboard'); break;
+      case 'WINNER': Cue.music('winner', 'play'); play('fanfare'); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
+      default: play('transition');
     }
   },
   next() { const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]); },
@@ -152,6 +155,7 @@ const DesignSystem = {
     set('--font-bn', f(d.fonts.bn)); set('--font-en', f(d.fonts.en)); set('--font-title', f(d.fonts.title)); set('--font-q', f(d.fonts.question)); set('--font-opt', f(d.fonts.option)); set('--font-timer', f(d.fonts.timer));
     set('--q-scale', String(d.qScale)); set('--opt-scale', String(d.optScale)); set('--title-scale', String(d.titleScale));
     set('--q-weight', String(d.qWeight)); set('--q-style', d.qStyle); set('--q-align', d.qAlign); set('--q-spacing', d.qSpacing + 'em'); set('--q-leading', String(d.qLeading));
+    set('--q-valign', { top: 'flex-start', center: 'center', bottom: 'flex-end' }[d.vAlign] || 'center');
     set('--anim-speed', String(d.animSpeed)); set('--ring-w', String(d.ringWidth));
     document.body.classList.toggle('no-motion', !d.motion);
   },

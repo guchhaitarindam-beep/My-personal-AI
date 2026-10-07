@@ -142,6 +142,9 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('র‍্যাপিড: ±৫', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
+      Game.toggleLock();
+      T('লক: লক থাকলে স্কোর বদলায় না', () => Game.judge('correct') === false && Game.pass() === false);
+      Game.toggleLock();
       const sa = Sel.score(a);
       Game.judge('noscore');
       T('নো স্কোর: ০', () => Sel.score(a) === sa);
@@ -251,7 +254,7 @@ function boot() {
     Authority.start();
     window.addEventListener('pagehide', () => Store.persist());
     window.addEventListener('beforeunload', () => Store.persist());
-    Media.ready.then(() => { Media.hydrate(document.body); if (UI.tab === 'media') UI.renderTab(); });
+    Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
   window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys });

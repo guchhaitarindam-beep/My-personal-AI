@@ -192,6 +192,19 @@ await phone.waitForFunction(() => window.QC && window.QC.Store.state);
 check('Control at phone width: no horizontal page scroll', await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), await phone.evaluate(() => document.documentElement.scrollWidth + ' vs ' + window.innerWidth));
 await phone.screenshot({ path: path.join(shots, '82-control-phone.png') });
 
+// ---- host script window + roles ----
+const host = await ctx.newPage(); watch(host, 'host');
+await host.goto(url + '#host');
+await host.waitForFunction(() => window.QC && window.QC.MODE === 'host');
+await host.waitForTimeout(800);
+check('Host script window shows scores', await host.evaluate(() => document.querySelectorAll('#host .chip').length >= 8));
+await ctl.selectOption('#roleSel', 'quizmaster');
+check('Quiz-master role hides preparation tabs', await ctl.evaluate(() => getComputedStyle(document.querySelector('.ctl-main > section:last-child')).display === 'none'));
+await ctl.selectOption('#roleSel', 'controller');
+// ---- scene engine override ----
+await ctl.evaluate(() => { window.QC.Store.commit('t', (s) => { s.sceneFx.SCOREBOARD = { anim: 'cube', cue: 'none', bg: '' }; }); window.QC.Show.scoreboard(); });
+await stage.waitForTimeout(500);
+check('Scene Engine per-scene animation applies', await stage.evaluate(() => document.querySelector('.layer:not(.exiting)').dataset.anim === 'cube'));
 const relevant = errors.filter((e) => !/favicon/i.test(e));
 check('No JS errors in any window', relevant.length === 0, relevant.slice(0, 5).join(' | '));
 await browser.close();
