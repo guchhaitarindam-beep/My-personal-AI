@@ -241,7 +241,7 @@ const SelfTest = {
       T('প্রশ্ন: প্রতি রাউন্ডে অন্তত একটি গল্প/কার্টুনের প্রশ্ন', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /টুনটুনি|সুকুমার|খিচুড়ি|গুপী|বাঘা|প্রদোষচন্দ্র|মগজাস্ত্র|ঠাকুরমার/.test(q.text))));
       T('প্রশ্ন: রাউন্ড ১–৩-এর প্রতিটি প্রশ্নে ছবি আছে', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => /^asset:/.test(q.image))));
       T('প্রশ্ন: পুরনো সেভেও নতুন ছবি আসে, নিজের ছবি বদলায় না', () => { const old = defaultState(); delete old.rulesVersion; old.questions.forEach((q) => { q.image = ''; }); old.questions[1].image = 'm_mine'; const n = normalizeState(old); const d = defaultState(); return n.questions[0].image === d.questions[0].image && !!n.questions[0].image && n.questions[1].image === 'm_mine'; });
-      T('প্রশ্ন: ৭০টি প্রশ্নের একটিও বাদ যায়নি', () => s().questions.length === 70 && new Set(s().questions.map((q) => q.id)).size === 70);
+      T('প্রশ্ন: আগের ৭০টি প্রশ্নের একটিও বাদ যায়নি (মোট ' + s().questions.length + ')', () => Array.from({ length: 70 }, (_, i) => 'Q' + String(i + 1).padStart(2, '0')).every((id) => Sel.question(id)) && new Set(s().questions.map((q) => q.id)).size === s().questions.length);
       T('প্রশ্ন: সব প্রশ্নের সঠিক উত্তর বিকল্পের মধ্যে আছে', () => s().questions.every((q) => q.options[q.answer]));
       {
         const [ta, tb, tc] = Sel.finalistIds();
@@ -351,6 +351,13 @@ const SelfTest = {
         return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && n.questions.find((q) => q.id === 'Q07').text === 'আমার নিজের প্রশ্ন';
       });
       T('প্রশ্ন: রাউন্ড ১–৩-এর প্রতিটি প্রশ্নে "জানা ভালো" তথ্য', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.explanation && q.explanation.length > 10)));
+      T('পুরনো সেভ: নতুন প্রশ্ন যোগ হয় ও বাছাইয়ের বদলানো প্রশ্ন নতুন লেখা পায়', () => {
+        const old = defaultState(); delete old.rulesVersion;
+        old.questions = old.questions.filter((q) => !['Q71', 'Q72', 'Q73'].includes(q.id));
+        const sw = arr(SEED.prelim).find((p) => arr(p.prevText).length); old.prelim.questions[0].text = sw.prevText[0];
+        const n = normalizeState(old);
+        return ['Q71', 'Q72', 'Q73'].every((id) => n.questions.some((q) => q.id === id)) && !n.prelim.questions.some((q) => q.text === sw.prevText[0]);
+      });
       T('প্রশ্ন: মূল পর্ব ও বাছাই পর্বে একই প্রশ্ন নেই', () => { const pre = Sel.prelimQuestions().map((q) => q.text); return ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => !pre.includes(q.text))); });
       {
         Show._rd = null; const rr = Show.rundown(); const at = (sc) => rr.findIndex((x) => x.scene === sc);

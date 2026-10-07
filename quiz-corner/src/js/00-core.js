@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 5;
+const RULES_VERSION = 6;
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -309,7 +309,14 @@ function upgradeRules(s, def) {
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
     return out;
   });
-  if (isObj(s.prelim)) { s.prelim.count = def.prelim.count; s.prelim.rules = def.prelim.rules; }
+  // Questions the show added later (e.g. moved up from the preliminary bank) join an older save.
+  const have = new Set(s.questions.map((q) => isObj(q) && q.id));
+  def.questions.forEach((q) => { if (!have.has(q.id)) s.questions.push(clone(q)); });
+  if (isObj(s.prelim)) {
+    s.prelim.count = def.prelim.count; s.prelim.rules = def.prelim.rules;
+    const swaps = arr(SEED.prelim).filter((p) => arr(p.prevText).length);
+    s.prelim.questions = arr(s.prelim.questions).map((q) => { const sw = isObj(q) && swaps.find((p) => arr(p.prevText).includes(str(q.text))); return sw ? Object.assign({}, q, { text: str(sw.text), answer: str(sw.answer) }) : q; });
+  }
   s.flipPool = def.flipPool;
   // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.
   const plain = (t) => isObj(t) && GENERIC_TEAM_NAME.test(str(t.name).trim()) && !t.captain && !t.photo && !t.captainPhoto && !arr(t.players).some(Boolean) && !arr(t.playerPhotos).some(Boolean);
