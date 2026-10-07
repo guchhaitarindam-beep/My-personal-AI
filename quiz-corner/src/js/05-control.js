@@ -72,7 +72,7 @@ const UI = {
     $('#roleSel').value = pref.role || 'controller';
     this.applyRole();
     if (pref.bigUi) document.body.classList.add('big-ui');
-    if (pref.tab && TABS.some((t) => t[0] === pref.tab)) this.tab = pref.tab;
+    this.tab = pref.tab && pageInfo(pref.tab) ? pref.tab : '';
     this.renderTabs();
     this.bindEvents();
     this.renderAll();
@@ -117,10 +117,11 @@ const UI = {
     Bus.on('stage-status', () => this.renderStatus());
     Bus.on('storage', () => this.renderStatus());
     Bus.on('rehearsal', () => this.renderStatus());
-    Bus.on('media', () => { if (this.tab === 'media' || this.tab === 'teams') this.renderTab(); });
+    Bus.on('media', () => { if (this.tab === 'media' || this.tab === 'teams' || !this.tab) this.renderTab(); });
+    document.addEventListener('input', (e) => { if (e.target.id !== 'navSearch') return; const q = e.target.value.trim().toLowerCase(); $$('.set-row').forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); $$('.set-group').forEach((g) => { g.hidden = !$$('.set-row', g).some((r) => !r.hidden); }); });
     Bus.on('music', () => { this.liveSig = ''; this.renderLive(); });
     Bus.on('log', () => { const l = $('#logBox'); if (l) { l.textContent = Log.lines.slice(-120).join('\n'); l.scrollTop = l.scrollHeight; } });
-    Bus.on('voices', () => { if (this.tab === 'audio') this.renderTab(); });
+    Bus.on('voices', () => { if (this.tab === 'voice') this.renderTab(); });
     setInterval(() => this.renderStatus(), 1500);
     setInterval(() => this.renderClock(), 200);
   },
@@ -235,7 +236,10 @@ const UI = {
 
   /* ---------------- tabs ---------------- */
   renderTabs() {
-    $('#tabs').innerHTML = TABS.map(([k, label]) => '<button role="tab" aria-selected="' + (k === this.tab) + '" class="' + (k === this.tab ? 'active' : '') + '" data-act="tab" data-arg="' + k + '">' + label + '</button>').join('');
+    const info = pageInfo(this.tab);
+    $('#tabs').innerHTML = info
+      ? '<div class="set-head"><button class="btn back" data-act="tabHome" aria-label="সেটিংসে ফিরে যান">‹ সেটিংস</button><span class="set-ic" style="--c:' + info[2] + '">' + info[1] + '</span><h2>' + esc(info[3]) + '</h2></div>'
+      : '<div class="set-head"><span class="set-ic" style="--c:#7c3aed">⚙</span><h2>সেটিংস ও প্রস্তুতি</h2><input id="navSearch" type="search" placeholder="🔍 খুঁজুন…" aria-label="সেটিংস খুঁজুন"></div>';
   },
   renderTab(force) {
     if (!force && this.typing()) { this.tabDirty = true; return; }
@@ -243,7 +247,7 @@ const UI = {
     const body = $('#tabBody'); if (!body) return;
     const scrolls = $$('[data-keep-scroll]', body).map((el) => [el.dataset.keepScroll, el.scrollTop]);
     const winY = window.scrollY;
-    const fn = TabRender[this.tab] || TabRender.show;
+    const fn = this.tab ? (TabRender[this.tab] || TabRender.show) : SettingsHome;
     body.innerHTML = safe('tab:' + this.tab, () => fn(Store.state), '<div class="card">এই ট্যাব লোড করা যায়নি — লগ দেখুন</div>');
     scrolls.forEach(([k, y]) => { const el = $('[data-keep-scroll="' + k + '"]', body); if (el) el.scrollTop = y; });
     window.scrollTo(0, winY);
@@ -252,14 +256,50 @@ const UI = {
   },
 };
 
-const TABS = [['show', '🎬 শো'], ['prelim', '📝 বাছাই'], ['teams', '👥 দল'], ['questions', '❓ প্রশ্ন'], ['rounds', '🔁 রাউন্ড'], ['event', '🏷 ইভেন্ট'], ['design', '🎨 ডিজাইন'], ['media', '🖼 মিডিয়া'], ['audio', '🔊 অডিও'], ['system', '⚙ সিস্টেম']];
+/* Android-style settings: groups of rows; a row opens a page with a back arrow. */
+const SETTINGS_GROUPS = [
+  ['অনুষ্ঠান চালানো', [
+    ['show', '🎬', '#7c3aed', 'শো রানডাউন', (s) => 'পুরো অনুষ্ঠানক্রম • দ্রুত যাও • রিহার্সাল'],
+    ['prelim', '📝', '#2563eb', 'বাছাই পর্ব', (s) => bn(Sel.prelimQuestions().length) + 'টি প্রশ্ন • ANSWER বোতাম • ফলাফল ও শীর্ষ ' + bn(s.prelim.finalistCount)],
+    ['teams', '👥', '#059669', 'দল ও ছবি', (s) => bn(s.teams.length) + 'টি দল • খেলোয়াড় • ছবি • স্কোর ইতিহাস'],
+    ['questions', '❓', '#db2777', 'প্রশ্ন ব্যবস্থাপক', (s) => bn(s.questions.length) + 'টি প্রশ্ন • যোগ, সম্পাদনা, আমদানি'],
+    ['rounds', '🔁', '#ea580c', 'রাউন্ড ও নম্বর', (s) => bn(s.rounds.filter((r) => r.enabled).length) + 'টি রাউন্ড চালু • নিয়ম • টাইমার • রং'],
+  ]],
+  ['চেহারা ও লেখা', [
+    ['text', '🔤', '#0891b2', 'লেখা ও ফন্ট', () => 'Office-এর মতো: ফন্ট, আকার, B / I / U, বাম-মাঝে-ডান'],
+    ['colors', '🎨', '#c026d3', 'রং, পটভূমি ও বর্ডার', (s) => 'থিম: ' + ((THEMES[s.design.theme] || {}).label || 'কাস্টম')],
+    ['effects', '✨', '#ca8a04', 'অ্যানিমেশন ও ইফেক্ট', () => 'দৃশ্য পরিবর্তন, গতি, কণা, আলো'],
+    ['scenes', '🎞', '#4f46e5', 'দৃশ্যভিত্তিক সেটিংস', () => 'প্রতিটি দৃশ্যের নিজস্ব অ্যানিমেশন, পটভূমি, সাউন্ড'],
+  ]],
+  ['মিডিয়া ও শব্দ', [
+    ['media', '🖼', '#16a34a', 'ছবি, পোস্টার ও গ্যালারি', (s) => bn(Media.index.length) + 'টি আপলোড • ব্যানার • লোগো'],
+    ['audio', '🔊', '#dc2626', 'সংগীত ও সাউন্ড', () => 'থিম সং, স্বাগত সংগীত, সাউন্ড ইফেক্ট'],
+    ['voice', '🗣', '#0d9488', 'ভয়েস (বাংলা)', (s) => s.speech.enabled ? 'চালু' : 'বন্ধ'],
+  ]],
+  ['ইভেন্ট', [
+    ['event', '🏷', '#9333ea', 'অনুষ্ঠানের তথ্য ও আয়োজক', (s) => s.event.programme],
+  ]],
+  ['সিস্টেম', [
+    ['backup', '💾', '#2563eb', 'সংরক্ষণ, ব্যাকআপ ও রিসেট', () => 'স্বয়ংক্রিয় সংরক্ষণ • আমদানি / রপ্তানি'],
+    ['flow', '⏱', '#b45309', 'টাইমার ও প্রবাহ', (s) => 'সতর্কতা ' + bn(s.settings.warnAt) + 's • ড্রোন'],
+    ['tests', '🧪', '#475569', 'পরীক্ষা ও লগ', () => 'স্বয়ংক্রিয় Self-test'],
+    ['help', '❔', '#64748b', 'সাহায্য ও শর্টকাট', () => 'কিবোর্ড শর্টকাট • তথ্য'],
+  ]],
+];
+/** The settings home page: Android-style grouped list. */
+function SettingsHome(s) {
+  return SETTINGS_GROUPS.map(([title, rows]) => '<section class="set-group"><h4>' + esc(title) + '</h4><div class="set-list">' + rows.map(([k, ic, col, name, sub]) => '<button class="set-row" data-act="tab" data-arg="' + k + '"><span class="set-ic" style="--c:' + col + '">' + ic + '</span><span class="set-tx"><b>' + esc(name) + '</b><small>' + esc(safe('sub', () => sub(s), '')) + '</small></span><span class="chev" aria-hidden="true">›</span></button>').join('') + '</div></section>').join('');
+}
+const TABS = SETTINGS_GROUPS.flatMap((g) => g[1].map((r) => [r[0], r[1] + ' ' + r[3]]));
+const pageInfo = (k) => { for (const g of SETTINGS_GROUPS) for (const r of g[1]) if (r[0] === k) return r; return null; };
 
 /* =====================================================================
    ACTIONS — every button and shortcut resolves to one of these.
    ===================================================================== */
 const Actions = {
   closeModal() { UI.closeModal(); },
-  tab(k) { UI.tab = k; UI.savePref('tab', k); UI.renderTabs(); UI.renderTab(true); },
+  tab(k) { UI.tab = pageInfo(k) ? k : ''; UI.savePref('tab', UI.tab); UI.renderTabs(); UI.renderTab(true); const t = $('#tabs'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start' }); },
+  tabHome() { Actions.tab(''); },
   openStage() { Sync.openStage(); },
   previewFull() { const el = $('#preview .stage'); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else if (el && el.requestFullscreen) el.requestFullscreen().catch((e) => UI.toast('ফুলস্ক্রিন হয়নি: ' + e.message, 'err')); },
   blackout() { Show.toggleBlackout(); },

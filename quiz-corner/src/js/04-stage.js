@@ -335,7 +335,9 @@ class StageView {
     if (!h) return;
     $$('[data-fit]', this.stage).forEach((el) => {
       const cqh = num(el.getAttribute('data-fit'), 5);
-      fitText(el, h * cqh / 100 * (el.classList.contains('q-text') ? Store.state.design.qScale : el.classList.contains('otext') ? Store.state.design.optScale : 1), Math.max(10, h * 0.016));
+      const T = Store.state.design.text;
+      const scale = el.classList.contains('q-text') ? T.question.size : el.classList.contains('otext') ? T.option.size : el.classList.contains('rname') ? T.title.size : el.classList.contains('ans') ? T.answer.size : (el.classList.contains('name') || el.classList.contains('wname')) ? T.team.size : 1;
+      fitText(el, h * cqh / 100 * scale, Math.max(10, h * 0.016));
     });
   }
   loop() {

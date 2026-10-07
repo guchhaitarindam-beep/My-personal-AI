@@ -149,12 +149,22 @@ const DesignSystem = {
     const c = d.colors;
     const set = (k, v) => root.setProperty(k, v);
     set('--bg', c.bg); set('--bg2', c.bg2); set('--text', c.text); set('--muted', c.muted); set('--accent', c.accent); set('--accent2', c.accent2);
-    set('--gold', c.gold); set('--neon', c.neon); set('--panel-solid', c.panel); set('--panel', hexA(c.panel, 0.88)); set('--correct', c.correct); set('--wrong', c.wrong);
+    set('--gold', c.gold); set('--neon', c.neon); set('--panel-solid', c.panel); set('--correct', c.correct); set('--wrong', c.wrong);
     set('--timer', c.timer); set('--warn', c.warn); set('--crit', c.crit); set('--glow', String(c.glow == null ? 1 : c.glow));
     const f = (n) => FONT_MAP[n] || ("'" + n + "', 'Hind Siliguri', sans-serif");
-    set('--font-bn', f(d.fonts.bn)); set('--font-en', f(d.fonts.en)); set('--font-title', f(d.fonts.title)); set('--font-q', f(d.fonts.question)); set('--font-opt', f(d.fonts.option)); set('--font-timer', f(d.fonts.timer));
-    set('--q-scale', String(d.qScale)); set('--opt-scale', String(d.optScale)); set('--title-scale', String(d.titleScale));
-    set('--q-weight', String(d.qWeight)); set('--q-style', d.qStyle); set('--q-align', d.qAlign); set('--q-spacing', d.qSpacing + 'em'); set('--q-leading', String(d.qLeading));
+    set('--font-bn', f(d.fonts.bn)); set('--font-en', f(d.fonts.en)); set('--font-timer', f(d.fonts.timer));
+    // Office-style per-element text formatting.
+    const T = d.text;
+    const TP = { question: 'q', option: 'o', title: 'ti', team: 'tm', answer: 'an' };
+    for (const [k, p] of Object.entries(TP)) {
+      const t = T[k]; if (!t) continue;
+      set('--' + p + '-font', f(t.font)); set('--' + p + '-scale', String(t.size)); set('--' + p + '-weight', t.bold ? '800' : '500');
+      set('--' + p + '-style', t.italic ? 'italic' : 'normal'); set('--' + p + '-decor', t.underline ? 'underline' : 'none'); set('--' + p + '-align', t.align);
+      if (t.color) set('--' + p + '-color', t.color); else root.removeProperty('--' + p + '-color');
+    }
+    set('--font-title', f(T.title.font)); set('--font-q', f(T.question.font)); set('--font-opt', f(T.option.font));
+    set('--box-w', String(d.box.show ? d.box.width : 0)); set('--box-r', String(d.box.radius)); set('--panel', hexA(c.panel, d.box.opacity));
+    set('--opt-scale', String(T.option.size)); set('--title-scale', String(T.title.size)); set('--q-spacing', d.qSpacing + 'em'); set('--q-leading', String(d.qLeading));
     set('--q-valign', { top: 'flex-start', center: 'center', bottom: 'flex-end' }[d.vAlign] || 'center');
     set('--anim-speed', String(d.animSpeed)); set('--ring-w', String(d.ringWidth));
     document.body.classList.toggle('no-motion', !d.motion);

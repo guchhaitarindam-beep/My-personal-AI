@@ -114,6 +114,18 @@ const DEFAULT_GIFTS = [
 ];
 const GIFT_CATEGORIES = ['খাবার', 'সাংস্কৃতিক বিষয়', 'ফল', 'বই', 'ফুল', 'মনীষী', 'বিজ্ঞানী', 'স্বাধীনতা সংগ্রামী', 'কবি', 'লেখক', 'খেলোয়াড়'];
 
+/** Office-style formatting for each kind of stage text. color '' = follow the theme. */
+function defaultTextStyles() {
+  const base = { font: 'Hind Siliguri', size: 1, bold: true, italic: false, underline: false, color: '' };
+  return {
+    question: Object.assign({}, base, { align: 'center' }),
+    option: Object.assign({}, base, { align: 'left' }),
+    title: Object.assign({}, base, { align: 'center' }),
+    team: Object.assign({}, base, { align: 'left' }),
+    answer: Object.assign({}, base, { align: 'left' }),
+  };
+}
+
 function defaultTeam(i) {
   return {
     id: 'T' + (i + 1), name: 'দল ' + bn(i + 1), school: '', captain: '', players: ['', '', ''],
@@ -213,8 +225,10 @@ function defaultState() {
     sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
       theme: 'broadcast', colors: Object.assign({}, THEMES.broadcast),
-      fonts: { bn: 'Hind Siliguri', en: 'Hind Siliguri', title: 'Hind Siliguri', question: 'Hind Siliguri', option: 'Hind Siliguri', timer: 'Mina' },
-      qScale: 1, optScale: 1, titleScale: 1, qWeight: 700, qStyle: 'normal', qAlign: 'center', qSpacing: 0, qLeading: 1.42,
+      fonts: { bn: 'Hind Siliguri', en: 'Hind Siliguri', timer: 'Mina' },
+      text: defaultTextStyles(),
+      box: { show: true, width: 0.28, radius: 2.2, opacity: 0.88 },
+      qSpacing: 0, qLeading: 1.42,
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
@@ -258,6 +272,14 @@ function mergeDefaults(def, src) {
 }
 
 function normalizeState(raw) {
+  // Older saves kept one set of question/option/title sizes; carry them into the per-element styles.
+  if (isObj(raw) && isObj(raw.design) && !isObj(raw.design.text) && raw.design.qScale !== undefined) {
+    const d = raw.design; const t = defaultTextStyles(); const f = isObj(d.fonts) ? d.fonts : {};
+    Object.assign(t.question, { size: num(d.qScale, 1), bold: num(d.qWeight, 700) >= 600, italic: d.qStyle === 'italic', align: d.qAlign || 'center', font: f.question || t.question.font });
+    Object.assign(t.option, { size: num(d.optScale, 1), font: f.option || t.option.font });
+    Object.assign(t.title, { size: num(d.titleScale, 1), font: f.title || t.title.font });
+    d.text = t;
+  }
   const def = defaultState();
   const s = mergeDefaults(def, raw);
   s.schema = SCHEMA;

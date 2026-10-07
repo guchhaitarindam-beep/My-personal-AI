@@ -126,7 +126,11 @@ await ctl.waitForTimeout(8600);
 check('Timer expires exactly once', await ctl.evaluate(() => { const t = window.QC.Store.state.timer; return t.expired && !t.running; }));
 
 // ---- prelim dedicated answer button ----
-await ctl.click('[data-act="tab"][data-arg="prelim"]');
+const openPage = (k) => ctl.evaluate((k) => window.QC.Actions.tab(k), k);
+await openPage('');
+check('Settings home lists Android-style rows', await ctl.evaluate(() => document.querySelectorAll('.set-row').length >= 15));
+await ctl.click('.set-row[data-arg="prelim"]');
+check('Settings page has back button', await ctl.evaluate(() => !!document.querySelector('[data-act="tabHome"]')));
 await ctl.click('[data-act="prelimReveal"][data-arg="4"]');
 check('Prelim Q5 dedicated ANSWER button shows Q5 with answer', await ctl.evaluate(() => { const s = window.QC.Store.state; return s.show.scene === 'PRELIM_Q' && s.prelimLive.idx === 4 && s.prelimLive.reveal; }));
 await stage.waitForTimeout(4500);
@@ -136,13 +140,28 @@ await ctl.click('input[data-bind="teams.5.prelim.marks.0"]');
 check('Marking matrix updates prelim score', await ctl.evaluate(() => window.QC.Sel.prelimResult(window.QC.Store.state.teams[5]).score === 5));
 
 // ---- every tab renders ----
-for (const t of ['show', 'prelim', 'teams', 'questions', 'rounds', 'event', 'design', 'media', 'audio', 'system']) {
-  await ctl.click('[data-act="tab"][data-arg="' + t + '"]');
+for (const t of ['show', 'prelim', 'teams', 'questions', 'rounds', 'event', 'text', 'colors', 'effects', 'scenes', 'media', 'audio', 'voice', 'backup', 'flow', 'tests', 'help']) {
+  await openPage(t);
   const ok = await ctl.evaluate(() => !document.querySelector('#tabBody').textContent.includes('লোড করা যায়নি'));
   if (!ok) check('Tab ' + t, false);
 }
-check('All 10 tabs render', true);
-await ctl.click('[data-act="tab"][data-arg="teams"]');
+check('All settings pages render', true);
+// Office-style toolbar: bold/italic/underline/align/size apply to the stage
+await openPage('text');
+await ctl.click('[data-act="textEl"][data-arg="question"]');
+await ctl.click('[data-act="textToggle"][data-arg="italic"]');
+await ctl.click('[data-act="textToggle"][data-arg="underline"]');
+await ctl.click('[data-act="textAlign"][data-arg="right"]');
+await ctl.click('[data-act="textSize"][data-arg="0.05"]');
+await stage.waitForTimeout(300);
+check('Office toolbar: italic/underline/right/size reach the stage', await stage.evaluate(() => { const cs = getComputedStyle(document.documentElement); return cs.getPropertyValue('--q-style').trim() === 'italic' && cs.getPropertyValue('--q-decor').trim() === 'underline' && cs.getPropertyValue('--q-align').trim() === 'right' && cs.getPropertyValue('--q-scale').trim() === '1.05'; }));
+await ctl.click('[data-act="textReset"]');
+await openPage('colors');
+await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.design.colors.text = '#ffee00'; s.design.colors.bg = '#101010'; s.design.box.width = 0.6; }));
+await stage.waitForTimeout(300);
+check('Text/background colour and border width are editable', await stage.evaluate(() => { const cs = getComputedStyle(document.documentElement); return cs.getPropertyValue('--text').trim() === '#ffee00' && cs.getPropertyValue('--bg').trim() === '#101010' && cs.getPropertyValue('--box-w').trim() === '0.6'; }));
+await ctl.evaluate(() => window.QC.Actions.theme('broadcast'));
+await openPage('teams');
 await ctl.screenshot({ path: path.join(shots, '80-control-teams.png') });
 
 // ---- team photo upload (file chooser) ----
@@ -210,7 +229,7 @@ await stage.setViewportSize({ width: 3840, height: 2160 });
 await ctl.evaluate(() => {
   const QC = window.QC;
   QC.Store.commit('stress', (s) => {
-    s.design.qScale = 1.6; s.design.optScale = 1.6; s.design.titleScale = 1.6;
+    ['question', 'option', 'title', 'team', 'answer'].forEach((k) => { s.design.text[k].size = 1.6; });
     const q = s.questions.find((x) => x.roundId === 'R1');
     q.text = 'পশ্চিমবঙ্গের স্কুলগুলিতে পিএম পোষণ (মিড-ডে মিল) প্রকল্প বাস্তবায়নের সঙ্গে যুক্ত যে অলাভজনক সংস্থাটি আগে ‘ISKCON Food Relief Foundation’ নামে পরিচিত ছিল এবং যার কলকাতার তারাতলায় একটি বিশাল কেন্দ্রীয় রান্নাঘর (মেগা কিচেন) রয়েছে, সেটির বর্তমান নাম কী? '.repeat(2);
     q.options = q.options.map((o) => (o + ' — দীর্ঘ বিকল্প পাঠ্য যা স্টেজে ফিট হতে হবে ').repeat(2));

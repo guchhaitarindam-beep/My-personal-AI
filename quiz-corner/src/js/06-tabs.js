@@ -18,6 +18,8 @@ const F = {
   card(title, body, hint = '') { return '<div class="card"><h3>' + title + (hint ? ' <span class="hint">' + hint + '</span>' : '') + '</h3>' + body + '</div>'; },
 };
 const fontOpts = () => FONT_CHOICES.map((f) => f[0]);
+const TEXT_ELEMENTS = [['question', 'প্রশ্ন'], ['option', 'বিকল্প (ক–ঘ)'], ['title', 'শিরোনাম'], ['team', 'দলের নাম'], ['answer', 'উত্তর']];
+const TEXT_SAMPLES = { question: 'বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্যের নাম কী?', option: 'ক) সুন্দরবন', title: 'রাউন্ড ১ • মজার মিশেল', team: 'দল ১ — উত্তর কলমদান', answer: 'সঠিক উত্তর: সুন্দরবন' };
 
 const TabRender = {
   /* ---------------- SHOW ---------------- */
@@ -131,21 +133,6 @@ const TabRender = {
       F.card('আয়োজক দল', '<div class="list">' + crew + '</div><div class="row" style="margin-top:.5rem">' + F.btn('crewAdd', '+ সদস্য যোগ', 'primary') + '</div><div class="row" style="margin-top:.5rem">' + F.media('groupPhoto', 'দলগত ছবি', s.groupPhoto) + '<div style="flex:1">' + F.text('groupCaption', 'ক্যাপশন', s.groupCaption) + '</div></div>');
   },
 
-  /* ---------------- DESIGN ---------------- */
-  design(s) {
-    const d = s.design; const c = 'design.colors.';
-    const themes = Object.entries(THEMES).map(([k, t]) => F.btn('theme', t.label, 'sm' + (d.theme === k ? ' on' : ''), k)).join('');
-    const colors = [['bg', 'পটভূমি'], ['bg2', 'পটভূমি আলো'], ['text', 'মূল লেখা'], ['muted', 'গৌণ লেখা'], ['neon', 'নিয়ন বর্ডার গ্লো'], ['accent', 'অ্যাকসেন্ট'], ['accent2', 'অ্যাকসেন্ট ২'], ['gold', 'গোল্ড হাইলাইট'], ['panel', 'কন্টেইনার ফিল'], ['correct', 'সঠিক'], ['wrong', 'ভুল'], ['timer', 'টাইমার রিং'], ['warn', 'সতর্কতা'], ['crit', 'জরুরি (শেষ ৫s)']];
-    const fonts = [['bn', 'বাংলা (মূল)'], ['en', 'ইংরেজি'], ['title', 'শিরোনাম'], ['question', 'প্রশ্ন'], ['option', 'বিকল্প'], ['timer', 'টাইমার']];
-    const align = ['left', 'center', 'right'].map((a) => F.btn('setAlign', { left: '⯇ বাম', center: '≡ মাঝে', right: 'ডান ⯈' }[a], 'sm' + (d.qAlign === a ? ' on' : ''), a)).join('');
-    return F.card('থিম প্রিসেট', '<div class="row">' + themes + '</div><p class="big-hint">উজ্জ্বল মঞ্চ/দিনের আলোর জন্য "দিনের আলো — সর্বোচ্চ কনট্রাস্ট" সবচেয়ে পরিষ্কার।</p>') +
-      F.card('রং (লাইভ)', '<div class="g4">' + colors.map(([k, l]) => F.color(c + k, l, d.colors[k])).join('') + F.range(c + 'glow', 'গ্লো তীব্রতা', d.colors.glow, 0, 2, 0.1) + '</div>') +
-      F.card('টাইপোগ্রাফি', '<div class="g3">' + fonts.map(([k, l]) => F.select('design.fonts.' + k, l + ' ফন্ট', fontOpts(), d.fonts[k])).join('') + '</div><div class="g3">' + F.select('design.qWeight', 'ফন্ট ওজন', [['400', 'সাধারণ'], ['600', 'সেমিবোল্ড'], ['700', 'বোল্ড'], ['800', 'এক্সট্রা বোল্ড']], d.qWeight) + F.select('design.qStyle', 'ফন্ট স্টাইল', [['normal', 'সাধারণ'], ['italic', 'ইটালিক']], d.qStyle) + '<div class="field"><span>লেখার সারিবদ্ধতা</span><div class="row">' + align + '</div></div>' + F.select('design.vAlign', 'উল্লম্ব অবস্থান', [['top', 'উপরে'], ['center', 'মাঝে'], ['bottom', 'নিচে']], d.vAlign) + F.range('design.qScale', 'প্রশ্নের আকার', d.qScale, 0.6, 1.6, 0.05) + F.range('design.optScale', 'বিকল্পের আকার', d.optScale, 0.6, 1.6, 0.05) + F.range('design.titleScale', 'শিরোনামের আকার', d.titleScale, 0.6, 1.6, 0.05) + F.range('design.qSpacing', 'অক্ষর ব্যবধান', d.qSpacing, -0.05, 0.2, 0.01) + F.range('design.qLeading', 'লাইন উচ্চতা', d.qLeading, 1.2, 2, 0.02) + '</div><p class="big-hint">দীর্ঘ প্রশ্ন স্বয়ংক্রিয়ভাবে ছোট হয়ে বাক্সে ফিট হয় — কোনো লেখা কাটা পড়বে না।</p>') +
-      F.card('অ্যানিমেশন ও ইফেক্ট', '<div class="g3">' + F.select('design.anim', 'দৃশ্য পরিবর্তন', ANIMS, d.anim) + F.range('design.animSpeed', 'অ্যানিমেশন গতি', d.animSpeed, 0.4, 2, 0.1) + F.range('design.ringWidth', 'টাইমার রিং পুরুত্ব', d.ringWidth, 3, 14, 1) + '</div><div class="row">' + F.check('design.motion', 'মোশন চালু', d.motion) + F.check('design.particles', 'নিউরাল কণা', d.particles) + F.check('design.rays', 'আলোকরশ্মি', d.rays) + F.check('design.floor', '৩ডি গ্রিড মেঝে', d.floor) + '</div><div class="row" style="margin-top:.5rem">' + F.media('design.bgImage', 'গ্লোবাল পটভূমি ছবি', d.bgImage) + '</div>') +
-      F.card('দৃশ্যভিত্তিক সেটিংস (Scene Engine)', '<p class="big-hint">প্রতিটি দৃশ্যের জন্য আলাদা প্রবেশ অ্যানিমেশন, পটভূমি ছবি ও সাউন্ড বেছে নিন। খালি = ডিফল্ট।</p><div class="list">' + Object.entries(SCENES).map(([k, l]) => { const fx = s.sceneFx[k] || {}; return '<div class="li" style="grid-template-columns:150px 1fr 1fr auto"><b>' + esc(l) + '</b>' + F.select('sceneFx.' + k + '.anim', 'অ্যানিমেশন', [['', 'ডিফল্ট']].concat(ANIMS), fx.anim || '') + F.select('sceneFx.' + k + '.cue', 'সাউন্ড', [['', 'ডিফল্ট'], ['none', 'কোনো সাউন্ড নয়']].concat(Object.entries(AUDIO_CUES)), fx.cue || '') + F.media('sceneFx.' + k + '.bg', 'পটভূমি', fx.bg || '') + '</div>'; }).join('') + '</div>') +
-      F.card('কন্ট্রোল প্যানেল (অপারেটর)', '<div class="row">' + F.btn('toggleBigUi', document.body.classList.contains('big-ui') ? 'বড় বোতাম: চালু' : 'বড় বোতাম: বন্ধ', '') + F.btn('toggleContrast', document.body.classList.contains('contrast') ? 'উচ্চ কনট্রাস্ট: চালু' : 'উচ্চ কনট্রাস্ট: বন্ধ') + '</div>');
-  },
-
   /* ---------------- MEDIA ---------------- */
   media(s) {
     const p = s.poster;
@@ -158,29 +145,91 @@ const TabRender = {
       F.card('মিডিয়া লাইব্রেরি', '<div class="list" style="max-height:40vh;overflow:auto">' + (lib || '<p class="muted">কোনো আপলোড নেই</p>') + '</div>', 'মূল ফাইল অক্ষত রেখে প্রদর্শনের জন্য অপ্টিমাইজ করা হয়');
   },
 
-  /* ---------------- AUDIO ---------------- */
+  /* ---------------- TEXT & FONTS (Office-style toolbar) ---------------- */
+  text(s) {
+    const d = s.design;
+    const el = TEXT_ELEMENTS.some((x) => x[0] === UI.textEl) ? UI.textEl : 'question';
+    const t = d.text[el];
+    const p = 'design.text.' + el;
+    const tabs = TEXT_ELEMENTS.map(([k, l]) => F.btn('textEl', l, 'seg' + (k === el ? ' on' : ''), k)).join('');
+    const tog = (k, label, title) => '<button class="tb' + (t[k] ? ' on' : '') + '" data-act="textToggle" data-arg="' + k + '" title="' + title + '" aria-pressed="' + !!t[k] + '">' + label + '</button>';
+    const al = (a, label, title) => '<button class="tb' + (t.align === a ? ' on' : '') + '" data-act="textAlign" data-arg="' + a + '" title="' + title + '" aria-pressed="' + (t.align === a) + '">' + label + '</button>';
+    const sample = '<div class="text-sample" style="font-family:' + esc(FONT_MAP[t.font] || t.font) + ';font-weight:' + (t.bold ? 800 : 400) + ';font-style:' + (t.italic ? 'italic' : 'normal') + ';text-decoration:' + (t.underline ? 'underline' : 'none') + ';text-align:' + t.align + ';color:' + esc(t.color || d.colors.text) + ';background:' + esc(d.colors.panel) + ';border-color:' + esc(d.colors.neon) + ';font-size:' + Math.round(22 * t.size) + 'px">' + esc(TEXT_SAMPLES[el]) + '</div>';
+    const toolbar = '<div class="toolbar" role="toolbar" aria-label="লেখার ফরম্যাট">' +
+      '<select data-bind="' + p + '.font" aria-label="ফন্ট" class="tb-font">' + FONT_CHOICES.map(([n]) => '<option value="' + esc(n) + '"' + (n === t.font ? ' selected' : '') + ' style="font-family:' + esc(FONT_MAP[n]) + '">' + esc(n) + '</option>').join('') + '</select>' +
+      '<span class="tb-group"><button class="tb" data-act="textSize" data-arg="-0.05" title="ছোট করুন">A−</button><span class="tb-val">' + bn(Math.round(t.size * 100)) + '%</span><button class="tb" data-act="textSize" data-arg="0.05" title="বড় করুন">A+</button></span>' +
+      '<span class="tb-group">' + tog('bold', '<b>B</b>', 'বোল্ড') + tog('italic', '<i>I</i>', 'ইটালিক') + tog('underline', '<u>U</u>', 'আন্ডারলাইন') + '</span>' +
+      '<span class="tb-group">' + al('left', '⯇≡', 'বামে') + al('center', '≡', 'মাঝে') + al('right', '≡⯈', 'ডানে') + al('justify', '☰', 'দুই পাশে সমান') + '</span>' +
+      '<label class="tb-color" title="লেখার রং"><span style="border-bottom:4px solid ' + esc(t.color || d.colors.text) + '">A</span><input type="color" data-bind="' + p + '.color" value="' + esc(t.color || d.colors.text) + '" aria-label="লেখার রং"></label>' +
+      '<button class="tb" data-act="textColorReset" title="থিমের রং">↺ রং</button><button class="tb" data-act="textReset" title="এই লেখাটি ডিফল্টে ফেরত">↺ ডিফল্ট</button></div>';
+    return F.card('লেখা ও ফন্ট — Microsoft Office-এর মতো', '<p class="big-hint">কোন লেখা বদলাবেন বেছে নিন, তারপর টুলবার ব্যবহার করুন। পরিবর্তন সঙ্গে সঙ্গে স্টেজে দেখা যাবে।</p><div class="seg-row">' + tabs + '</div>' + toolbar + sample) +
+      F.card('সব লেখার মূল ফন্ট', '<div class="g3">' + F.select('design.fonts.bn', 'বাংলা মূল ফন্ট (ডিফল্ট: Hind Siliguri)', fontOpts(), d.fonts.bn) + F.select('design.fonts.en', 'ইংরেজি ফন্ট', fontOpts(), d.fonts.en) + F.select('design.fonts.timer', 'টাইমার ও সংখ্যার ফন্ট', fontOpts(), d.fonts.timer) + '</div>') +
+      F.card('প্রশ্নের অনুচ্ছেদ', '<div class="g3">' + F.range('design.qSpacing', 'অক্ষর ব্যবধান', d.qSpacing, -0.05, 0.2, 0.01) + F.range('design.qLeading', 'লাইন উচ্চতা', d.qLeading, 1.2, 2, 0.02) + F.select('design.vAlign', 'উল্লম্ব অবস্থান', [['top', 'উপরে'], ['center', 'মাঝে'], ['bottom', 'নিচে']], d.vAlign) + '</div><p class="big-hint">দীর্ঘ লেখা নিজে থেকে ছোট হয়ে বর্ডারের ভিতরে ফিট হয় — কোনো বাংলা অক্ষর কাটা পড়বে না।</p>');
+  },
+
+  /* ---------------- COLOURS, BACKGROUND & BORDERS ---------------- */
+  colors(s) {
+    const d = s.design; const c = 'design.colors.';
+    const themes = Object.entries(THEMES).map(([k, t]) => '<button class="swatch' + (d.theme === k ? ' on' : '') + '" data-act="theme" data-arg="' + k + '" style="--a:' + t.bg2 + ';--b:' + t.accent + ';--c:' + t.gold + '"><i></i>' + esc(t.label) + '</button>').join('');
+    const group = (title, list) => '<div class="field"><span class="grp">' + title + '</span><div class="g4">' + list.map(([k, l]) => F.color(c + k, l, d.colors[k])).join('') + '</div></div>';
+    return F.card('থিম', '<div class="swatches">' + themes + '</div><p class="big-hint">উজ্জ্বল মঞ্চ বা দিনের আলোর জন্য "দিনের আলো — সর্বোচ্চ কনট্রাস্ট" সবচেয়ে পরিষ্কার। থিম বেছে নেওয়ার পর নিচে যেকোনো রং আলাদা করে বদলাতে পারবেন।</p>') +
+      F.card('লেখা ও পটভূমির রং', group('লেখা', [['text', 'মূল লেখা'], ['muted', 'গৌণ লেখা'], ['gold', 'গোল্ড হাইলাইট']]) + group('পটভূমি', [['bg', 'পটভূমি (গাঢ়)'], ['bg2', 'পটভূমি (আলো)']]) + '<div class="row" style="margin-top:.5rem">' + F.media('design.bgImage', 'পটভূমির ছবি (ঐচ্ছিক)', d.bgImage) + '</div>') +
+      F.card('লেখার বর্ডার ও বক্স', '<div class="row">' + F.check('design.box.show', 'লেখা বর্ডারের ভিতরে রাখো', d.box.show) + '</div><div class="g4">' + F.color(c + 'neon', 'বর্ডারের রং (নিয়ন)', d.colors.neon) + F.color(c + 'panel', 'বক্সের ভিতরের রং', d.colors.panel) + F.range('design.box.width', 'বর্ডারের পুরুত্ব', d.box.width, 0.1, 1, 0.02) + F.range('design.box.radius', 'কোণের গোলাই', d.box.radius, 0, 5, 0.1) + F.range(c + 'glow', 'গ্লো তীব্রতা', d.colors.glow, 0, 2, 0.1) + F.range('design.box.opacity', 'বক্সের অস্বচ্ছতা', d.box.opacity, 0.4, 1, 0.02) + '</div>') +
+      F.card('অবস্থা ও টাইমারের রং', group('ফলাফল', [['correct', 'সঠিক'], ['wrong', 'ভুল'], ['accent', 'অ্যাকসেন্ট'], ['accent2', 'অ্যাকসেন্ট ২']]) + group('টাইমার', [['timer', 'টাইমার রিং'], ['warn', 'সতর্কতা'], ['crit', 'জরুরি (শেষ ৫s)']]));
+  },
+
+  /* ---------------- ANIMATION & EFFECTS ---------------- */
+  effects(s) {
+    const d = s.design;
+    return F.card('অ্যানিমেশন', '<div class="g3">' + F.select('design.anim', 'দৃশ্য পরিবর্তন', ANIMS, d.anim) + F.range('design.animSpeed', 'অ্যানিমেশন গতি', d.animSpeed, 0.4, 2, 0.1) + F.range('design.ringWidth', 'টাইমার রিং পুরুত্ব', d.ringWidth, 3, 14, 1) + '</div><div class="row">' + F.check('design.motion', 'মোশন চালু', d.motion) + F.check('design.particles', 'নিউরাল কণা', d.particles) + F.check('design.rays', 'আলোকরশ্মি', d.rays) + F.check('design.floor', '৩ডি গ্রিড মেঝে', d.floor) + '</div>') +
+      F.card('কন্ট্রোল প্যানেল (অপারেটর)', '<div class="row">' + F.btn('toggleBigUi', document.body.classList.contains('big-ui') ? 'বড় বোতাম: চালু' : 'বড় বোতাম: বন্ধ', '') + F.btn('toggleContrast', document.body.classList.contains('contrast') ? 'উচ্চ কনট্রাস্ট: চালু' : 'উচ্চ কনট্রাস্ট: বন্ধ') + '</div>');
+  },
+
+  /* ---------------- SCENE ENGINE ---------------- */
+  scenes(s) {
+    return F.card('দৃশ্যভিত্তিক সেটিংস (Scene Engine)', '<p class="big-hint">প্রতিটি দৃশ্যের জন্য আলাদা প্রবেশ অ্যানিমেশন, পটভূমি ছবি ও সাউন্ড বেছে নিন। খালি = ডিফল্ট।</p><div class="list">' + Object.entries(SCENES).map(([k, l]) => { const fx = s.sceneFx[k] || {}; return '<div class="li" style="grid-template-columns:150px 1fr 1fr auto"><b>' + esc(l) + '</b>' + F.select('sceneFx.' + k + '.anim', 'অ্যানিমেশন', [['', 'ডিফল্ট']].concat(ANIMS), fx.anim || '') + F.select('sceneFx.' + k + '.cue', 'সাউন্ড', [['', 'ডিফল্ট'], ['none', 'কোনো সাউন্ড নয়']].concat(Object.entries(AUDIO_CUES)), fx.cue || '') + F.media('sceneFx.' + k + '.bg', 'পটভূমি', fx.bg || '') + '</div>'; }).join('') + '</div>');
+  },
+
+  /* ---------------- MUSIC & SOUND ---------------- */
   audio(s) {
     const a = s.audio;
     const music = Object.entries(MUSIC_SLOTS).map(([k, l]) => { const m = a.music[k]; const p = 'audio.music.' + k + '.'; return '<div class="team-editor"><header><b style="flex:1">' + l + ' — <span class="muted">' + esc(Media.label(m.media)) + '</span></b>' + (AudioDirector.playing(k) ? '<span class="status-pill ok">বাজছে</span>' : '') + F.btn('music', '▶ প্রিভিউ', 'sm good', k) + F.btn('musicStop', '■', 'sm', k) + F.btn('musicPick', 'বদলান', 'sm primary', k) + F.btn('musicReset', 'মূলে ফেরত', 'sm', k) + F.btn('musicClear', 'মুছুন', 'sm bad', k) + '</header><div class="g4">' + F.range(p + 'vol', 'ভলিউম', m.vol, 0, 1, 0.05) + F.num(p + 'fadeIn', 'ফেড-ইন (s)', m.fadeIn, 0, 20, 0.5) + F.num(p + 'fadeOut', 'ফেড-আউট (s)', m.fadeOut, 0, 20, 0.5) + F.num(p + 'delay', 'বিলম্ব (s)', m.delay, 0, 60, 0.5) + '</div>' + F.check(p + 'loop', 'লুপ', m.loop) + '</div>'; }).join('');
     const cues = Object.entries(AUDIO_CUES).map(([k, l]) => { const c = a.cues[k] || { vol: 0.8, mute: false, media: '' }; return '<div class="li" style="grid-template-columns:150px 1fr auto"><b>' + l + '</b><input type="range" min="0" max="1" step="0.05" data-bind="audio.cues.' + k + '.vol" data-type="num" value="' + c.vol + '" aria-label="' + esc(l) + ' ভলিউম"><div class="acts">' + F.check('audio.cues.' + k + '.mute', 'মিউট', c.mute) + F.btn('cue', '▶', 'sm good', k) + F.btn('cuePick', c.media ? 'ফাইল ✓' : 'ফাইল', 'sm', k) + (c.media ? F.btn('cueReset', 'সিন্থে ফেরত', 'sm', k) : '') + '</div></div>'; }).join('');
+    return F.card('মাস্টার অডিও', '<div class="g3">' + F.range('audio.master', 'মাস্টার ভলিউম', a.master, 0, 1, 0.05) + F.select('audio.output', 'সাউন্ড বাজবে', [['control', 'কন্ট্রোল উইন্ডো (প্রস্তাবিত)'], ['stage', 'স্টেজ উইন্ডো'], ['both', 'দুটোতেই']], a.output) + '<div class="field"><span>পরীক্ষা</span>' + F.btn('cue', '🔔 টেস্ট সাউন্ড', 'good', 'correct') + '</div></div>') +
+      F.card('সংগীত (থিম, স্বাগত, বিজয়ী, পটভূমি)', '<div class="list">' + music + '</div>', 'MP3 / WAV / M4A') +
+      F.card('সাউন্ড ইফেক্ট (Web Audio সিন্থেসিস — কোনো ফাইল লাগে না)', '<div class="list">' + cues + '</div>');
+  },
+
+  /* ---------------- VOICE ---------------- */
+  voice(s) {
     const voices = Speech.voices.map((v) => [v.name, v.name + ' (' + v.lang + ')' + (/^bn/i.test(v.lang) ? ' ★' : '')]);
     const hasBn = Speech.voices.some((v) => /^bn/i.test(v.lang));
     const sp = s.speech;
-    return F.card('মাস্টার অডিও', '<div class="g3">' + F.range('audio.master', 'মাস্টার ভলিউম', a.master, 0, 1, 0.05) + F.select('audio.output', 'সাউন্ড বাজবে', [['control', 'কন্ট্রোল উইন্ডো (প্রস্তাবিত)'], ['stage', 'স্টেজ উইন্ডো'], ['both', 'দুটোতেই']], a.output) + '<div class="field"><span>পরীক্ষা</span>' + F.btn('cue', '🔔 টেস্ট সাউন্ড', 'good', 'correct') + '</div></div>') +
-      F.card('সংগীত (থিম, স্বাগত, বিজয়ী, পটভূমি)', '<div class="list">' + music + '</div>', 'MP3 / WAV / M4A') +
-      F.card('সাউন্ড ইফেক্ট (Web Audio সিন্থেসিস — কোনো ফাইল লাগে না)', '<div class="list">' + cues + '</div>') +
-      F.card('ভয়েস (Speech)', (Speech.supported ? '' : '<p class="badge-warn">এই ব্রাউজারে ভয়েস সমর্থিত নয়</p>') + (Speech.supported && !hasBn ? '<p class="badge-warn">বাংলা ভয়েস পাওয়া যায়নি — Windows Settings ▸ Time & Language ▸ Speech থেকে Bengali (India) ভয়েস যোগ করুন।</p>' : '') + '<div class="row">' + F.check('speech.enabled', 'ভয়েস চালু', sp.enabled) + F.check('speech.autoQuestion', 'প্রশ্ন স্বয়ংক্রিয়ভাবে পড়ো', sp.autoQuestion) + F.check('speech.announceTeam', 'দলের নাম ঘোষণা', sp.announceTeam) + '</div><div class="g4">' + F.select('speech.voice', 'ভয়েস', [['', 'স্বয়ংক্রিয় (bn-IN)']].concat(voices), sp.voice) + F.range('speech.rate', 'গতি', sp.rate, 0.5, 1.5, 0.05) + F.range('speech.pitch', 'পিচ', sp.pitch, 0.5, 1.5, 0.05) + F.select('speech.timerVoice', 'টাইমার ঘোষণা', [['off', 'বন্ধ'], ['last10', 'শেষ ১০ সেকেন্ড'], ['marks', '৬০/৫০/…/১০ ও শেষ ৫'], ['all', '১০-এর ঘর + শেষ ১০']], sp.timerVoice) + '</div><div class="row">' + F.btn('speechTest', '🔊 পরীক্ষা') + F.btn('speak', 'প্রশ্ন পড়ো', '', 'question') + F.btn('speak', 'উত্তর পড়ো', '', 'answer') + F.btn('speak', 'দলের নাম', '', 'team') + F.btn('speak', 'রাউন্ডের নাম', '', 'round') + '</div>');
+    return F.card('ভয়েস (Speech)', (Speech.supported ? '' : '<p class="badge-warn">এই ব্রাউজারে ভয়েস সমর্থিত নয়</p>') + (Speech.supported && !hasBn ? '<p class="badge-warn">বাংলা ভয়েস পাওয়া যায়নি — Windows Settings ▸ Time & Language ▸ Speech থেকে Bengali (India) ভয়েস যোগ করুন।</p>' : '') + '<div class="row">' + F.check('speech.enabled', 'ভয়েস চালু', sp.enabled) + F.check('speech.autoQuestion', 'প্রশ্ন স্বয়ংক্রিয়ভাবে পড়ো', sp.autoQuestion) + F.check('speech.announceTeam', 'দলের নাম ঘোষণা', sp.announceTeam) + '</div><div class="g4">' + F.select('speech.voice', 'ভয়েস', [['', 'স্বয়ংক্রিয় (bn-IN)']].concat(voices), sp.voice) + F.range('speech.rate', 'গতি', sp.rate, 0.5, 1.5, 0.05) + F.range('speech.pitch', 'পিচ', sp.pitch, 0.5, 1.5, 0.05) + F.select('speech.timerVoice', 'টাইমার ঘোষণা', [['off', 'বন্ধ'], ['last10', 'শেষ ১০ সেকেন্ড'], ['marks', '৬০/৫০/…/১০ ও শেষ ৫'], ['all', '১০-এর ঘর + শেষ ১০']], sp.timerVoice) + '</div><div class="row">' + F.btn('speechTest', '🔊 পরীক্ষা') + F.btn('speak', 'প্রশ্ন পড়ো', '', 'question') + F.btn('speak', 'উত্তর পড়ো', '', 'answer') + F.btn('speak', 'দলের নাম', '', 'team') + F.btn('speak', 'রাউন্ডের নাম', '', 'round') + '</div>');
   },
 
-  /* ---------------- SYSTEM ---------------- */
-  system(s) {
-    const st = s.settings;
+  /* ---------------- BACKUP & RESET ---------------- */
+  backup(s) {
     return F.card('সংরক্ষণ ও ব্যাকআপ', '<div class="deck">' + F.btn('saveNow', '💾 এখনই সংরক্ষণ', 'good') + F.btn('exportFull', '⇩ সম্পূর্ণ ব্যাকআপ (ছবি/গানসহ)', 'primary span2') + F.btn('exportEvent', '⇩ শুধু ডেটা (JSON)') + F.btn('importFile', '⇧ আমদানি / পুনরুদ্ধার', 'warn') + '</div><p class="big-hint">প্রতিটি পরিবর্তন সঙ্গে সঙ্গে ব্রাউজারে সংরক্ষিত হয়। রিফ্রেশ বা ব্রাউজার বন্ধ হলেও সব ফিরে আসবে। অনুষ্ঠানের আগে একটি সম্পূর্ণ ব্যাকআপ রাখুন।</p>') +
-      F.card('নতুন ইভেন্ট ও রিসেট', '<div class="deck">' + F.btn('resetScores', 'স্কোর রিসেট', 'warn') + F.btn('resetBoard', 'প্রশ্ন বোর্ড রিসেট', 'warn') + F.btn('resetLifelines', 'সব লাইফলাইন রিসেট', 'warn') + F.btn('newEvent', '✦ নতুন ইভেন্ট (সব মুছে নতুন)', 'bad span2') + '</div>') +
-      F.card('টাইমার ও প্রবাহ', '<div class="g4">' + F.num('settings.warnAt', 'সতর্কতা (সেকেন্ড)', st.warnAt, 1, 60, 1, 'int') + F.num('settings.critAt', 'জরুরি সতর্কতা (সেকেন্ড)', st.critAt, 1, 30, 1, 'int') + F.num('settings.countdownFrom', 'কাউন্টডাউন শুরু', st.countdownFrom, 1, 10, 1, 'int') + F.num('settings.countdownStepMs', 'কাউন্টডাউন গতি (ms)', st.countdownStepMs, 400, 3000, 50, 'int') + '</div><div class="row">' + F.check('settings.autoTimer', 'প্রশ্ন এলে সরাসরি টাইমার নিজে চালু', st.autoTimer) + F.check('settings.autoPassTimer', 'পাস/চ্যালেঞ্জে ৪৫s নিজে চালু', st.autoPassTimer) + F.check('settings.autoRevealOnCorrect', 'সঠিক হলে উত্তর দেখাও', st.autoRevealOnCorrect) + F.check('settings.showLifelines', 'স্টেজে লাইফলাইন দেখাও', st.showLifelines) + '</div>') +
-      F.card('ড্রোন ডেলিভারি', '<div class="g3">' + F.check('settings.drone.main', 'মূল রাউন্ডেও ড্রোন', st.drone.main) + F.range('settings.drone.speed', 'গতি', st.drone.speed, 0.4, 3, 0.1) + F.select('settings.drone.path', 'প্রবেশপথ', [['left', 'বাম দিক থেকে'], ['right', 'ডান দিক থেকে'], ['top', 'উপর থেকে']], st.drone.path) + '</div>') +
-      F.card('স্বয়ংক্রিয় পরীক্ষা (Self-test)', '<div class="row">' + F.btn('runTests', '▶ পরীক্ষা চালাও', 'primary') + '<span class="muted">টাইমার, স্কোর, আনডু, র‍্যাঙ্কিং, রেন্ডার — আসল ডেটা স্পর্শ না করে</span></div><div id="testOut" class="tests"></div>') +
-      F.card('লগ', '<div class="log" id="logBox">' + esc(Log.lines.slice(-120).join('\n')) + '</div>') +
+      F.card('নতুন ইভেন্ট ও রিসেট', '<div class="deck">' + F.btn('resetScores', 'স্কোর রিসেট', 'warn') + F.btn('resetBoard', 'প্রশ্ন বোর্ড রিসেট', 'warn') + F.btn('resetLifelines', 'সব লাইফলাইন রিসেট', 'warn') + F.btn('newEvent', '✦ নতুন ইভেন্ট (সব মুছে নতুন)', 'bad span2') + '</div>');
+  },
+
+  /* ---------------- TIMER & FLOW ---------------- */
+  flow(s) {
+    const st = s.settings;
+    return F.card('টাইমার ও প্রবাহ', '<div class="g4">' + F.num('settings.warnAt', 'সতর্কতা (সেকেন্ড)', st.warnAt, 1, 60, 1, 'int') + F.num('settings.critAt', 'জরুরি সতর্কতা (সেকেন্ড)', st.critAt, 1, 30, 1, 'int') + F.num('settings.countdownFrom', 'কাউন্টডাউন শুরু', st.countdownFrom, 1, 10, 1, 'int') + F.num('settings.countdownStepMs', 'কাউন্টডাউন গতি (ms)', st.countdownStepMs, 400, 3000, 50, 'int') + '</div><div class="row">' + F.check('settings.autoTimer', 'প্রশ্ন এলে সরাসরি টাইমার নিজে চালু', st.autoTimer) + F.check('settings.autoPassTimer', 'পাস/চ্যালেঞ্জে ৪৫s নিজে চালু', st.autoPassTimer) + F.check('settings.autoRevealOnCorrect', 'সঠিক হলে উত্তর দেখাও', st.autoRevealOnCorrect) + F.check('settings.showLifelines', 'স্টেজে লাইফলাইন দেখাও', st.showLifelines) + '</div>') +
+      F.card('ড্রোন ডেলিভারি', '<div class="g3">' + F.check('settings.drone.main', 'মূল রাউন্ডেও ড্রোন', st.drone.main) + F.range('settings.drone.speed', 'গতি', st.drone.speed, 0.4, 3, 0.1) + F.select('settings.drone.path', 'প্রবেশপথ', [['left', 'বাম দিক থেকে'], ['right', 'ডান দিক থেকে'], ['top', 'উপর থেকে']], st.drone.path) + '</div>');
+  },
+
+  /* ---------------- TESTS & LOG ---------------- */
+  tests(s) {
+    return F.card('স্বয়ংক্রিয় পরীক্ষা (Self-test)', '<div class="row">' + F.btn('runTests', '▶ পরীক্ষা চালাও', 'primary') + '<span class="muted">টাইমার, স্কোর, আনডু, র‍্যাঙ্কিং, রেন্ডার — আসল ডেটা স্পর্শ না করে</span></div><div id="testOut" class="tests"></div>') +
+      F.card('লগ', '<div class="log" id="logBox">' + esc(Log.lines.slice(-120).join('\n')) + '</div>');
+  },
+
+  /* ---------------- HELP ---------------- */
+  help(s) {
+    return F.card('কিবোর্ড শর্টকাট', '<div class="kbd-grid">' + SHORTCUTS.map(([k, d]) => '<div><kbd>' + esc(k) + '</kbd><span>' + esc(d) + '</span></div>').join('') + '</div>') +
       F.card('তথ্য', '<p class="big-hint">Quiz Corner V' + VERSION + ' • সম্পূর্ণ অফলাইন • স্টেজ উইন্ডো: এই ফাইলের শেষে <code>#stage</code> • হোস্ট স্ক্রিপ্ট: <code>#host</code> • প্রশ্ন: ' + bn(s.questions.length) + ' • বাছাই: ' + bn(s.prelim.questions.length) + ' • দল: ' + bn(s.teams.length) + '</p>');
   },
 };
@@ -227,7 +276,13 @@ Object.assign(Actions, {
   roundShow(id) { Show.jump('ROUND_INTRO', { key: id, roundId: id }); },
   roundResetTurn(id) { Store.commit('round-turn', (s) => { const r = s.rounds.find((x) => x.id === id); if (r) r.turn = 0; }); },
   theme(k) { const t = THEMES[k]; if (!t) return; Store.commit('theme', (s) => { s.design.theme = k; s.design.colors = Object.assign({}, t); }); },
-  setAlign(a) { Store.commit('align', (s) => { s.design.qAlign = a; }); },
+  setAlign(a) { Actions.textAlign(a, null, 'question'); },
+  textEl(k) { UI.textEl = k; UI.renderTab(true); },
+  textToggle(k) { const el = UI.textEl || 'question'; Store.commit('text-' + k, (s) => { s.design.text[el][k] = !s.design.text[el][k]; }); },
+  textAlign(a, _el, which) { const el = which || UI.textEl || 'question'; Store.commit('text-align', (s) => { s.design.text[el].align = a; }); },
+  textSize(d) { const el = UI.textEl || 'question'; Store.commit('text-size', (s) => { const t = s.design.text[el]; t.size = Math.round(clamp(t.size + num(d), 0.5, 2) * 100) / 100; }); },
+  textColorReset() { const el = UI.textEl || 'question'; Store.commit('text-color', (s) => { s.design.text[el].color = ''; }); },
+  textReset() { const el = UI.textEl || 'question'; Store.commit('text-reset', (s) => { s.design.text[el] = defaultTextStyles()[el]; }); },
   toggleBigUi() { document.body.classList.toggle('big-ui'); UI.savePref('bigUi', document.body.classList.contains('big-ui')); UI.renderTab(true); },
   toggleContrast() { document.body.classList.toggle('contrast'); UI.renderTab(true); },
   galleryUpload() {
