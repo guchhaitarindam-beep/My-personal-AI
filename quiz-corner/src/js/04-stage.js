@@ -180,6 +180,7 @@ const Scenes = {
       const from = Sel.team(l.passChain[l.passChain.length - 1]);
       side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh;' + H.teamVars(active) + 'border-color:var(--team)"><div style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--team);color:#000">' + flowTag + '</div>' + (active ? H.tphoto(active) + '<div class="tname" style="font-size:3.2cqh;font-weight:800;text-align:center;line-height:1.3">' + esc(active.name) + '</div>' : '') + '<div style="text-align:center;color:var(--muted);font-size:1.9cqh">' + (from ? 'পাস এসেছে: ' + esc(from.name) : '') + (l.flow === 'bonus' ? ' • মান ' + bn(Game.pointsFor('correct')) : '') + '</div></div>';
     } else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
+    const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + esc(t.name) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const img = q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
@@ -197,32 +198,34 @@ const Scenes = {
     const qScale = r && r.design.qScale && r.design.qScale !== 1 ? r.design.qScale : 1;
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
-      html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', '<span class="qnum">প্রশ্ন ' + bn(q.number) + '</span>') +
+      html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum">প্রশ্ন ' + bn(q.number) + '</span>') +
         '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (6.2 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + opts + poll + ans + '</div>' +
-        '<div class="q-side" data-part="side" data-morph>' + side + lifelines + H.timer() + '</div></div>' + stamp + dr.html,
+        '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + stamp + dr.html,
     };
   },
-  standingsRows(s, rows, rid, revealFrom = 0) {
+  standingsRows(s, rows, rid, revealFrom = 0, titles = false) {
     return rows.map((r, i) => {
       const hidden = i < revealFrom;
       const mv = r.move > 0 ? '<span class="mv up">▲ ' + bn(r.move) + '</span>' : r.move < 0 ? '<span class="mv down">▼ ' + bn(-r.move) + '</span>' : '<span class="mv same">—</span>';
       if (hidden) return '<div class="sb-row" style="--i:' + i + ';--team:#555"><span class="rank">' + bn(r.rank) + '</span><div class="team-photo"><span class="initial">?</span></div><div class="nm"><b>? ? ?</b></div><span class="rs"></span><span class="tot">—</span><span></span></div>';
-      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + esc(r.team.name) + '</b>' + (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '') + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
+      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + esc(r.team.name) + '</b>' + (titles ? '<small class="rtitle">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</small>' : (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
     }).join('');
   },
   SCOREBOARD(s, p) {
     const r = Sel.round(p.roundId);
     const rows = Sel.standings(undefined, r ? r.id : '');
+    const star = r ? Sel.roundStar(r.id) : null;
     return {
       key: 'SB:' + (r ? r.id : 'all'), anim: 'slide', style: H.roundVars(r),
       html: H.head(s, '<span class="round-tag">স্কোরবোর্ড' + (r ? ' • ' + esc(r.name) : '') + '</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') +
-        H.part('sb', '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span>' + (r ? 'ROUND' : '') + '</span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, r ? r.id : ''), 'sb'),
+        H.part('sb', '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span>' + (r ? 'ROUND' : '') + '</span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, r ? r.id : ''), 'sb') +
+        (star ? H.part('star', '★ রাউন্ড স্টার: ' + star.teams.map((t) => esc(t.name)).join(' ও ') + ' — এই রাউন্ডে +' + bn(star.pts), 'round-star') : ''),
     };
   },
   FINAL(s) {
     const rows = Sel.standings();
     const revealFrom = Math.max(0, rows.length - s.finalReveal);
-    return { key: 'FINAL', anim: 'cube', html: H.head(s, '<span class="round-tag">চূড়ান্ত ফলাফল</span>', '<span class="qnum">' + (s.finalReveal >= rows.length ? 'সম্পূর্ণ' : bn(s.finalReveal) + ' / ' + bn(rows.length)) + '</span>') + H.part('sb-' + s.finalReveal, '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span></span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, '', revealFrom), 'sb') };
+    return { key: 'FINAL', anim: 'cube', html: H.head(s, '<span class="round-tag">চূড়ান্ত ফলাফল</span>', '<span class="qnum">' + (s.finalReveal >= rows.length ? 'সম্পূর্ণ' : bn(s.finalReveal) + ' / ' + bn(rows.length)) + '</span>') + H.part('sb-' + s.finalReveal, '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span></span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, '', revealFrom, true), 'sb') };
   },
   WINNER(s) {
     const w = Show.winner();
@@ -233,6 +236,12 @@ const Scenes = {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
       html: H.part('body', H.photo(photo, t.name, 'wphoto', '', bn(Sel.teamIndex(t.id) + 1)) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
+  },
+  TOP3(s) {
+    const rows = Sel.standings().slice(0, 3);
+    const order = [rows[1], rows[0], rows[2]].filter(Boolean);
+    const cols = order.map((r) => '<div class="pod pod' + r.rank + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '') + H.tphoto(r.team) + '<b>' + esc(r.team.name) + '</b><small>' + Sel.rankTitle(r.rank) + '</small><div class="pod-block"><span>' + bn(r.rank) + '</span><em>' + bn(r.score) + '</em></div></div>').join('');
+    return { key: 'TOP3', anim: 'push', confetti: true, html: H.head(s, '<span class="round-tag">বিজয়ী মঞ্চ</span>', '<span class="qnum">CONGRATULATIONS</span>') + H.part('podium', cols, 'podium3') };
   },
   END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">ধন্যবাদ</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },
   GRAPHIC(s, p) { return { key: 'GFX:' + p.media, anim: 'zoom', bare: true, html: '<div class="poster" data-part="poster"><img data-media="' + esc(p.media || '') + '" alt="" style="object-fit:contain"></div>' }; },
@@ -357,7 +366,7 @@ class StageView {
     const frac = t.duration ? rem / t.duration : 0;
     const sec = Math.ceil(rem / 1000);
     const state = t.expired ? 'done' : !t.running && rem >= t.duration ? 'idle' : sec <= s.settings.critAt ? 'crit' : sec <= s.settings.warnAt ? 'warn' : '';
-    const mode = { direct: 'DIRECT', pass: 'PASS', bonus: 'BONUS', challenge: 'CHALLENGE' }[t.mode] || 'TIMER';
+    const mode = { direct: 'DIRECT', pass: 'PASS', bonus: 'BONUS', challenge: 'CHALLENGE', raise: 'HANDS UP' }[t.mode] || 'TIMER';
     $$('[data-timer]', this.stage).forEach((el) => {
       const ring = $('.ring', el); const dg = $('.digits', el); const md = $('.mode', el);
       if (ring) { ring.setAttribute('stroke-dashoffset', String(Math.round((1 - frac) * 1000))); ring.setAttribute('stroke-width', String(s.design.ringWidth)); }

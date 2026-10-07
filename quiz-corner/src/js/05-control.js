@@ -183,7 +183,7 @@ const UI = {
   contextDeck(s, b) {
     const sc = s.show.scene;
     let h = '';
-    const timerRow = '<div class="deck-sep">টাইমার</div>' + b('timerDirect', '⏱ সরাসরি ' + bn(Timer.durationFor('direct')) + 's', 'warn', '', 'D') + b('timerPass', '⏱ পাস/বোনাস ' + bn(Timer.durationFor('pass')) + 's', 'violet', '', '⇧P') + b('timerReset', '⟲ রিসেট', '', '', '0') + b('timerAdd', '+১০ সেকেন্ড', '', '10', '+') + b('timerAdd', '−১০ সেকেন্ড', '', '-10', '');
+    const timerRow = '<div class="deck-sep">টাইমার</div>' + b('timerDirect', '⏱ সরাসরি ' + bn(Timer.durationFor('direct')) + 's', 'warn', '', 'D') + b('timerPass', '⏱ পাস/বোনাস ' + bn(Timer.durationFor('pass')) + 's', 'violet', '', '⇧P') + b('timerReset', '⟲ রিসেট', '', '', '0') + b('timerAdd', '+১০ সেকেন্ড', '', '10', '+') + b('timerAdd', '+৫ সেকেন্ড', '', '5') + b('timerAdd', '−১০ সেকেন্ড', '', '-10', '') + b('timerPreset', '⏱ ৩০s', '', '30') + b('timerPreset', '⏱ ৬০s', '', '60') + b('timerCustom', '⏱ অন্য…');
     if (sc === 'QUESTION') {
       const l = s.live; const q = Sel.liveQuestion(); const r = Sel.round(l.roundId);
       const ans = Sel.team(Sel.answeringTeam());
@@ -194,6 +194,12 @@ const UI = {
       h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : 'বিকল্প দেখাও', '', '', 'V', !q || q.options.filter(Boolean).length < 2);
       if (q && l.optionsShown) h += '<div class="deck-sep">দলের বেছে নেওয়া বিকল্প' + (r && r.features.judgeOptions ? ' (সঙ্গে সঙ্গে রায়)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
       if (r && r.features.lifelines) h += '<div class="deck-sep">লাইফলাইন' + (l.active ? ' — ' + esc((Sel.team(l.active) || {}).name || '') : '') + '</div>' + b('lifeline', '½ ৫০:৫০', 'gold', 'fifty', 'Alt+1', l.active && Sel.lifelineUsed(l.active, 'fifty')) + b('lifeline', '📊 দর্শক পোল', 'gold', 'poll', 'Alt+2', l.active && Sel.lifelineUsed(l.active, 'poll')) + b('lifeline', '🔄 ফ্লিপ প্রশ্ন', 'gold', 'flip', 'Alt+3', l.active && Sel.lifelineUsed(l.active, 'flip'));
+      if (r && r.type === 'standard') h += b('bonus', '★ বোনাস +' + bn(r.scoring.manualBonus), 'gold', '', 'G', l.bonusGiven);
+      if (r && r.features.challenge) {
+        const others = Sel.finalistIds().filter((id) => id !== l.active);
+        h += '<div class="deck-sep">✋ হাত তোলা / বাজার' + (r.features.singleChallenger ? ' (কেবল প্রথম দল)' : '') + ' — Shift+১–৮</div>' + b('timerRaise', '✋ হাত তোলার সময় ' + bn(r.timers.raise) + 's', 'warn');
+        h += others.map((id) => { const t = Sel.team(id); if (!t) return ''; const up = l.hands.includes(id); const j = l.handsJudged[id]; return up && !j ? b('judgeHand', '✓ ' + esc(t.name) + ' +' + bn(r.scoring.challengeRight), 'good', id + '|1') + b('judgeHand', '✕ ' + esc(t.name) + ' ' + bn(r.scoring.challengeWrong), 'bad', id + '|0') + b('raiseHand', '✋ নামাও', 'sm', id) : b('raiseHand', (j ? (j === 'right' ? '✓ ' : '✕ ') : '✋ ') + esc(t.name), up ? 'on' : '', id, '', !!j); }).join('');
+      }
       h += timerRow + '<div class="deck-sep">ভয়েস ও প্রশ্ন</div>' + b('speak', '🔊 প্রশ্ন পড়ো', '', 'question', 'E') + b('speak', '🔊 বিকল্প পড়ো', '', 'options') + b('speak', '🔊 উত্তর পড়ো', '', 'answer', 'A') + b('speak', '🔊 দলের নাম', '', 'team', 'T') + b('qStep', '⏮ আগের প্রশ্ন', '', '-1') + b('qStep', 'পরের প্রশ্ন ⏭', '', '1') + b('gotoGrid', '▦ প্রশ্ন বোর্ড');
       h += '</div></div>';
     } else if (sc === 'PRELIM_Q') {
@@ -230,6 +236,8 @@ const UI = {
     }).join('');
     h += '</div>';
     if (pick) h += '<div class="row" style="margin-top:.5rem"><button class="btn sm" data-act="cancelPicker">বাতিল (Esc)</button></div>';
+    h += '<div class="row" style="margin-top:.5rem"><button class="btn sm' + (this.quickOpen ? ' on' : '') + '" data-act="quickToggle">⚡ দ্রুত নম্বর</button></div>';
+    if (this.quickOpen) h += '<div class="quick">' + ids.map((id) => { const t = Sel.team(id); return t ? '<div class="quick-row" style="--team:' + esc(t.color) + '"><b>' + esc(t.name) + '</b>' + [10, 5, -5, -10].map((v) => '<button class="btn sm ' + (v > 0 ? 'good' : 'bad') + '" data-act="quick" data-arg="' + esc(id) + '|' + v + '">' + (v > 0 ? '+' : '−') + bn(Math.abs(v)) + '</button>').join('') + '</div>' : ''; }).join('') + '</div>';
     h += '<div class="row" style="margin-top:.5rem"><select id="adjTeam" aria-label="দল" style="flex:1 1 140px">' + ids.map((id) => '<option value="' + esc(id) + '"' + (id === l.active ? ' selected' : '') + '>' + esc((Sel.team(id) || {}).name) + '</option>').join('') + '</select><input id="adjVal" type="number" value="5" style="width:80px" aria-label="নম্বর"><button class="btn sm good" data-act="adjust" data-arg="1">+ যোগ</button><button class="btn sm bad" data-act="adjust" data-arg="-1">− বিয়োগ</button></div></div>';
     return h;
   },
@@ -263,6 +271,7 @@ const SETTINGS_GROUPS = [
     ['prelim', '📝', '#2563eb', 'বাছাই পর্ব', (s) => bn(Sel.prelimQuestions().length) + 'টি প্রশ্ন • ANSWER বোতাম • ফলাফল ও শীর্ষ ' + bn(s.prelim.finalistCount)],
     ['teams', '👥', '#059669', 'দল ও ছবি', (s) => bn(s.teams.length) + 'টি দল • খেলোয়াড় • ছবি • স্কোর ইতিহাস'],
     ['questions', '❓', '#db2777', 'প্রশ্ন ব্যবস্থাপক', (s) => bn(s.questions.length) + 'টি প্রশ্ন • যোগ, সম্পাদনা, আমদানি'],
+    ['scores', '🏆', '#ca8a04', 'স্কোর ও পরিসংখ্যান', (s) => bn(s.ledger.length) + 'টি স্কোর-এন্ট্রি • টাই • সার্টিফিকেট'],
     ['rounds', '🔁', '#ea580c', 'রাউন্ড ও নম্বর', (s) => bn(s.rounds.filter((r) => r.enabled).length) + 'টি রাউন্ড চালু • নিয়ম • টাইমার • রং'],
   ]],
   ['চেহারা ও লেখা', [
@@ -320,6 +329,14 @@ const Actions = {
   timerAdd(v) { Timer.add(int(v, 10)); },
   timerCustom() { const v = prompt('কত সেকেন্ড?', '30'); if (v && num(v) > 0) Timer.start('custom', num(v)); },
   judge(kind) { Game.judge(kind); },
+  bonus() { Game.bonus(); },
+  raiseHand(id) { Game.raiseHand(id); },
+  judgeHand(arg) { const [id, ok] = String(arg).split('|'); Game.judgeHand(id, ok === '1'); },
+  timerRaise() { const r = Sel.currentRound(); Timer.start('raise', (r && r.timers.raise) || 5); },
+  timerPreset(v) { Timer.start(Store.state.timer.mode === 'pass' ? 'pass' : 'direct', int(v, 30)); },
+  quickToggle() { UI.quickOpen = !UI.quickOpen; UI.liveSig = ''; UI.renderLive(); },
+  quick(arg) { const [id, v] = String(arg).split('|'); Game.adjust(id, int(v), 'দ্রুত ' + signed(int(v))); },
+  speakStandings() { AudioDirector.unlock(); Speech.say(Sel.standingsText(), 'standings', true); const t = Sel.ties(); if (t.length) Speech.say(t.join('। '), 'standings', true); },
   reveal() { Game.reveal(); },
   lock() { Game.toggleLock(); },
   pass() { Game.pass(); },
@@ -362,7 +379,7 @@ const SHORTCUTS = [
   ['Space', 'টাইমার চালু / বিরতি'], ['→ / PgDn', 'পরের দৃশ্য'], ['← / PgUp', 'আগের দৃশ্য'], ['D', 'সরাসরি টাইমার (৬০s)'], ['P', 'পাস: পরের দল + ৪৫s'], ['Shift+P', 'শুধু ৪৫s টাইমার'],
   ['R', 'উত্তর দেখাও / পরের স্থান প্রকাশ'], ['C', 'সঠিক'], ['X', 'ভুল'], ['N', 'নো স্কোর'], ['H', 'চ্যালেঞ্জ (তারপর ১–৮)'], ['V', 'বিকল্প দেখাও/লুকাও'],
   ['1–9', 'উত্তরদাতা দল বেছে নাও'], ['Alt+1/2/3', '৫০:৫০ / পোল / ফ্লিপ'], ['0', 'টাইমার রিসেট'], ['+ / −', '১০ সেকেন্ড যোগ / বিয়োগ'], ['S', 'স্কোরবোর্ড'], ['W', 'বিজয়ী'],
-  ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'সব সংগীত/ভয়েস থামাও'],
+  ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['Shift+L', 'পুরো স্কোর পড়ে শোনাও'], ['G', 'বোনাস'], ['Shift+1–8', 'হাত তোলা / বাজার'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'সব সংগীত/ভয়েস থামাও'],
   ['G', 'প্রশ্ন বোর্ড'], ['Ctrl+Z', 'আনডু'], ['Ctrl+Y', 'রিডু'], ['Ctrl+S', 'এখনই সংরক্ষণ'], ['?', 'এই তালিকা'], ['Esc', 'বাতিল / বন্ধ'],
 ];
 
@@ -405,6 +422,11 @@ const Keys = {
       if (d === '3') { Actions.lifeline('flip'); return true; }
       return false;
     }
+    if (m.shift && /^Digit[1-9]$/.test(code)) {
+      const id = Sel.finalistIds()[int(code.slice(5)) - 1];
+      if (id) { Actions.raiseHand(id); return true; }
+      return false;
+    }
     if (/^[1-9]$/.test(k)) {
       const id = Sel.finalistIds()[int(k) - 1];
       if (!id) return false;
@@ -431,7 +453,8 @@ const Keys = {
       case 'w': Actions.jump('WINNER'); return true;
       case 'g': Actions.gotoGrid(); return true;
       case 'b': Actions.blackout(); return true;
-      case 'l': Actions.lock(); return true;
+      case 'g': Actions.bonus(); return true;
+      case 'L': case 'l': if (m.shift) { Actions.speakStandings(); return true; } Actions.lock(); return true;
       case 'f': Actions.previewFull(); return true;
       case 'o': Actions.openStage(); return true;
       case 'e': Actions.speak('question'); return true;

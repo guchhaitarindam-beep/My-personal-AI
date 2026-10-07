@@ -136,7 +136,7 @@ function defaultTeam(i) {
 }
 
 const ROUND_TYPE_DEFAULTS = {
-  standard: { direct: 10, options4: 5, options2: 3, pass: 5, wrong: 0, bonusStep: 0, challengeRight: 10, challengeWrong: -5, rapidRight: 5, rapidWrong: -5 },
+  standard: { direct: 10, options4: 5, options2: 3, pass: 5, wrong: 0, passWrong: 0, bonusStep: 0, challengeRight: 10, challengeWrong: -5, rapidRight: 5, rapidWrong: -5, manualBonus: 5 },
 };
 function defaultScoring() { return Object.assign({}, ROUND_TYPE_DEFAULTS.standard); }
 
@@ -153,7 +153,8 @@ function roundFromSeed(r, i) {
       challenge: !!p.hands, singleChallenger: p.single !== false, lifelines: type === 'standard', twoOptions: type === 'rapid',
     },
     scoring: Object.assign(defaultScoring(), type === 'bonus' ? { direct: 10, pass: 10, bonusStep: 2 } : {}),
-    timers: { direct: 60, pass: 45 },
+    timers: { direct: 60, pass: 45, raise: 5 },
+    multiplier: 1,
     design: { primary: palette[0], secondary: palette[1], accent: palette[2], bg: '', anim: ROUND_ANIMS[i % ROUND_ANIMS.length], titleFont: '', questionFont: '', optionFont: '', qScale: 1, music: '', timerStyle: 'ring' },
     sounds: { correct: '', wrong: '', reveal: '' },
     voiceIntro: true,
@@ -257,7 +258,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { locked: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */

@@ -154,6 +154,36 @@ const SelfTest = {
       T('আনডু: সমন্বয় বাতিল', () => Sel.score(a) === sa);
       Store.redo();
       T('রিডু: আবার প্রয়োগ', () => Sel.score(a) === sa + 7);
+      T('লেজার: before/after ধারাবাহিক', () => { const tot = {}; return s().ledger.every((e) => { const b = tot[e.team] || 0; const ok = e.before === b && e.after === b + e.delta; tot[e.team] = e.after; return ok; }); });
+      // hands-up: several teams, each judged once
+      Store.state.rounds.find((r) => r.id === 'R4').features.singleChallenger = false;
+      Game.load(Sel.roundQuestions('R4')[1].id, a);
+      Game.raiseHand(b); Game.raiseHand(c);
+      T('হাত তোলা: একাধিক দল', () => s().live.hands.length === 2 && Game.raiseHand(a) === false);
+      const sb0 = Sel.score(b); const sc0 = Sel.score(c);
+      Game.judgeHand(b, true); Game.judgeHand(c, false);
+      T('হাত তোলা: সঠিক +১০, ভুল −৫, প্রতিটি একবার', () => Sel.score(b) === sb0 + 10 && Sel.score(c) === sc0 - 5 && Game.judgeHand(b, true) === false);
+      Store.state.rounds.find((r) => r.id === 'R4').features.singleChallenger = true;
+      Game.load(Sel.roundQuestions('R4')[2].id, a);
+      Game.raiseHand(b);
+      T('একক বাজার: দ্বিতীয় দল হাত তুলতে পারে না', () => Game.raiseHand(c) === false);
+      // multiplier
+      const r1 = Sel.round('R1'); r1.multiplier = 2;
+      Game.load(Sel.roundQuestions('R1')[3].id, a);
+      T('গুণক ×২: সরাসরি ২০', () => Game.pointsFor('correct') === 20);
+      r1.multiplier = 1;
+      // manual bonus once
+      const sa2 = Sel.score(a);
+      Game.bonus();
+      T('ম্যানুয়াল বোনাস একবারই', () => Sel.score(a) === sa2 + 5 && Game.bonus() === false);
+      // auto reveal when options were taken in a round without pass-after-options
+      Game.load(Sel.roundQuestions('R1')[4].id, a); Game.showOptions(); Game.judge('wrong');
+      T('বিকল্প নেওয়ার পর ভুল: উত্তর নিজে দেখায়', () => s().live.revealed === true);
+      T('একই প্রশ্নে দুবার সঠিক নয়', () => { Game.load(Sel.roundQuestions('R1')[5].id, a); Game.judge('correct'); return Game.judge('correct') === false; });
+      // rapid: wrong closes
+      Game.load(Sel.roundQuestions('R5')[1].id, b); Game.judge('wrong');
+      T('র‍্যাপিড: ভুলে প্রশ্ন শেষ', () => s().live.closed && s().live.revealed && Game.judge('correct') === false);
+      T('টাই নির্ণয় ও স্থান-শিরোনাম', () => Array.isArray(Sel.ties()) && Sel.rankTitle(1) === 'চ্যাম্পিয়ন' && Sel.rankTitle(5) === 'ফাইনালিস্ট');
       T('অডিট: প্রতিটি পরিবর্তন লেজারে', () => s().ledger.every((e) => e.id && e.team && Number.isInteger(e.delta)));
 
       // ---- prelim ranking ----

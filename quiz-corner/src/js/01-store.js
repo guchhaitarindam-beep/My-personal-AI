@@ -192,6 +192,37 @@ const Sel = {
     return rows;
   },
 
+  /** Places that share a score; returns readable notes for the top three places. */
+  ties(rows = this.standings()) {
+    const notes = [];
+    const seen = new Set();
+    rows.forEach((r) => {
+      if (r.rank > 3 || seen.has(r.rank)) return;
+      const same = rows.filter((x) => x.rank === r.rank);
+      if (same.length > 1) { seen.add(r.rank); notes.push(bn(r.rank) + ' নম্বর স্থানে সমান: ' + same.map((x) => x.team.name).join(' ও ') + ' (' + bn(r.score) + ' পয়েন্ট)'); }
+    });
+    return notes;
+  },
+  rankTitle(rank) { return ['চ্যাম্পিয়ন', 'প্রথম রানার্স-আপ', 'দ্বিতীয় রানার্স-আপ'][rank - 1] || 'ফাইনালিস্ট'; },
+  /** Per-team counts from the ledger (own correct, hands-up right/wrong, bonus, wrong, manual, per round). */
+  teamStats(tid) {
+    const st = { correct: 0, handsRight: 0, handsWrong: 0, bonus: 0, wrong: 0, manual: 0, rounds: {} };
+    for (const e of Store.state.ledger) {
+      if (e.team !== tid) continue;
+      if (e.kind === 'correct') st.correct++; else if (e.kind === 'challenge') st.handsRight++; else if (e.kind === 'cwrong') st.handsWrong++; else if (e.kind === 'bonus') st.bonus++; else if (e.kind === 'wrong') st.wrong++; else if (e.kind === 'adjust') st.manual += e.delta;
+      if (e.round) st.rounds[e.round] = (st.rounds[e.round] || 0) + e.delta;
+    }
+    return st;
+  },
+  /** Best gain in a round ("round star"). */
+  roundStar(rid) {
+    const rows = this.standings(undefined, rid);
+    const best = Math.max(0, ...rows.map((r) => r.rscore));
+    return best > 0 ? { teams: rows.filter((r) => r.rscore === best).map((r) => r.team), pts: best } : null;
+  },
+  standingsText() {
+    return this.standings().map((r) => r.rank + (this.standings().filter((x) => x.rank === r.rank).length > 1 ? ' (সমান)' : '') + '। ' + r.team.name + ', ' + r.score + ' পয়েন্ট').join('। ');
+  },
   currentRound() {
     const s = Store.state;
     return this.round(s.live.roundId) || this.round(s.show.params.roundId) || s.rounds.find((r) => r.enabled) || s.rounds[0];
@@ -317,7 +348,10 @@ const Timer = {
    ===================================================================== */
 const Game = {
   addEntry(s, team, delta, reason, extra = {}) {
-    s.ledger.push(Object.assign({ id: uid('L'), t: Date.now(), team, delta: int(delta, 0), reason: str(reason, 120), round: s.live.roundId || '', q: s.live.qid || '' }, extra));
+    // before/after make every score change auditable and the running total verifiable.
+    let before = 0; for (const e of s.ledger) if (e.team === team) before += e.delta;
+    const d = int(delta, 0);
+    s.ledger.push(Object.assign({ id: uid('L'), t: Date.now(), team, delta: d, before, after: before + d, reason: str(reason, 120), round: s.live.roundId || '', q: s.live.qid || '' }, extra));
   },
   /** Points the current answering team would receive / lose right now. */
   pointsFor(kind) {
@@ -327,14 +361,16 @@ const Game = {
     const q = Sel.liveQuestion();
     if (!r) return 0;
     const sc = r.scoring;
-    if (r.type === 'rapid') return kind === 'correct' ? sc.rapidRight : sc.rapidWrong;
+    const mult = clamp(int(r.multiplier, 1), 1, 5);
+    if (r.type === 'rapid') return kind === 'correct' ? sc.rapidRight * mult : sc.rapidWrong;
     if (l.flow === 'challenge') return kind === 'correct' ? sc.challengeRight : sc.challengeWrong;
-    if (kind !== 'correct') return sc.wrong;
+    if (kind !== 'correct') return l.passChain.length ? sc.passWrong : sc.wrong;
     const base = q && q.points != null ? q.points : sc.direct;
-    if (r.type === 'bonus') return base + sc.bonusStep * l.passChain.length;
-    if (l.flow === 'pass') return sc.pass;
-    if (l.optionsShown && r.features.judgeOptions) return l.eliminated.length >= 2 ? sc.options2 : sc.options4;
-    return base;
+    // Audio-visual ladder: the value grows by bonusStep (× multiplier) for every pass.
+    if (r.type === 'bonus') return (base + sc.bonusStep * l.passChain.length) * mult;
+    if (l.flow === 'pass') return sc.pass * mult;
+    if (l.optionsShown) return (l.eliminated.length >= 2 ? sc.options2 : sc.options4) * mult;
+    return base * mult;
   },
   /** A locked question refuses scoring changes until the operator unlocks it. */
   guard() { if (Store.state.live.locked) { UI.toast('প্রশ্ন লক করা আছে — আগে আনলক করুন (L)', 'err'); return false; } return true; },
@@ -345,6 +381,9 @@ const Game = {
     const team = Sel.answeringTeam();
     if (!s.live.qid) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
     if (!team) { UI.toast('উত্তরদাতা দল বেছে নিন', 'err'); return false; }
+    if (s.live.closed) { UI.toast('এই প্রশ্ন শেষ — উত্তর দেখে পরের প্রশ্নে যান', 'err'); return false; }
+    const r0 = Sel.round(s.live.roundId);
+    if (kind === 'correct' && s.ledger.some((e) => e.q === s.live.qid && e.kind === 'correct' && e.round === s.live.roundId)) { UI.toast('এই প্রশ্নে আগেই সঠিক নম্বর দেওয়া হয়েছে', 'err'); return false; }
     const pts = kind === 'noscore' ? 0 : this.pointsFor(kind);
     const label = { correct: 'সঠিক', wrong: 'ভুল', noscore: 'নো স্কোর' }[kind];
     Timer.stop();
@@ -352,8 +391,52 @@ const Game = {
       this.addEntry(st, team, pts, label + ' • ' + this.flowName(st.live.flow), { kind, flow: st.live.flow });
       st.live.result = kind; st.live.resultAt = now(); st.live.lastPoints = pts; st.live.resultTeam = team;
       if (kind === 'correct' && st.settings.autoRevealOnCorrect) st.live.revealed = true;
+      if (kind === 'wrong' && r0) {
+        // Rapid Fire: the buzzing team's wrong answer finishes the question.
+        if (r0.type === 'rapid') { st.live.closed = true; st.live.revealed = true; }
+        // Nobody left to pass to, or options were taken where passing is not allowed: show the answer.
+        else if (st.live.flow !== 'challenge' && (!this.nextPassTeam() || (st.live.optionsShown && !r0.features.passAfterOptions && r0.type !== 'bonus') || !r0.features.pass)) st.live.revealed = true;
+      }
     });
     Cue.play(kind === 'correct' ? 'correct' : kind === 'wrong' ? 'wrong' : 'reveal', { round: s.live.roundId });
+    return true;
+  },
+  /* ---- Hands-up / buzzer: any number of teams may raise a hand; each is judged once ---- */
+  raiseHand(teamId) {
+    if (!this.guard()) return false;
+    const s = Store.state; const l = s.live; const r = Sel.round(l.roundId);
+    if (!l.qid || !Sel.team(teamId)) return false;
+    if (r && !r.features.challenge) { UI.toast('এই রাউন্ডে হাত তোলা / চ্যালেঞ্জ নেই', 'err'); return false; }
+    if (teamId === l.active) { UI.toast('উত্তরদাতা দল নিজে হাত তুলতে পারে না', 'err'); return false; }
+    if (l.handsJudged[teamId]) { UI.toast('এই দলের হাত তোলার রায় হয়ে গেছে', 'err'); return false; }
+    const on = l.hands.includes(teamId);
+    if (!on && r && r.features.singleChallenger && l.hands.length) { UI.toast('এই রাউন্ডে কেবল প্রথম বাজার-চাপা দলই চ্যালেঞ্জ করতে পারে', 'err'); return false; }
+    Store.commit('raise-hand', (st) => { st.live.hands = on ? st.live.hands.filter((x) => x !== teamId) : st.live.hands.concat([teamId]); });
+    if (!on) Cue.play('challenge', { soft: true });
+    return true;
+  },
+  judgeHand(teamId, right) {
+    if (!this.guard()) return false;
+    const s = Store.state; const l = s.live; const r = Sel.round(l.roundId);
+    if (!l.hands.includes(teamId) || l.handsJudged[teamId] || !r) return false;
+    const pts = right ? r.scoring.challengeRight : r.scoring.challengeWrong;
+    Store.commit('hand-' + (right ? 'right' : 'wrong'), (st) => {
+      this.addEntry(st, teamId, pts, (right ? 'হাত তোলা সঠিক' : 'হাত তোলা ভুল'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
+      st.live.handsJudged = Object.assign({}, st.live.handsJudged, { [teamId]: right ? 'right' : 'wrong' });
+      st.live.lastPoints = pts; st.live.resultAt = now(); st.live.result = right ? 'correct' : 'wrong'; st.live.resultTeam = teamId;
+    });
+    Cue.play(right ? 'correct' : 'wrong');
+    return true;
+  },
+  /** Manual bonus (once per question, standard rounds). */
+  bonus() {
+    if (!this.guard()) return false;
+    const s = Store.state; const l = s.live; const r = Sel.round(l.roundId); const team = Sel.answeringTeam();
+    if (!l.qid || !team || !r) return false;
+    if (r.type !== 'standard') { UI.toast('এই রাউন্ডে আলাদা বোনাস নেই', 'err'); return false; }
+    if (l.bonusGiven) { UI.toast('এই প্রশ্নে বোনাস আগেই দেওয়া হয়েছে', 'err'); return false; }
+    Store.commit('bonus', (st) => { this.addEntry(st, team, r.scoring.manualBonus, 'বোনাস', { kind: 'bonus' }); st.live.bonusGiven = true; st.live.lastPoints = r.scoring.manualBonus; st.live.resultAt = now(); });
+    Cue.play('score');
     return true;
   },
   flowName(f) { return { direct: 'সরাসরি', pass: 'পাস', bonus: 'বোনাস', challenge: 'চ্যালেঞ্জ' }[f] || f; },

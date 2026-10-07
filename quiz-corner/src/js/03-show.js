@@ -8,7 +8,7 @@ const SCENES = {
   TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
   PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
   MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
-  FINAL: 'চূড়ান্ত স্কোরবোর্ড', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
+  FINAL: 'চূড়ান্ত স্কোরবোর্ড', TOP3: 'বিজয়ী মঞ্চ (২-১-৩)', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
 };
 
 const Show = {
@@ -39,7 +39,7 @@ const Show = {
       Sel.roundQuestions(r.id).forEach((q) => add('QUESTION', { key: q.id, roundId: r.id, qid: q.id }, r.name + ' • প্রশ্ন ' + bn(q.number)));
       add('SCOREBOARD', { key: r.id, roundId: r.id }, 'স্কোরবোর্ড • ' + r.name);
     });
-    add('FINAL'); add('WINNER'); add('END');
+    add('FINAL'); add('TOP3'); add('WINNER'); add('END');
     this._rd = out; this._rdSig = sig;
     return out;
   },
@@ -77,7 +77,19 @@ const Show = {
       case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
       case 'ROUND_INTRO': play('roundintro'); { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); } break;
       case 'QUESTION': if (s.live.qid !== p.qid) Game.load(p.qid, Game.turnFor(p.roundId)); else if (override) play(); break;
-      case 'SCOREBOARD': case 'FINAL': play('scoreboard'); break;
+      case 'SCOREBOARD': {
+        play('scoreboard');
+        const star = p.roundId ? Sel.roundStar(p.roundId) : null;
+        if (star) { setTimeout(() => Cue.play('applause'), 1300); if (s.speech.enabled) Speech.say('রাউন্ড স্টার: ' + star.teams.map((t) => t.name).join(' ও '), 'team'); }
+        break;
+      }
+      case 'FINAL': {
+        play('drumroll');
+        const ties = Sel.ties();
+        if (ties.length) UI.toast('⚠ টাই: ' + ties.join(' • ') + ' — প্রকাশের আগে টাই-ব্রেকার ঠিক করুন', 'err');
+        break;
+      }
+      case 'TOP3': play('fanfare'); break;
       case 'WINNER': Cue.music('winner', 'play'); play('fanfare'); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
       default: play('transition');
     }
