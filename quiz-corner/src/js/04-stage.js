@@ -54,8 +54,10 @@ const Scenes = {
   },
   CREW(s) {
     const crew = s.crew.map((c, i) => '<div class="crew-card glass" style="--i:' + i + '">' + H.photo(c.photo, c.name) + '<b>' + esc(c.name) + '</b><small>' + esc(c.role) + '</small></div>').join('');
+    const n = s.crew.length;
+    const cols = s.groupPhoto ? (n <= 4 ? 2 : 3) : n <= 4 ? Math.max(1, n) : Math.ceil(n / 2);
     const group = s.groupPhoto ? '<div class="glass" style="padding:1.2cqh;max-width:40cqw;flex:0 0 auto;display:flex;flex-direction:column;gap:1cqh;align-items:center"><img data-media="' + esc(s.groupPhoto) + '" alt="" style="max-height:52cqh;border-radius:1.4cqh;object-fit:contain"><small class="s-sub" style="font-size:2cqh;text-align:center">' + esc(s.groupCaption) + '</small></div>' : '';
-    return { key: 'CREW', anim: 'slide', html: H.head(s, '<span class="round-tag">আয়োজক দল ও কৃতজ্ঞতা</span>') + H.part('body', group + '<div class="crew-grid">' + crew + '</div>', '', 'flex:1;display:flex;gap:2cqw;align-items:center;min-height:0;margin-top:2cqh') };
+    return { key: 'CREW', anim: 'slide', html: H.head(s, '<span class="round-tag">আয়োজক দল ও কৃতজ্ঞতা</span>') + H.part('body', group + '<div class="crew-grid" style="--cols:' + cols + '">' + crew + '</div>', '', 'flex:1;display:flex;gap:2cqw;align-items:center;min-height:0;margin-top:2cqh') };
   },
   teamGrid(teams, extra) {
     const cols = teams.length <= 8 ? 4 : teams.length <= 12 ? 4 : teams.length <= 18 ? 6 : 8;
@@ -71,7 +73,7 @@ const Scenes = {
     const playerHtml = players.filter((x) => x[1]).map((x, i) => '<div class="player" style="--i:' + i + '">' + H.photo(x[2], x[1]) + '<small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
-      html: H.part('body', H.photo(t.photo, t.name, 'big-photo') + '<div class="intro-info"><div class="num">' + esc(tag) + '</div><div class="name-box" style="max-height:24cqh;display:flex;align-items:flex-end"><div class="name" data-fit="8">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (playerHtml ? '<div class="player-row">' + playerHtml + '</div>' : '') + '</div>', 'intro-card'),
+      html: H.part('body', H.photo(t.photo, t.name, 'big-photo') + '<div class="intro-info"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name" data-fit="8">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (playerHtml ? '<div class="player-row">' + playerHtml + '</div>' : '') + '</div>', 'intro-card'),
     };
   },
   TEAM_INTRO(s, p) { return Scenes.intro(s, p, false); },
@@ -226,7 +228,7 @@ const Scenes = {
     const photo = s.winnerPhoto || t.photo;
     return {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
-      html: H.part('body', H.photo(photo, t.name, 'wphoto') + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box" style="max-height:30cqh;width:100%;display:flex;align-items:flex-end"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
+      html: H.part('body', H.photo(photo, t.name, 'wphoto') + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + esc(t.name) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
   },
   END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">ধন্যবাদ</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },

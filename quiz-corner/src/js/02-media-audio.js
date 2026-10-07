@@ -50,17 +50,29 @@ const Media = {
     return 'other';
   },
   /** Downscale very large photos for smooth display; the original is stored untouched. */
+  /** Decode with createImageBitmap, falling back to an <img> decode for formats it rejects. */
+  async decode(blob) {
+    if ('createImageBitmap' in window) { try { return await createImageBitmap(blob); } catch (e) { /* fall through to <img> */ } }
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return img;
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  },
   async makeDisplay(blob) {
-    if (!('createImageBitmap' in window)) return { display: null, w: 0, h: 0 };
-    const bmp = await createImageBitmap(blob);
-    const max = 2160;
-    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
-    if (scale >= 1 && blob.size < 2.5e6) { const r = { display: null, w: bmp.width, h: bmp.height }; bmp.close && bmp.close(); return r; }
+    const src = await this.decode(blob);
+    const w0 = src.naturalWidth || src.width; const h0 = src.naturalHeight || src.height;
+    const scale = Math.min(1, 2160 / Math.max(w0, h0));
+    if (scale >= 1 && blob.size < 2.5e6) { if (src.close) src.close(); return { display: null, w: w0, h: h0 }; }
     const c = document.createElement('canvas');
-    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
-    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-    bmp.close && bmp.close();
-    const display = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.92));
+    c.width = Math.round(w0 * scale); c.height = Math.round(h0 * scale);
+    c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    if (src.close) src.close();
+    // Keep PNG/WEBP transparency (logos); photos become high-quality JPEG.
+    const type = /png|webp/.test(blob.type) ? 'image/png' : 'image/jpeg';
+    const display = await new Promise((res) => c.toBlob(res, type, 0.92));
     return { display, w: c.width, h: c.height };
   },
   async add(file, kindHint) {
