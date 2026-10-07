@@ -127,14 +127,14 @@ const Scenes = {
     const shown = finalist ? mem.length : clamp(int(p.sub, 0), 0, mem.length);
     const code = Sel.code(t); const nm = str(t.name).trim();
     const pr = finalist ? Sel.prelimRanking().find((r) => r.team.id === t.id) : null;
-    const tag = finalist ? 'FINALIST ' + p.n + (pr ? ' • প্রাথমিক র‍্যাঙ্ক ' + bn(pr.rank) + ' • ' + bn(pr.score) + ' পয়েন্ট' : '') : (nm && nm !== code ? 'TEAM ' + code + ' • ' : 'TEAM ') + p.n + ' OF ' + s.teams.length;
+    const tag = finalist ? 'FINALIST ' + p.n : (nm && nm !== code ? 'TEAM ' + code + ' • ' : 'TEAM ') + p.n + ' OF ' + (p.of || s.teams.length);
     const extra = t.players.slice(1).map((x) => str(x).trim()).filter(Boolean);
     const cards = mem.map((m, k) => '<div data-part="m' + k + '" class="mem-card ' + (k % 2 ? 'from-right' : 'from-left') + (k < shown ? '' : ' hidden') + '">' + (k < shown ? H.photo(m.photo, m.name || '?', 'mem-face') + '<b class="mem-name">' + esc(m.name || '—') + '</b><small class="mem-role">' + (k === 0 ? 'সদস্য ১ • অধিনায়ক' : 'সদস্য ২') + '</small>' : '') + '</div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
       html: '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(code.charAt(0)) + '</div>' +
         '<div data-part="ph" class="intro-ph">' + H.tphoto(t, 'big-photo') + '</div>' +
-        '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + '</div>' +
+        '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (pr ? '<div class="fin-score">বাছাই পর্বে <b>' + bn(pr.score) + '</b> পয়েন্ট • স্থান <b>' + bn(pr.rank) + '</b></div>' : '') + '</div>' +
         '<div data-part="mem" data-morph class="mem-row">' + cards + '</div>' +
         H.part('extra', extra.length ? '<div class="mem-extra">সঙ্গে: ' + esc(extra.join(' • ')) + '</div>' : '') + '</div></div>',
     };
@@ -182,7 +182,7 @@ const Scenes = {
     const q = qs[i];
     if (!q || !q.text) return { key: 'PQ:' + i, html: H.head(s, '<span class="round-tag">বাছাই পর্ব</span>', '<span class="qnum">প্রশ্ন ' + bn(i + 1) + '</span>') + H.part('body', '<div class="s-sub">প্রশ্ন ' + bn(i + 1) + ' এখনও লেখা হয়নি</div>', 'center-col') };
     const dr = Scenes.drone(s.prelimLive.deliverAt, s.prelim.drone);
-    const img = q.image ? '<div class="q-img' + (str(q.text).length > 120 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const img = q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
     const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + esc(q.answer) + '</div></div>', 'answer-bar') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: dr.style,
@@ -267,7 +267,7 @@ const Scenes = {
     const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + H.tn(t) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
-    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 120 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
     const opts = showOpts ? H.part('opts', q.options.map((o, i) => {
       if (!o) return '';

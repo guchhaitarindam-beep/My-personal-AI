@@ -536,6 +536,19 @@ const Game = {
     });
     return true;
   },
+  /** Round 1 rule: the team may ask for the four options to be reduced to two (worth 3). Same two wrong options in every window. */
+  twoOptions() {
+    if (!this.guard()) return false;
+    const s = Store.state; const q = Sel.liveQuestion(); const r = Sel.round(s.live.roundId);
+    if (!q) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
+    if (r && !r.features.options) { UI.toast('এই রাউন্ডে বিকল্প নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
+    const wrong = this.wrongIndexes(q);
+    if (wrong.length < 2) { UI.toast('দুই বিকল্পের জন্য চারটি বিকল্প প্রয়োজন', 'err'); return false; }
+    if (s.live.eliminated.length >= 2) return false;
+    Store.commit('two-options', (st) => { st.live.optionsShown = true; st.live.eliminated = wrong.slice(0, 2); st.live.picked = -1; });
+    Cue.play('option');
+    return true;
+  },
   showOptions() {
     const q = Sel.liveQuestion();
     if (!q || q.options.filter(Boolean).length < 2) { UI.toast('এই প্রশ্নে বিকল্প নেই', 'err'); return false; }

@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 4;
+const RULES_VERSION = 5;
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -281,6 +281,8 @@ function emptyLive() {
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */
 function mergeDefaults(def, src) {
   if (Array.isArray(def)) return Array.isArray(src) ? src : def;
+  // A null default (e.g. a manual preliminary score) accepts any saved value; otherwise the type must match.
+  if (def === null) return src === undefined ? null : src;
   if (!isObj(def)) return src === undefined || src === null || typeof src !== typeof def ? def : src;
   const out = {};
   const s = isObj(src) ? src : {};
@@ -297,7 +299,16 @@ function upgradeRules(s, def) {
     return Object.assign({}, r, { name: d.name, label: d.label, rules: d.rules, type: d.type, enabled: d.enabled, features: clone(d.features), scoring: clone(d.scoring), timers: clone(d.timers) });
   });
   const seedQ = new Map(def.questions.map((q) => [q.id, q]));
-  s.questions = arr(s.questions).map((q) => { const d = isObj(q) && seedQ.get(q.id); return d ? Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {}) : q; });
+  // Questions the show rewrote get the new wording only where the operator had not changed the old one.
+  const prevText = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevText).map(String)]));
+  s.questions = arr(s.questions).map((q) => {
+    const d = isObj(q) && seedQ.get(q.id);
+    if (!d) return q;
+    const out = Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {});
+    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, explanation: d.explanation });
+    if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
+    return out;
+  });
   if (isObj(s.prelim)) { s.prelim.count = def.prelim.count; s.prelim.rules = def.prelim.rules; }
   s.flipPool = def.flipPool;
   // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.

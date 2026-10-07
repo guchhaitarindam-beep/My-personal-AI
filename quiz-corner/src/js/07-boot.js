@@ -229,7 +229,7 @@ const SelfTest = {
       T('নিয়ম: কোথাও পুরনো ৩০/১৫ সেকেন্ড নেই', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('নিয়ম: রাউন্ড ১ — সরাসরি ১০, চার বিকল্পে ৫, দুই বিকল্পে ৩', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
       T('নিয়ম: রাউন্ড ১ — পাসের পর পরের দলে ৫, ভুলে ০', () => R('R1').scoring.pass === 5 && R('R1').scoring.wrong === 0);
-      T('নিয়ম: রাউন্ড ১ — বিকল্প আছে, উপস্থাপক বোতামে নম্বর দেন', () => R('R1').features.options && !R('R1').features.judgeOptions && R('R1').features.passAfterOptions);
+      T('নিয়ম: রাউন্ড ১ — বিকল্প আছে, দল যে বিকল্প বলে তাতেই সঙ্গে সঙ্গে রায়, তারপরও পাস', () => R('R1').features.options && R('R1').features.judgeOptions && R('R1').features.passAfterOptions);
       T('নিয়ম: রাউন্ড ১ ও ২ — চ্যালেঞ্জ নেই', () => !R('R1').features.challenge && !R('R2').features.challenge);
       T('নিয়ম: রাউন্ড ২ — কোনো বিকল্প নেই', () => R('R2').features.options === false);
       T('নিয়ম: রাউন্ড ৩ বুদ্ধির টক্কর — শুধু সরাসরি ১০, বিকল্প নেই, পাস নেই', () => R('R3').scoring.direct === 10 && R('R3').scoring.wrong === 0 && !R('R3').features.options && !R('R3').features.pass && !R('R3').features.lifelines);
@@ -252,6 +252,21 @@ const SelfTest = {
         T('খেলা: রাউন্ড ১ চার বিকল্পে = ৫', () => Game.pointsFor('correct') === 5);
         Game.useLifeline('fifty');
         T('খেলা: রাউন্ড ১ দুই বিকল্পে = ৩', () => Game.pointsFor('correct') === 3);
+        {
+          const q1 = Sel.question(s().live.qid); const sa = Sel.score(ta);
+          const wrongIdx = [0, 1, 2, 3].find((i) => i !== q1.answer && q1.options[i]);
+          Game.load(Sel.roundQuestions('R1')[1].id, ta); Game.showOptions();
+          const qq = Sel.liveQuestion(); Game.pick(qq.answer);
+          T('খেলা: রাউন্ড ১ — চার বিকল্প থেকে সঠিক বিকল্প বাছতেই +৫ (সঙ্গে সঙ্গে)', () => Sel.score(ta) === sa + 5 && s().live.result === 'correct');
+          const lifeBefore = JSON.stringify(s().lifelines); Game.load(Sel.roundQuestions('R1')[2].id, ta); Game.twoOptions();
+          const q2 = Sel.liveQuestion();
+          T('খেলা: রাউন্ড ১ — দুই বিকল্পে নামানো লাইফলাইন খরচ করে না', () => s().live.eliminated.length === 2 && JSON.stringify(s().lifelines) === lifeBefore && !s().live.eliminated.includes(q2.answer));
+          T('খেলা: রাউন্ড ১ — দুই বিকল্পে সঠিক = ৩', () => Game.pointsFor('correct') === 3);
+          const bad = [0, 1, 2, 3].find((i) => i !== q2.answer && !s().live.eliminated.includes(i));
+          const sb = Sel.score(ta); Game.pick(bad);
+          T('খেলা: রাউন্ড ১ — ভুল বিকল্প বাছলে ০, প্রশ্ন পরের দলে পাস হতে পারে', () => Sel.score(ta) === sb && s().live.result === 'wrong' && !s().live.revealed && Game.pass() === true && Game.pointsFor('correct') === 5);
+          void wrongIdx;
+        }
         Game.load(Sel.roundQuestions('R2')[0].id, ta);
         T('খেলা: রাউন্ড ২ — বিকল্প চাইলেও আসে না', () => Game.showOptions() === false && !s().live.optionsShown);
         T('খেলা: সরাসরি টাইমার ৬০ সেকেন্ড', () => Timer.durationFor('direct') === 60 && s().timer.duration === 60000);
@@ -288,6 +303,8 @@ const SelfTest = {
       T('দল: কোড অবস্থান অনুযায়ী', () => teamCode(0) === 'A / 1' && teamCode(7) === 'H / 8' && Sel.code(s().teams[2]) === 'C / 3');
       T('দল: নাম দিলে কোড + নাম', () => { s().teams[1].name = 'উত্তর কলমদান'; const ok = Sel.label(s().teams[1]) === 'B / 2 উত্তর কলমদান' && Sel.label(s().teams[0]) === 'A / 1'; s().teams[1].name = 'B / 2'; return ok; });
       T('দল: পুরনো "দল ৩" নাম কোডে বদলায়', () => normalizeState({ teams: [{ name: 'দল ১' }, { name: 'Team 2' }, { name: '' }] }).teams.map((t) => t.name).join('|') === 'A / 1|B / 2|C / 3');
+      T('বাছাই: হাতে দেওয়া মোট নম্বর ও তারকা সংরক্ষণে থেকে যায়', () => { const n = normalizeState({ teams: [{ prelim: { manual: 70, stars: 3, marks: [] } }] }); return n.teams[0].prelim.manual === 70 && n.teams[0].prelim.stars === 3; });
+      T('মঞ্চে আহ্বান: বাছাইয়ের নম্বর ও স্থান বড় করে', () => { const st0 = normalizeState(defaultState()); st0.teams[0].prelim.manual = 70; st0.teams[0].school = 'উত্তর কলমদান'; const keep = Store.state; Store.state = st0; const h = Scenes.FINALIST_INTRO(st0, { teamId: st0.teams[0].id, n: 1 }).html; Store.state = keep; return h.includes('fin-score') && h.includes('৭০') && h.includes('উত্তর কলমদান'); });
       T('দল: নিজের দেওয়া নাম অক্ষত থাকে', () => normalizeState({ teams: [{ name: 'সূর্যমুখী' }] }).teams[0].name === 'সূর্যমুখী');
       T('সদস্য: শুরুতে কোনো সদস্য নেই', () => Sel.members(s().teams[0]).length === 0);
       s().teams[0].captain = 'রিয়া'; s().teams[0].players[0] = 'সোহম'; s().teams[0].captainPhoto = 'm_test1'; s().teams[0].playerPhotos[0] = 'm_test2';
@@ -324,6 +341,24 @@ const SelfTest = {
         const n = normalizeState(old); const d = defaultState();
         return n.rounds[2].name === 'বুদ্ধির টক্কর' && n.rounds[2].type === 'standard' && n.rounds[0].label === d.rounds[0].label && n.rounds[0].rules === d.rounds[0].rules && n.questions[0].roundId === d.questions[0].roundId && n.questions[0].text === 'নিজের লেখা' && n.teams[0].name === 'আমার দল' && n.teams[0].captainPhoto === 'm_keep' && n.prelim.count === 15 && n.audio.cues.correct.vol === 1 && n.rulesVersion === RULES_VERSION;
       });
+      T('পুরনো সেভ: বদলানো প্রশ্ন নতুন লেখা পায়, অপারেটরের নিজের লেখা থাকে', () => {
+        const old = defaultState(); delete old.rulesVersion;
+        const seedOld = arr(SEED.questions).find((q) => arr(q.prevText).length);
+        const a = old.questions.find((q) => q.id === seedOld.id); a.text = seedOld.prevText[0]; a.options = ['১', '২', '৩', '৪'];
+        const mine = old.questions.find((q) => q.id === 'Q07'); mine.text = 'আমার নিজের প্রশ্ন';
+        const n = normalizeState(old); const d = defaultState();
+        const na = n.questions.find((q) => q.id === seedOld.id);
+        return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && n.questions.find((q) => q.id === 'Q07').text === 'আমার নিজের প্রশ্ন';
+      });
+      T('প্রশ্ন: রাউন্ড ১–৩-এর প্রতিটি প্রশ্নে "জানা ভালো" তথ্য', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.explanation && q.explanation.length > 10)));
+      T('প্রশ্ন: মূল পর্ব ও বাছাই পর্বে একই প্রশ্ন নেই', () => { const pre = Sel.prelimQuestions().map((q) => q.text); return ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => !pre.includes(q.text))); });
+      {
+        Show._rd = null; const rr = Show.rundown(); const at = (sc) => rr.findIndex((x) => x.scene === sc);
+        T('ক্রম: চূড়ান্ত দলের মঞ্চে আহ্বান → স্বাগত → আমাদের পরিচয় → আমাদের টিম → দল পরিচিতি → কাউন্টডাউন → রাউন্ড', () => at('FINALIST_INTRO') < at('WELCOME') && at('WELCOME') < at('IDENTITY') && at('IDENTITY') < at('CREW') && at('CREW') < at('TEAM_INTRO') && at('TEAM_INTRO') < at('MAIN_COUNTDOWN') && at('MAIN_COUNTDOWN') < at('ROUND_INTRO'));
+        const g = rr.find((x) => x.scene === 'GRID' && x.params.roundId === 'R1'); Show.go(g);
+        Actions.gridKey(5);
+        T('প্রশ্ন বোর্ড: নম্বর ৫ টিপলে প্রশ্ন ৫ খোলে', () => s().show.scene === 'QUESTION' && Sel.question(s().live.qid).number === 5 && Sel.question(s().live.qid).roundId === 'R1');
+      }
       T('পুরনো সেভ: ১২টি খালি "দল N" → ৮টি দল A / 1 … H / 8', () => { const old = defaultState(); delete old.rulesVersion; old.teams = Array.from({ length: 12 }, (_, i) => Object.assign(defaultTeam(i), { name: 'দল ' + bn(i + 1) })); const n = normalizeState(old); return n.teams.length === 8 && n.teams[7].name === 'H / 8'; });
       T('নতুন সেভ: অপারেটরের নিজের নিয়ম-বদল থাকে', () => { const cur = defaultState(); cur.rounds[0].label = 'আমার লেখা'; return normalizeState(cur).rounds[0].label === 'আমার লেখা'; });
       T('নিয়ম: রাউন্ড ১-এর পাশের লেখায় চ্যালেঞ্জ নেই', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));

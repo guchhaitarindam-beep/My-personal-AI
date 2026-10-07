@@ -223,7 +223,7 @@ const UI = {
       if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div>' + this.ansHtml((q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + (q.answerText || q.options[q.answer] || '—'), s) + '</div>';
       if (q && q.clip) h += '<div class="deck" style="margin-top:.5rem"><div class="deck-sep">🎬 প্রশ্নের অডিও / ভিডিও</div>' + b('clip', '▶ চালাও', 'good', 'play') + b('clip', '⏸ বিরতি', '', 'pause') + b('clip', '⟲ শুরু থেকে', '', 'restart') + b('clip', '■ থামাও', 'bad', 'stop') + '</div>';
       h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ সঠিক ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ ভুল ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ নো স্কোর', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও', 'lg gold', '', 'R') + b('lock', l.locked ? '🔒 লক (আনলক করুন)' : '🔓 লক', l.locked ? 'lock-on' : '', '', 'L') + b('replay', '⟲ প্রশ্ন রিসেট');
-      h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : 'বিকল্প দেখাও', '', '', 'V', !q || q.options.filter(Boolean).length < 2);
+      h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : '৪ বিকল্প দেখাও (' + bn(r ? r.scoring.options4 : 5) + ')', '', '', 'V', !q || q.options.filter(Boolean).length < 2 || (r && !r.features.options)) + b('twoOptions', '২ বিকল্পে নামাও (' + bn(r ? r.scoring.options2 : 3) + ')', '', '', '⇧V', !q || (r && !r.features.options) || l.eliminated.length >= 2);
       if (q && l.optionsShown) h += '<div class="deck-sep">দলের বেছে নেওয়া বিকল্প' + (r && r.features.judgeOptions ? ' (সঙ্গে সঙ্গে রায়)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
       if (r && r.features.lifelines) h += '<div class="deck-sep">লাইফলাইন' + (l.active ? ' — ' + esc((Sel.team(l.active) || {}).name || '') : '') + '</div>' + b('lifeline', '½ ৫০:৫০', 'gold', 'fifty', 'Alt+1', l.active && Sel.lifelineUsed(l.active, 'fifty')) + b('lifeline', '📊 দর্শক পোল', 'gold', 'poll', 'Alt+2', l.active && Sel.lifelineUsed(l.active, 'poll')) + b('lifeline', '🔄 ফ্লিপ প্রশ্ন', 'gold', 'flip', 'Alt+3', l.active && Sel.lifelineUsed(l.active, 'flip'));
       if (r && r.type === 'standard') h += b('bonus', '★ বোনাস +' + bn(r.scoring.manualBonus), 'gold', '', 'G', l.bonusGiven);
@@ -456,6 +456,16 @@ const Actions = {
   },
   options() { Game.showOptions(); },
   pick(i) { Game.pick(int(i)); },
+  twoOptions() { Game.twoOptions(); },
+  /** On the question board a number key opens that question (0 = 10). */
+  gridKey(n) {
+    const s = Store.state; const r = Sel.round(s.show.params.roundId);
+    if (!r) return false;
+    const q = Sel.roundQuestions(r.id).find((x) => x.number === n);
+    if (!q) { UI.toast('প্রশ্ন ' + bn(n) + ' নেই', 'err'); return true; }
+    if (s.board.played[q.id]) { UI.toast('প্রশ্ন ' + bn(n) + ' আগেই খেলা হয়েছে', 'err'); return true; }
+    Actions.loadQ(q.id); return true;
+  },
   lifeline(k) { Game.useLifeline(k); },
   speak(what) { AudioDirector.unlock(); ({ question: () => Speech.readQuestion(true), options: () => Speech.readOptions(true), answer: () => Speech.readAnswer(true), team: () => Speech.readTeam(true), round: () => Speech.readRound(true) }[what] || (() => {}))(); },
   qStep(d) {
@@ -489,7 +499,7 @@ const SOUNDBOARD = [['drumroll', '🥁 ড্রামরোল'], ['applause', 
 const SHORTCUTS = [
   ['Space', 'টাইমার চালু / বিরতি'], ['→ / PgDn', 'পরের দৃশ্য'], ['← / PgUp', 'আগের দৃশ্য'], ['D', 'সরাসরি টাইমার (৬০s)'], ['P', 'পাস: পরের দল + ৪৫s'], ['Shift+P', 'শুধু ৪৫s টাইমার'],
   ['R', 'উত্তর দেখাও / পরের স্থান প্রকাশ'], ['C', 'সঠিক'], ['X', 'ভুল'], ['N', 'নো স্কোর'], ['H', 'চ্যালেঞ্জ (তারপর ১–৮)'], ['V', 'বিকল্প দেখাও/লুকাও'],
-  ['1–9', 'উত্তরদাতা দল বেছে নাও'], ['Alt+1/2/3', '৫০:৫০ / পোল / ফ্লিপ'], ['0', 'টাইমার রিসেট'], ['+ / −', '১০ সেকেন্ড যোগ / বিয়োগ'], ['S', 'স্কোরবোর্ড'], ['W', 'বিজয়ী'],
+  ['১–১০ (বোর্ডে)', 'প্রশ্ন বোর্ডে নম্বর টিপলে সেই প্রশ্ন খোলে (০ = ১০)'], ['Shift+A/B/C/D', 'দল যে বিকল্প (ক/খ/গ/ঘ) বলল — রাউন্ড ১-এ সঙ্গে সঙ্গে রায়'], ['V / Shift+V', '৪ বিকল্প দেখাও / ২ বিকল্পে নামাও'], ['1–9', 'উত্তরদাতা দল বেছে নাও; ভুলের পরে = সেই দলে পাস; রাউন্ড ৩-এ = সেই দল বাজার টিপেছে'], ['Alt+1/2/3', '৫০:৫০ / পোল / ফ্লিপ'], ['0', 'টাইমার রিসেট'], ['+ / −', '১০ সেকেন্ড যোগ / বিয়োগ'], ['S', 'স্কোরবোর্ড'], ['W', 'বিজয়ী'],
   ['B', 'ব্ল্যাকআউট'], ['L', 'প্রশ্ন লক / আনলক'], ['Shift+L', 'পুরো স্কোর পড়ে শোনাও'], ['G', 'বোনাস'], ['Shift+1–8', 'হাত তোলা / বাজার'], ['F', 'ফুলস্ক্রিন'], ['O', 'স্টেজ উইন্ডো খোলো'], ['E', 'প্রশ্ন পড়ে শোনাও'], ['A', 'উত্তর পড়ে শোনাও'], ['T', 'দলের নাম পড়ো'], ['M', 'মিউট / আনমিউট'], ['[ / ]', 'মাস্টার ভলিউম কম / বেশি'],
   ['G', 'প্রশ্ন বোর্ড'], ['Ctrl+Z', 'আনডু'], ['Ctrl+Y', 'রিডু'], ['Ctrl+S', 'এখনই সংরক্ষণ'], ['?', 'এই তালিকা'], ['Esc', 'বাতিল / বন্ধ'],
 ];
@@ -556,6 +566,10 @@ const Keys = {
       return false;
     }
     if (s.settings.keyLayout === 'v100' && !m.ctrl && !m.alt && this.v100(k, m, s)) return true;
+    // the team names an option: Shift + A/B/C/D (or ক/খ/গ/ঘ on the board) marks it — judged at once in round 1
+    if (m.shift && /^[a-d]$/.test(k) && s.show.scene === 'QUESTION' && s.live.qid) { Actions.pick('abcd'.indexOf(k)); return true; }
+    if (m.shift && k === 'v' && s.show.scene === 'QUESTION') { Actions.twoOptions(); return true; }
+    if (s.show.scene === 'GRID' && /^[0-9]$/.test(k)) return Actions.gridKey(k === '0' ? 10 : int(k));
     if (/^[1-9]$/.test(k)) {
       const id = Sel.teamByKey(int(k));
       if (!id) return false;

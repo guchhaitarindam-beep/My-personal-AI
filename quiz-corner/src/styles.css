@@ -940,3 +940,7 @@ body.role-host .preview-box { max-width: 900px; }
 .sstrip { margin-top: 1cqh; }
 .sstrip .scell { padding: .35cqh .8cqw; }
 .q-card .q-img.long { flex-basis: 14%; }
+.q-card .q-img.long { flex-basis: 12%; }
+.intro-info .fin-score { align-self: flex-start; font-size: 3.6cqh; font-weight: 800; line-height: 1.4; padding: .6cqh 1.6cqw; border-radius: 1.4cqh; color: #0A0F1D; background: linear-gradient(90deg, #fff3b0, var(--gold)); box-shadow: 0 0 3cqh color-mix(in srgb, var(--gold) 60%, transparent); animation: aSlide 1s .7s both; }
+.intro-info .fin-score b { font-family: var(--font-timer); font-size: 1.2em; }
+.intro-info .fin-score { width: fit-content; max-width: 100%; }

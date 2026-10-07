@@ -21,15 +21,18 @@ const Show = {
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENES[scene] });
     add('ORGANIZER'); add('LOGO'); add('PROGRAMME'); add('THEME');
-    if (s.event.credits || s.groupPhoto) add('IDENTITY');
-    if (Sel.crew().length) add('CREW');
-    add('TEAMS_ALL');
-    s.teams.forEach((t, i) => add('TEAM_INTRO', { key: t.id, teamId: t.id, n: i + 1 }, 'দল পরিচিতি • ' + Sel.label(t)));
     add('OVERVIEW'); add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
     Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'বাছাই প্রশ্ন ' + bn(i + 1) + (q.star ? ' ★' : '')));
     add('PRELIM_RESULT'); add('FINALISTS');
-    Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'মঞ্চে আহ্বান • ' + ((Sel.team(id) || {}).name || '')));
+    // calling the finalists to the stage: team number, school and preliminary score
+    Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'মঞ্চে আহ্বান • ' + Sel.label(Sel.team(id))));
     add('WELCOME');
+    if (s.event.credits || s.groupPhoto) add('IDENTITY');
+    if (Sel.crew().length) add('CREW');
+    add('TEAMS_ALL');
+    // meet the finalists: the team, then its two members one by one (photos)
+    const fin = Sel.finalistIds();
+    fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'দল পরিচিতি • ' + Sel.label(t)); });
     Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'বিশেষ উপস্থাপনা • ' + ((Sel.team(id) || {}).name || '')));
     add('PODIUM'); add('MAIN_COUNTDOWN');
     s.rounds.forEach((r, ri) => {
