@@ -15,13 +15,31 @@ const Store = {
 
   init() {
     // Stage/Host read the same saved show so they recover even before Control reconnects.
-    const raw = this.readLS(LS_KEY);
+    const raw = this.readSlots() || this.readLS(LS_KEY);
     this.state = normalizeState(raw || defaultState());
     // A refresh mid-show must never leave a timer "running" from a stale clock domain.
     if (this.state.timer.running && !(this.state.timer.startedAt > 0)) this.state.timer.running = false;
     if (raw) Log.add('INFO', 'Recovered saved show (rev ' + this.state.rev + ')');
   },
 
+  /** V100-style crash safety: two alternating slots, each with a checksum; the newest valid one wins. */
+  readSlots() {
+    const out = [];
+    for (const k of [LS_KEY + '.A', LS_KEY + '.B']) {
+      try {
+        const t = localStorage.getItem(k); if (!t) continue;
+        const env = JSON.parse(t);
+        if (env && env.f === 'QC66' && env.sum === sumOf(env.body)) out.push(env);
+        else { this.damaged = true; Log.add('WARN', 'Damaged save slot ' + k + ' ignored'); }
+      } catch (e) { this.damaged = true; }
+    }
+    out.sort((a, b) => b.seq - a.seq);
+    if (!out.length) return null;
+    this.seq = out[0].seq;
+    return safe('slot-parse', () => JSON.parse(out[0].body), null);
+  },
+  seq: 0,
+  damaged: false,
   readLS(key) {
     try { const t = localStorage.getItem(key); return t ? JSON.parse(t) : null; } catch (e) { this.storageOk = false; Log.err('storage-read', e); return null; }
   },
@@ -96,7 +114,13 @@ const Store = {
   persist() {
     if (MODE !== 'control' || this.sandbox) return;
     try {
-      localStorage.setItem(this.rehearsal ? LS_REH : LS_KEY, JSON.stringify(this.state));
+      const body = JSON.stringify(this.state);
+      if (this.rehearsal) localStorage.setItem(LS_REH, body);
+      else {
+        this.seq += 1;
+        localStorage.setItem(LS_KEY + (this.seq % 2 ? '.A' : '.B'), JSON.stringify({ f: 'QC66', seq: this.seq, savedAt: Date.now(), sum: sumOf(body), body }));
+        localStorage.setItem(LS_KEY, body); // plain copy: the stage window and older builds read this
+      }
       if (!this.storageOk) { this.storageOk = true; Bus.emit('storage', true); }
     } catch (e) {
       if (this.storageOk) { this.storageOk = false; Log.err('storage-write', e); Bus.emit('storage', false); }

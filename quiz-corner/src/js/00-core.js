@@ -31,6 +31,9 @@ const now = () => performance.timeOrigin + performance.now();
 const fmtTime = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return s >= 60 ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : String(s); };
 const signed = (n) => (n > 0 ? '+' + n : String(n));
 
+/** Fast 32-bit checksum (FNV-1a) used to detect damaged saves. */
+function sumOf(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16) + ':' + str.length; }
+
 function getPath(obj, path) {
   return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
@@ -156,6 +159,7 @@ function roundFromSeed(r, i) {
     scoring: Object.assign(defaultScoring(), type === 'bonus' ? { direct: 10, pass: 10, bonusStep: 2 } : {}),
     timers: { direct: 60, pass: 45, raise: 5 },
     multiplier: 1,
+    rulesImage: '',
     design: { primary: palette[0], secondary: palette[1], accent: palette[2], bg: '', anim: ROUND_ANIMS[i % ROUND_ANIMS.length], titleFont: '', questionFont: '', optionFont: '', qScale: 1, music: '', timerStyle: 'ring' },
     sounds: { correct: '', wrong: '', reveal: '' },
     voiceIntro: true,
@@ -170,6 +174,7 @@ function questionFromSeed(q, i) {
     text: str(q.text), options: arr(q.options).slice(0, 4).map((o) => str(o, 400)), answer: int(q.answer, 0, 0, 3),
     answerText: str(q.answerText, 400), explanation: str(q.explanation, 1200), image: str(q.image || media, 200),
     hint: str(q.hint || q.clue, 400), difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
+    clip: str(q.clip, 200),
     timer: q.timer == null ? null : int(q.timer, 60, 5, 600), points: q.points == null ? null : int(q.points, 10, -100, 100), speech: str(q.speech, 2000),
   };
 }
@@ -244,10 +249,11 @@ function defaultState() {
       },
     },
     speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true },
+    display: { webgl: true, strobe: true, fireworks: true, calib: 'off', aspect: '16:9', safeMargin: 0, testCard: false },
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1100, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: true, operatorRole: 'controller',
-      operatorVoice: false, hostAnswer: 'click', coach: true,
+      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66',
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },
@@ -261,7 +267,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */

@@ -271,6 +271,23 @@ const Authority = {
 /* =====================================================================
    BOOT
    ===================================================================== */
+/* V100 KeepAwake: the laptop and the TV window must never sleep mid-show. */
+const KeepAwake = {
+  lock: null, state: 'off',
+  async acquire() {
+    if (!('wakeLock' in navigator)) { this.state = 'unsupported'; return; }
+    if (this.lock && !this.lock.released) return;
+    try { this.lock = await navigator.wakeLock.request('screen'); this.state = 'on'; this.lock.addEventListener('release', () => { this.state = 'released'; }); } catch (e) { this.state = 'blocked'; }
+  },
+  init() {
+    const again = () => { if (document.visibilityState === 'visible') this.acquire(); };
+    document.addEventListener('visibilitychange', again);
+    document.addEventListener('pointerdown', again, { passive: true });
+    document.addEventListener('keydown', again);
+    this.acquire();
+  },
+};
+
 function boot() {
   window.addEventListener('error', (e) => Log.err('window', e.error || e.message));
   window.addEventListener('unhandledrejection', (e) => Log.err('promise', e.reason));
@@ -279,6 +296,7 @@ function boot() {
   Speech.init();
   Sync.init();
   Keys.init();
+  KeepAwake.init();
   DesignSystem.apply();
   if (MODE === 'stage') Stage.init();
   else if (MODE === 'host') Host.init();

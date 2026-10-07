@@ -5,7 +5,7 @@
    ===================================================================== */
 const SCENES = {
   ORGANIZER: 'আয়োজক ব্যানার', LOGO: 'কুইজ কর্নার লোগো', PROGRAMME: 'অনুষ্ঠান পরিচিতি', THEME: 'থিম সং', CREW: 'আয়োজক দল ও কৃতজ্ঞতা',
-  TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
+  TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', OVERVIEW: 'আজকের অনুষ্ঠান', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
   PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
   MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
   FINAL: 'চূড়ান্ত স্কোরবোর্ড', TOP3: 'বিজয়ী মঞ্চ (২-১-৩)', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
@@ -24,7 +24,7 @@ const Show = {
     if (s.crew.length || s.event.credits) add('CREW');
     add('TEAMS_ALL');
     s.teams.forEach((t, i) => add('TEAM_INTRO', { key: t.id, teamId: t.id, n: i + 1 }, 'দল পরিচিতি • ' + t.name));
-    add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
+    add('OVERVIEW'); add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
     Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'বাছাই প্রশ্ন ' + bn(i + 1) + (q.star ? ' ★' : '')));
     add('PRELIM_RESULT'); add('FINALISTS');
     Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'মঞ্চে আহ্বান • ' + ((Sel.team(id) || {}).name || '')));
@@ -207,6 +207,17 @@ class FxField {
     for (let i = 0; i < n; i++) this.confetti.push({ x: this.w * (big ? Math.random() : 0.5 + (Math.random() - 0.5) * 0.4), y: big ? -20 - Math.random() * this.h * 0.5 : this.h * 0.45, vx: (Math.random() - 0.5) * (big ? 3 : 9), vy: big ? 1 + Math.random() * 3 : -4 - Math.random() * 8, r: 4 + Math.random() * 6, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.3, col: colors[i % colors.length], life: 0 });
     if (this.confetti.length > 700) this.confetti.splice(0, this.confetti.length - 700);
   }
+  /** Rockets that rise and burst into coloured shells (winner / champion). */
+  fireworks(seconds) {
+    const until = performance.now() + seconds * 1000;
+    clearInterval(this.fwIv);
+    this.fwIv = setInterval(() => {
+      if (performance.now() > until) { clearInterval(this.fwIv); return; }
+      const colors = ['#ffd166', '#38e8ff', '#ff6bcb', '#2ef2a0', '#ffffff', '#ff8a3d'];
+      this.rockets = this.rockets || [];
+      this.rockets.push({ x: this.w * (0.15 + Math.random() * 0.7), y: this.h, vy: -(this.h / 70) * (0.8 + Math.random() * 0.4), tY: this.h * (0.15 + Math.random() * 0.3), col: colors[Math.floor(Math.random() * colors.length)] });
+    }, 650);
+  }
   frame(opts) {
     const t = performance.now(); const dt = t - this.last; this.last = t;
     // Performance guard: sustained slow frames halve particle density.
@@ -229,6 +240,14 @@ class FxField {
           if (d < maxD) { g.globalAlpha = (1 - d / maxD) * 0.22; g.beginPath(); g.moveTo(P[i].x * w, P[i].y * h); g.lineTo(P[j].x * w, P[j].y * h); g.stroke(); }
         }
       }
+      g.globalAlpha = 1;
+    }
+    if (this.rockets && this.rockets.length) {
+      for (const r of this.rockets) {
+        r.y += r.vy; g.fillStyle = r.col; g.globalAlpha = 0.9; g.fillRect(r.x - 1.5, r.y, 3, 10);
+        if (r.y <= r.tY) { r.done = true; const n = Math.round(70 * this.quality) + 20; for (let i = 0; i < n; i++) { const a = (i / n) * 6.283; const sp = 2 + Math.random() * 4; this.confetti.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 3 + Math.random() * 3, a: 0, va: 0.2, col: r.col, life: 300 }); } }
+      }
+      this.rockets = this.rockets.filter((r) => !r.done);
       g.globalAlpha = 1;
     }
     if (this.confetti.length) {

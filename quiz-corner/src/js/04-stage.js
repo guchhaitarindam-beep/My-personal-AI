@@ -81,7 +81,16 @@ const Scenes = {
   TEAM_INTRO(s, p) { return Scenes.intro(s, p, false); },
   FINALIST_INTRO(s, p) { return Scenes.intro(s, p, true); },
   rulesScene(s, title, rules, key, r) {
-    return { key, anim: 'flip', style: H.roundVars(r), html: H.head(s, '<span class="round-tag">' + esc(title) + '</span>', '<span class="qnum">নিয়মাবলি</span>') + H.part('rules', '<div class="rules-text" data-fit="3.6">' + esc(rules || 'নিয়ম লেখা হয়নি') + '</div>', 'rules-box glass') };
+    const pic = r ? r.rulesImage : Store.state.prelim.rulesImage;
+    return { key, anim: 'flip', style: H.roundVars(r), html: H.head(s, '<span class="round-tag">' + esc(title) + '</span>', '<span class="qnum">নিয়মাবলি</span>') + (pic ? H.part('rules', '<img data-media="' + esc(pic) + '" alt="' + esc(rules) + '" style="width:100%;height:100%;object-fit:contain">', 'rules-box glass') : H.part('rules', '<div class="rules-text" data-fit="3.6">' + esc(rules || 'নিয়ম লেখা হয়নি') + '</div>', 'rules-box glass')) };
+  },
+  OVERVIEW(s) {
+    const played = s.rounds.filter((r) => r.enabled && Sel.roundQuestions(r.id).length);
+    return {
+      key: 'OVERVIEW', anim: 'flip',
+      html: H.head(s, '<span class="round-tag">আজকের অনুষ্ঠান</span>', '<span class="qnum">TONIGHT</span>') +
+        H.part('body', '<div class="ov-stats"><div class="glass"><b>' + bn(Sel.prelimQuestions().length) + '</b><small>বাছাই প্রশ্ন</small></div><div class="glass"><b>' + bn(s.teams.length) + '</b><small>অংশগ্রহণকারী দল</small></div><div class="glass"><b>' + bn(s.prelim.finalistCount) + '</b><small>দল মূল পর্বে</small></div><div class="glass"><b>' + bn(played.length) + '</b><small>মূল রাউন্ড</small></div></div><div class="ov-rounds">' + played.map((r, i) => '<span style="' + H.roundVars(r) + '">' + bn(i + 1) + '. ' + esc(r.name) + '</span>').join('') + '</div>' + (s.event.welcomeNote ? '<div class="s-sub" style="text-align:center">' + esc(s.event.welcomeNote) + '</div>' : ''), 'center-col'),
+    };
   },
   PRELIM_RULES(s) { return Scenes.rulesScene(s, 'বাছাই পর্ব', s.prelim.rules, 'PRULES'); },
   countdown(s, title) {
@@ -182,7 +191,8 @@ const Scenes = {
     } else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
     const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + esc(t.name) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
-    const img = q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
+    const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
+    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
     const opts = showOpts ? H.part('opts', q.options.map((o, i) => {
       if (!o) return '';
@@ -252,12 +262,16 @@ class StageView {
   constructor(host, opts = {}) {
     this.host = host; this.opts = opts;
     host.classList.add('stage-host');
-    host.innerHTML = '<div class="stage"><div class="bg-image" data-bg></div><canvas class="fx"></canvas><div class="light-rays"></div><div class="grid-floor"></div><div class="layers"></div><div class="ticker" hidden><span></span></div><div class="blackout" hidden></div></div>';
+    host.innerHTML = '<div class="stage"><div class="bg-image" data-bg></div><canvas class="gl"></canvas><div class="mood"></div><canvas class="fx"></canvas><div class="light-rays"></div><div class="grid-floor"></div><div class="layers"></div><div class="ticker" hidden><span></span></div><div class="strobe"></div><div class="calib" hidden></div><div class="testcard" hidden></div><div class="blackout" hidden></div></div>';
     this.stage = $('.stage', host);
     this.layers = $('.layers', host);
     this.fx = safe('fx-init', () => new FxField($('canvas.fx', host)), null);
-    this.cur = null; this.curKey = ''; this.lastResultAt = 0; this.lastScene = ''; this.cdStep = -1;
-    this.ro = new ResizeObserver(() => this.fitAll());
+    this.cur = null; this.curKey = ''; this.lastResultAt = 0; this.lastScene = ''; this.cdStep = -1; this.mood = ''; this.clipAt = 0;
+    // The real 3D background runs on the TV window only (the operator preview stays light).
+    this.gl = opts.preview ? null : safe('webgl', () => createStageGL($('canvas.gl', host)), null);
+    if (!this.gl) $('canvas.gl', host).hidden = true;
+    this.ro = new ResizeObserver(() => { this.layout(); this.fitAll(); });
+    new ResizeObserver(() => this.layout()).observe(host);
     this.ro.observe(this.stage);
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
@@ -305,6 +319,16 @@ class StageView {
     const bg = $('[data-bg]', this.stage);
     if (bg.getAttribute('data-media') !== (bgId || '')) { bg.style.backgroundImage = ''; delete bg.dataset.loaded; if (bgId) bg.setAttribute('data-media', bgId); else bg.removeAttribute('data-media'); Media.hydrate(this.stage); }
     $('.blackout', this.stage).hidden = !s.show.blackout;
+    this.layout();
+    // Round mood glow + palette for the 3D background.
+    const mood = s.design.motion ? stageMood(s) : '';
+    if (mood !== this.mood) { this.mood = mood; this.stage.dataset.mood = mood; const m = $('.mood', this.stage); m.classList.remove('flash'); void m.offsetWidth; if (mood) m.classList.add('flash'); }
+    if (this.gl) { const c = MOOD_COLORS[mood]; this.gl.setPalette(hexRgb(c ? c[0] : s.design.colors.accent), hexRgb(c ? c[1] : s.design.colors.gold), hexRgb(c ? c[2] : '#ffffff')); }
+    // Rapid Fire strobe when a new question lands.
+    if (mood === 'rapid' && s.display.strobe && s.show.scene === 'QUESTION' && s.live.deliverAt !== this.strobeAt) { this.strobeAt = s.live.deliverAt; const st = $('.strobe', this.stage); st.classList.remove('go'); void st.offsetWidth; st.classList.add('go'); }
+    if (sc.confetti && this.fx && s.display.fireworks && sc.key !== this.fwKey) { this.fwKey = sc.key; this.fx.fireworks(10); }
+    this.calibrate(s);
+    this.clip(s);
     const tk = $('.ticker', this.stage); tk.hidden = !(s.event.showTicker && s.event.ticker); $('span', tk).textContent = s.event.ticker;
     $('.grid-floor', this.stage).hidden = !s.design.floor;
     $('.light-rays', this.stage).hidden = !s.design.rays;
@@ -357,6 +381,44 @@ class StageView {
       this.drawTimer(s);
       this.drawCountdown(s);
       if (this.fx) this.fx.frame({ particles: s.design.particles && s.design.motion, accent: s.design.colors.accent });
+      if (this.gl) { const on = s.display.webgl && s.design.motion && s.display.calib === 'off'; $('canvas.gl', this.stage).hidden = !on; if (on) this.gl.draw(performance.now(), this.fx && this.fx.quality < 0.5 ? 'light' : 'full'); }
+    });
+  }
+  /** Screen shape (16:9, 16:10, 4:3, fill) and safe margin for TVs that crop the picture. */
+  layout() {
+    const s = Store.state; const d = s.display;
+    const W = this.host.clientWidth, Hh = this.host.clientHeight;
+    if (!W || !Hh) return;
+    const ar = { '16:9': 16 / 9, '16:10': 1.6, '4:3': 4 / 3 }[d.aspect];
+    let w = W, h = Hh;
+    if (ar && !this.opts.preview) { if (W / Hh > ar) w = Hh * ar; else h = W / ar; }
+    else if (ar) h = W / ar;
+    const key = w + 'x' + h + d.safeMargin;
+    if (key === this.layoutKey) return;
+    this.layoutKey = key;
+    if (this.opts.preview) { this.stage.style.width = ''; this.stage.style.height = ''; this.stage.style.aspectRatio = ar ? String(ar) : '16 / 9'; }
+    else { this.stage.style.width = w + 'px'; this.stage.style.height = h + 'px'; this.stage.style.aspectRatio = 'auto'; }
+    this.stage.style.transform = d.safeMargin ? 'scale(' + (1 - 2 * d.safeMargin / 100) + ')' : '';
+  }
+  calibrate(s) {
+    const c = $('.calib', this.stage); const mode = s.display.calib;
+    c.hidden = mode === 'off'; c.className = 'calib ' + mode;
+    c.innerHTML = mode === 'off' ? '' : '<span>' + ({ bars: 'SMPTE COLOUR BARS • রং যেন পরিষ্কার দেখায়, ঝলসে না যায়', grid: 'GRID • বৃত্তটি গোল, চার কোণের লাল দাগ দেখা যাবে', ramp: 'BRIGHTNESS • ২% ও ৯৮% দুটো পটিই সবে দেখা যাবে' }[mode]) + '</span>' + (mode === 'grid' ? '<i class="circle"></i><b class="corner tl"></b><b class="corner tr"></b><b class="corner bl"></b><b class="corner br"></b>' : '') + (mode === 'ramp' ? '<em class="p2">2%</em><em class="p98">98%</em>' : '');
+    const tc = $('.testcard', this.stage); tc.hidden = !s.display.testCard;
+    if (s.display.testCard) tc.innerHTML = '<div><b>QUIZ CORNER • TEST CARD</b><br>' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1) + ' • স্টেজ ' + Math.round(this.stage.clientWidth) + '×' + Math.round(this.stage.clientHeight) + '<br>' + (document.fullscreenElement ? 'ফুলস্ক্রিন ✓' : 'ফুলস্ক্রিন নয় — F চাপুন') + ' • সেফ মার্জিন ' + s.display.safeMargin + '%</div>';
+  }
+  /** Question audio / video clips, controlled from the operator panel. */
+  clip(s) {
+    const el = $('.layer:not(.exiting) [data-clip]', this.stage);
+    const c = s.live.clip || {};
+    if (!el || c.at === this.clipAt) return;
+    this.clipAt = c.at;
+    if (this.opts.preview) el.muted = true;
+    safe('clip', () => {
+      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => Log.err('clip', e)); }
+      else if (c.action === 'pause') el.pause();
+      else if (c.action === 'restart') { el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+      else { el.pause(); el.currentTime = 0; }
     });
   }
   drawTimer(s) {

@@ -146,6 +146,7 @@ const Media = {
       el.dataset.loaded = id;
       this.url(id).then((u) => {
         if (!u || el.getAttribute('data-media') !== id) { el.classList.add('missing'); return; }
+        if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') { el.src = u; return; }
         if (el.tagName === 'IMG') {
           el.onerror = () => { el.classList.add('missing'); el.removeAttribute('src'); el.hidden = true; };
           el.src = u; el.hidden = false;
@@ -433,6 +434,18 @@ const Speech = {
    STAGE ⇄ CONTROL SYNC — BroadcastChannel + direct window messaging +
    localStorage "storage" events. Any one channel is enough.
    ===================================================================== */
+/** What the audience window may know: no answer travels to the TV before it is revealed. */
+function publicState(s) {
+  const l = s.live;
+  const showLive = l.revealed || !!l.result || l.picked >= 0;
+  const hideQ = (q) => (q.id === l.qid && showLive ? q : Object.assign({}, q, { answer: -1, answerText: '', explanation: '' }));
+  const pl = s.prelimLive;
+  return Object.assign({}, s, {
+    questions: s.questions.map(hideQ),
+    testQuestions: [],
+    prelim: Object.assign({}, s.prelim, { questions: s.prelim.questions.map((q, i) => (s.show.scene === 'PRELIM_Q' && i === pl.idx && pl.reveal ? q : Object.assign({}, q, { answer: '' }))) }),
+  });
+}
 const Sync = {
   bc: null,
   stageWin: null,
@@ -465,7 +478,7 @@ const Sync = {
   queueState() {
     if (this.sendQueued || Store.sandbox) return;
     this.sendQueued = true;
-    queueMicrotask(() => { this.sendQueued = false; this.post({ type: 'state', state: Store.state, rehearsal: Store.rehearsal }); });
+    queueMicrotask(() => { this.sendQueued = false; this.post({ type: 'state', state: publicState(Store.state), rehearsal: Store.rehearsal }); this.post({ type: 'state-full', state: Store.state, rehearsal: Store.rehearsal }); });
   },
   seen: new Set(),
   receive(m) {
@@ -482,7 +495,8 @@ const Sync = {
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       return;
     }
-    if (m.type === 'state') this.applyState(m.state, m.rehearsal);
+    if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);
+    else if (m.type === 'state-full' && MODE === 'host') this.applyState(m.state, m.rehearsal);
     else if (m.type === 'ping') { this.lastPong = Date.now(); this.send({ type: 'pong', t: m.t }); }
     else if (m.type === 'cue' && AudioDirector.isOutput()) AudioDirector.playCue(m.name, m.opts || {});
     else if (m.type === 'music' && AudioDirector.isOutput()) AudioDirector.music(m.slot, m.action, m.media);
@@ -501,6 +515,23 @@ const Sync = {
     Bus.emit('change', { label: 'sync', rev: st.rev });
   },
   connected() { return Date.now() - this.lastPong < 4500; },
+  /** V100 PLACE: open the stage straight onto the second screen when the browser allows it. */
+  async placeStage() {
+    try {
+      if (!('getScreenDetails' in window)) throw new Error('unsupported');
+      const det = await window.getScreenDetails();
+      const other = det.screens.find((sc) => sc !== det.currentScreen) || det.screens.find((sc) => !sc.isPrimary);
+      if (!other) { UI.toast('দ্বিতীয় স্ক্রিন পাওয়া যায়নি — টিভি HDMI-তে যুক্ত করে Win+P ▸ Extend বেছে নিন', 'err'); return; }
+      const url = location.href.split('#')[0].split('?')[0] + '#stage';
+      this.stageWin = window.open(url, 'qc66-stage', 'popup=yes,left=' + other.availLeft + ',top=' + other.availTop + ',width=' + other.availWidth + ',height=' + other.availHeight);
+      if (!this.stageWin) { UI.toast('পপ-আপ ব্লক হয়েছে — অনুমতি দিন', 'err'); return; }
+      setTimeout(() => this.queueState(), 600);
+      UI.toast('স্টেজ দ্বিতীয় স্ক্রিনে খোলা হয়েছে — সেখানে F চাপুন', 'ok');
+    } catch (e) {
+      this.openStage();
+      UI.toast('এই ব্রাউজারে স্বয়ংক্রিয় স্থাপন হয়নি — উইন্ডোটি টিভিতে টেনে নিন অথবা Win+Shift+→ চাপুন, তারপর F', 'err');
+    }
+  },
   openStage() {
     const url = location.href.split('#')[0].split('?')[0] + '#stage';
     try {

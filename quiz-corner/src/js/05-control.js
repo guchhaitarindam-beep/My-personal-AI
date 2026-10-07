@@ -78,6 +78,7 @@ const UI = {
     this.renderTabs();
     this.bindEvents();
     this.renderAll();
+    if (Store.damaged) setTimeout(() => this.toast('একটি ক্ষতিগ্রস্ত সংরক্ষণ উপেক্ষা করে আগের ভালো কপি থেকে শো পুনরুদ্ধার করা হয়েছে', 'err'), 800);
   },
   savePref(k, v) { safe('prefs', () => { const p = JSON.parse(localStorage.getItem(LS_PREF) || '{}'); p[k] = v; localStorage.setItem(LS_PREF, JSON.stringify(p)); }); },
   applyRole() {
@@ -199,6 +200,7 @@ const UI = {
       const pc = Game.pointsFor('correct'); const pw = Game.pointsFor('wrong');
       h += '<div class="card"><h3>প্রশ্ন নিয়ন্ত্রণ <span class="hint">' + esc(r ? r.name : '') + ' • ' + Game.flowName(l.flow) + (ans ? ' • উত্তরদাতা: ' + esc(ans.name) : '') + '</span></h3>';
       if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div>' + this.ansHtml((q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + (q.answerText || q.options[q.answer] || '—'), s) + '</div>';
+      if (q && q.clip) h += '<div class="deck" style="margin-top:.5rem"><div class="deck-sep">🎬 প্রশ্নের অডিও / ভিডিও</div>' + b('clip', '▶ চালাও', 'good', 'play') + b('clip', '⏸ বিরতি', '', 'pause') + b('clip', '⟲ শুরু থেকে', '', 'restart') + b('clip', '■ থামাও', 'bad', 'stop') + '</div>';
       h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ সঠিক ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ ভুল ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ নো স্কোর', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 উত্তর লুকাও' : '👁 উত্তর দেখাও', 'lg gold', '', 'R') + b('lock', l.locked ? '🔒 লক (আনলক করুন)' : '🔓 লক', l.locked ? 'lock-on' : '', '', 'L') + b('replay', '⟲ প্রশ্ন রিসেট');
       h += '<div class="deck-sep">প্রবাহ</div>' + b('pass', (r && r.type === 'bonus' ? '➜ বোনাস: পরের দল' : '➜ পাস: পরের দল') + ' (' + bn(Timer.durationFor('pass')) + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ চ্যালেঞ্জ', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'বিকল্প লুকাও' : 'বিকল্প দেখাও', '', '', 'V', !q || q.options.filter(Boolean).length < 2);
       if (q && l.optionsShown) h += '<div class="deck-sep">দলের বেছে নেওয়া বিকল্প' + (r && r.features.judgeOptions ? ' (সঙ্গে সঙ্গে রায়)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
@@ -306,6 +308,8 @@ const SETTINGS_GROUPS = [
     ['ai', '🤖', '#7c3aed', 'AI স্টুডিও', () => (AI.cfg.airGapped ? 'Air-gapped (লোকাল)' : 'অনলাইন অনুমোদিত') + ' • প্রশ্ন তৈরি • যাচাই'],
   ]],
   ['সিস্টেম', [
+    ['display', '🖥', '#0891b2', 'টিভি ও স্ক্রিন', (s) => s.display.aspect + ' • ক্যালিব্রেশন • দ্বিতীয় স্ক্রিন'],
+    ['preshow', '✅', '#16a34a', 'অনুষ্ঠানের আগে পরীক্ষা', () => 'সব কিছু প্রস্তুত কি না এক নজরে'],
     ['backup', '💾', '#2563eb', 'সংরক্ষণ, ব্যাকআপ ও রিসেট', () => 'স্বয়ংক্রিয় সংরক্ষণ • আমদানি / রপ্তানি'],
     ['flow', '⏱', '#b45309', 'টাইমার ও প্রবাহ', (s) => 'সতর্কতা ' + bn(s.settings.warnAt) + 's • ড্রোন'],
     ['tests', '🧪', '#475569', 'পরীক্ষা ও লগ', () => 'স্বয়ংক্রিয় Self-test'],
@@ -359,6 +363,11 @@ const Actions = {
   timerCustom() { const v = prompt('কত সেকেন্ড?', '30'); if (v && num(v) > 0) Timer.start('custom', num(v)); },
   judge(kind) { Game.judge(kind); },
   bonus() { Game.bonus(); },
+  clip(action) { Store.commit('clip-' + action, (s) => { s.live.clip = { action, at: now() }; }, { undo: false }); },
+  placeStage() { Sync.placeStage(); },
+  calibNext() { const L = ['off', 'bars', 'grid', 'ramp']; Store.commit('calib', (s) => { s.display.calib = L[(L.indexOf(s.display.calib) + 1) % L.length]; }, { undo: false }); },
+  status() { AudioDirector.unlock(); const s = Store.state; const t = Sel.team(Sel.answeringTeam()); const q = Sel.liveQuestion(); const rem = Math.ceil(Sel.timerRemaining(s.timer) / 1000); Speech.say('এখন ' + (SCENES[s.show.scene] || s.show.scene) + (s.show.scene === 'QUESTION' && q ? '। প্রশ্ন ' + q.number + (t ? '। উত্তর দিচ্ছে ' + t.name : '') + '। টাইমার ' + rem + ' সেকেন্ড' + (s.timer.running ? ' চলছে' : ' থেমে আছে') : '') + '।', 'status', true); },
+  bgmToggle() { Store.commit('bgm', (s) => { s.audio.bgm.on = !s.audio.bgm.on; }, { undo: false }); UI.toast('পটভূমি সংগীত ' + (Store.state.audio.bgm.on ? 'চালু' : 'বন্ধ'), 'ok'); },
   showAnsHere() { UI.showAns = !UI.showAns; UI.liveSig = ''; UI.renderLive(); },
   hostToggle() { UI.hostOpen = !UI.hostOpen; UI.liveSig = ''; UI.renderLive(); },
   hostLine(kind) { UI.hostLine = HostLines.line(kind); UI.liveSig = ''; UI.renderLive(); },
@@ -437,6 +446,23 @@ const Keys = {
       if (this.handle(e.key, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey, alt: e.altKey }, e.code)) e.preventDefault();
     });
   },
+  /** The V100 keyboard layout (for operators used to the old engine). Returns true when handled. */
+  v100(k, m, s) {
+    const live = s.show.scene === 'QUESTION' && s.live.qid;
+    if (m.shift && /^[a-d]$/.test(k) && live) { Actions.pick('abcd'.indexOf(k)); return true; }
+    if ((k === 'Enter' || k === ' ') && live && !s.live.optionsShown && !s.live.result) { Actions.judge('correct'); return true; }
+    const map = { n: 'next', b: 'gotoGrid', o: 'options', d: 'reveal', r: 'reveal', x: 'timerToggle', h: 'timerRaise', p: 'pass', k: 'judge:correct', j: 'judge:correct', g: 'bonus', w: 'judge:wrong', u: 'undo', y: 'redo', '[': 'volume:-0.1', ']': 'volume:0.1', v: 'bgmToggle', q: 'speak:question', e: 'speak:answer', i: 'status', l: 'speakStandings', m: 'mute', f: 'openStage', '.': 'blackout', c: 'calibNext', a: 'showAnsHere', '?': 'shortcuts' };
+    if (k === 's') { if (s.timer.running) return true; if (s.timer.base < s.timer.duration && !s.timer.expired) Timer.resume(); else Actions.timerDirect(); return true; }
+    if (k === 't' && live) { Actions.lifeline('fifty'); return true; }
+    if (/^[1-8]$/.test(k)) {
+      const id = Sel.finalistIds()[int(k) - 1]; if (!id) return false;
+      const r = Sel.round(s.live.roundId);
+      if (live && r && r.features.challenge && id !== s.live.active) Actions.raiseHand(id); else Actions.setActive(id);
+      return true;
+    }
+    const a = map[k]; if (!a) return false;
+    const [act, arg] = a.split(':'); Actions[act](arg); return true;
+  },
   handle(key, m = {}, code = '') {
     AudioDirector.unlock();
     if ($('.modal-back')) { if (key === 'Escape') { UI.closeModal(); return true; } return false; }
@@ -461,6 +487,7 @@ const Keys = {
       if (id) { Actions.raiseHand(id); return true; }
       return false;
     }
+    if (s.settings.keyLayout === 'v100' && !m.ctrl && !m.alt && this.v100(k, m, s)) return true;
     if (/^[1-9]$/.test(k)) {
       const id = Sel.finalistIds()[int(k) - 1];
       if (!id) return false;

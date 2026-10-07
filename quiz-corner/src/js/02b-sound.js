@@ -334,7 +334,8 @@ const SoundDirector = {
     if (this.tagoreWanted(s)) Music.setMood('tagore', mood); else Music.setMood(mood, null);
     Music.setVolume(b.vol * s.audio.master);
     let level = 1;
-    if (!b.on || this.muted || songPlaying || !AudioDirector.isOutput()) level = 0;
+    const clipOn = s.show.scene === 'QUESTION' && s.live.clip && s.live.clip.action === 'play';
+    if (!b.on || this.muted || songPlaying || clipOn || !AudioDirector.isOutput()) level = 0;
     else {
       if ('speechSynthesis' in window && speechSynthesis.speaking) level = Math.min(level, 0.2);
       if (performance.now() < this.duckUntil) level = Math.min(level, this.duckLevel);

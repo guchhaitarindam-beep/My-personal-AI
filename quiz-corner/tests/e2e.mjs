@@ -38,7 +38,7 @@ check('Stage shows no operator controls', await stage.evaluate(() => !document.q
 // ---- walk the full rundown, screenshot key scenes, check overflow ----
 const rd = await ctl.evaluate(() => window.QC.Show.rundown().map((s) => ({ key: s.key, scene: s.scene })));
 check('Rundown length', rd.length > 60, rd.length + ' steps');
-const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'GIFT', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END']);
+const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'GIFT', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
 const shot = new Set();
 let overflowIssues = [];
 let syncIssues = 0;
@@ -196,9 +196,15 @@ await stage.screenshot({ path: path.join(shots, '97-winner.png') });
 // ---- recovery after reload ----
 const snap = await ctl.evaluate(() => ({ rev: window.QC.Store.state.rev, scene: window.QC.Store.state.show.scene, ledger: window.QC.Store.state.ledger.length, photo: window.QC.Store.state.teams[0].photo }));
 await ctl.waitForTimeout(400);
+await ctl.evaluate(() => { const k = ['qc66.state.A', 'qc66.state.B'].map((x) => [x, JSON.parse(localStorage.getItem(x))]).sort((p, q) => q[1].seq - p[1].seq)[0][0]; localStorage.setItem(k + '.bak', localStorage.getItem(k)); });
 await ctl.reload();
 await ctl.waitForFunction(() => window.QC && window.QC.Store.state);
 const after = await ctl.evaluate(() => ({ scene: window.QC.Store.state.show.scene, ledger: window.QC.Store.state.ledger.length, photo: window.QC.Store.state.teams[0].photo }));
+await ctl.evaluate(() => { const ks = ['qc66.state.A', 'qc66.state.B'].map((x) => [x, JSON.parse(localStorage.getItem(x))]).sort((p, q) => q[1].seq - p[1].seq); const env = ks[0][1]; env.body = env.body.slice(0, -40) + 'garbage'; localStorage.setItem(ks[0][0], JSON.stringify(env)); });
+const ctl2 = await ctx.newPage(); watch(ctl2, 'control2');
+await ctl2.goto(url); await ctl2.waitForFunction(() => window.QC && window.QC.Store.state);
+check('Damaged save slot is ignored; older good slot restores the show', await ctl2.evaluate(() => window.QC.Store.damaged === true && window.QC.Store.state.teams.length > 0));
+await ctl2.close();
 check('Refresh recovery keeps scene, scores, photos', after.scene === snap.scene && after.ledger === snap.ledger && after.photo === snap.photo, JSON.stringify(after));
 await stage.reload();
 await stage.waitForFunction(() => window.QC && window.QC.MODE === 'stage');
@@ -273,6 +279,32 @@ check('Certificate PNG renders', tools.cert);
 check('Old V100 (QC60) backup converts: teams, scores, questions, crew, rounds', tools.legacy);
 await openPage('ai');
 check('AI Studio page renders (air-gapped by default)', await ctl.evaluate(() => /Air-gapped/.test(document.querySelector('#tabBody').textContent) && window.QC.AI.cfg.airGapped === true));
+// ---- stage/system parity ----
+await ctl.evaluate(() => { const QC = window.QC; const q = QC.Sel.roundQuestions('R2')[3]; QC.Show.jump('QUESTION', { key: q.id, roundId: 'R2', qid: q.id }); });
+await stage.waitForTimeout(500);
+check('TV never receives the answer before it is revealed', await stage.evaluate(() => { const QC = window.QC; const q = QC.Sel.liveQuestion(); return q && q.answer === -1 && QC.Store.state.questions.every((x) => x.answer === -1); }));
+await ctl.evaluate(() => window.QC.Game.reveal());
+await stage.waitForTimeout(400);
+check('Answer reaches the TV once revealed', await stage.evaluate(() => window.QC.Sel.liveQuestion().answer >= 0));
+await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.display.calib = 'bars'; s.display.aspect = '4:3'; }, { undo: false }));
+await stage.waitForTimeout(500);
+check('Calibration bars show on TV', await stage.evaluate(() => !document.querySelector('.calib').hidden && document.querySelector('.calib').classList.contains('bars')));
+check('Screen shape 4:3 letterboxes the stage', await stage.evaluate(() => { const r = document.querySelector('.stage').getBoundingClientRect(); return Math.abs(r.width / r.height - 4 / 3) < 0.02; }));
+await stage.screenshot({ path: path.join(shots, '98-calibration-4x3.png') });
+await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.display.calib = 'off'; s.display.aspect = '16:9'; }, { undo: false }));
+check('Two checksummed save slots exist', await ctl.evaluate(() => { const a = JSON.parse(localStorage.getItem('qc66.state.A') || 'null'); const b = JSON.parse(localStorage.getItem('qc66.state.B') || 'null'); return !!(a && b && a.f === 'QC66' && b.f === 'QC66' && a.sum && b.sum); }));
+check('Clip control commands reach state', await ctl.evaluate(() => { window.QC.Actions.clip('play'); return window.QC.Store.state.live.clip.action === 'play'; }));
+await ctl.evaluate(() => window.QC.Actions.clip('stop'));
+await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.settings.keyLayout = 'v100'; }, { undo: false }));
+await ctl.evaluate(() => { const QC = window.QC; const q = QC.Sel.roundQuestions('R2')[4]; QC.Show.jump('QUESTION', { key: q.id, roundId: 'R2', qid: q.id }); });
+const kb = await ctl.evaluate(() => window.QC.Sel.score(window.QC.Store.state.live.active));
+await ctl.bringToFront(); await ctl.keyboard.press('k');
+check('V100 key layout: K = correct', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b + 10, kb));
+await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.settings.keyLayout = 'v66'; }, { undo: false }));
+await openPage('preshow');
+check('Pre-show check lists items', await ctl.evaluate(() => document.querySelectorAll('#tabBody .li').length >= 12));
+await openPage('display');
+check('TV & screen page renders', await ctl.evaluate(() => /দ্বিতীয় স্ক্রিন/.test(document.querySelector('#tabBody').textContent)));
 // ---- host script window + roles ----
 const host = await ctx.newPage(); watch(host, 'host');
 await host.goto(url + '#host');

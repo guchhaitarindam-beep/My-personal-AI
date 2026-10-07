@@ -726,3 +726,40 @@ Object.assign(Actions, {
   },
   async aiHostLine() { const r = await AI.hostLineAI('score', { lead: (Sel.standings()[0] || { team: {} }).team.name }, 'bn'); if (r.ok) { UI.hostLine = r.text; UI.hostOpen = true; UI.liveSig = ''; UI.renderLive(); UI.toast('হোস্ট লাইন তৈরি', 'ok'); } else UI.toast(r.error, 'err'); },
 });
+
+/* ---------------- Pre-show check (V100 list, adapted) ---------------- */
+const PreShow = {
+  backupDone: false,
+  run(s) {
+    const out = [];
+    const add = (ok, msg, warnOnly) => out.push([ok ? 'pass' : warnOnly ? 'warn' : 'fail', msg]);
+    const ua = navigator.userAgent;
+    add(/Chrome|Edg/.test(ua), 'ব্রাউজার: ' + (/Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : 'অন্য (Chrome বা Edge প্রস্তাবিত)'), true);
+    add(screen.width >= 1280, 'স্ক্রিন: ' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1), true);
+    add(Store.storageOk, Store.storageOk ? 'স্বয়ংক্রিয় সংরক্ষণ কাজ করছে' : 'ব্রাউজারে সংরক্ষণ ব্যর্থ — ব্যাকআপ নিন');
+    add(!!(AudioDirector.unlocked && AudioDirector.ctx && AudioDirector.ctx.state === 'running'), AudioDirector.unlocked ? 'অডিও চালু' : 'অডিও এখনও চালু হয়নি — যেকোনো বোতামে একবার ক্লিক করুন', true);
+    add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'থিম সং: ' + Media.label(s.audio.music.theme.media) : 'থিম সং নেই', true);
+    const bnVoice = Speech.voices.some((v) => /^bn/i.test(v.lang));
+    add(bnVoice, bnVoice ? 'বাংলা ভয়েস ইনস্টল আছে' : 'বাংলা ভয়েস নেই (Windows Settings ▸ Speech)', true);
+    add(Sync.connected(), Sync.connected() ? 'স্টেজ উইন্ডো সংযুক্ত' : 'স্টেজ উইন্ডো খোলা নেই (O)', true);
+    add(KeepAwake.state === 'on', 'স্ক্রিন জাগিয়ে রাখা: ' + KeepAwake.state, true);
+    const calOk = s.display.calib === 'off' && !s.display.testCard;
+    add(calOk, calOk ? 'ক্যালিব্রেশন / টেস্ট কার্ড বন্ধ' : 'ক্যালিব্রেশন বা টেস্ট কার্ড চালু — অনুষ্ঠানের আগে বন্ধ করুন');
+    const fin = Sel.finalists();
+    add(fin.length >= s.prelim.finalistCount, 'চূড়ান্ত দল: ' + fin.length + ' / ' + s.prelim.finalistCount);
+    const generic = fin.some((t) => /^দল [০-৯]+$/.test(t.name));
+    add(!generic, generic ? 'কিছু দলের নাম এখনও "দল ১…" — আসল নাম দিন' : 'সব চূড়ান্ত দলের নাম দেওয়া', true);
+    const photos = fin.filter((t) => t.photo).length; add(photos === fin.length, 'দলের ছবি: ' + photos + ' / ' + fin.length, true);
+    const played = s.rounds.filter((r) => r.enabled);
+    played.forEach((r) => { const n = Sel.roundQuestions(r.id).length; add(n > 0 && !!r.rules, r.name + ': ' + n + 'টি প্রশ্ন' + (r.rules ? '' : ' • নিয়ম লেখা নেই'), n > 0); });
+    add(!!s.prelim.rules, s.prelim.rules ? 'বাছাই পর্বের নিয়ম লেখা আছে' : 'বাছাই পর্বের নিয়ম লেখা নেই', true);
+    const emptyP = Sel.prelimQuestions().filter((q) => !q.text || !q.answer).length; add(!emptyP, emptyP ? emptyP + 'টি বাছাই প্রশ্ন/উত্তর খালি' : 'সব বাছাই প্রশ্নে উত্তর আছে');
+    const bank = safe('bank', () => NLP.auditBank(s.questions.filter((q) => played.some((r) => r.id === q.roundId)).map(auditShape)), { rows: [], bank: [] });
+    const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + 'টি প্রশ্নে ত্রুটি (প্রশ্ন ▸ বানান পরীক্ষা)' : 'প্রশ্ন-ব্যাংকে গুরুতর ত্রুটি নেই', true);
+    bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
+    add(this.backupDone, this.backupDone ? 'এই সেশনে ব্যাকআপ নেওয়া হয়েছে' : 'এই সেশনে এখনও ব্যাকআপ নেওয়া হয়নি', true);
+    add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'রবীন্দ্র ইন্সট্রুমেন্টাল: ' + SoundDirector.tagoreStatus, true);
+    out.push(['pass', 'টাইমার: সরাসরি ' + (played[0] ? played[0].timers.direct : 60) + 's • পাস ' + (played[0] ? played[0].timers.pass : 45) + 's • সতর্কতা ' + s.settings.warnAt + 's']);
+    return out;
+  },
+};
