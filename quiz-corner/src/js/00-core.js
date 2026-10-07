@@ -196,6 +196,7 @@ function defaultState() {
     crew: arr(show.crew).map((c, i) => ({ name: str(c.name, 80), role: str(c.role, 120), photo: crewPhotos[i] || '' })),
     groupPhoto: 'asset:group', groupCaption: str(show.groupCaption, 300),
     logo: 'asset:logo',
+    winnerPhoto: '',
     poster: { media: '', fit: 'contain', posX: 50, posY: 50, zoom: 1, opacity: 1, anim: 'zoom', bg: '#000000' },
     gallery: [],
     teams: Array.from({ length: 12 }, (_, i) => defaultTeam(i)),
