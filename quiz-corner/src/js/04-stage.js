@@ -408,7 +408,7 @@ class StageView {
   /** The spinning show badge in a corner of every scene (V100); it flies in and docks when it appears. */
   corner(s, sc) {
     const c = s.design.corner; const el = $('.corner-logo', this.stage);
-    const hide = !c.show || ['LOGO', 'THEME', 'END', 'IDENTITY'].includes(s.show.scene) || !!sc.bare || s.show.blackout;
+    const hide = !c.show || s.show.blackout; // on every screen, from the first to the last
     const was = !el.hidden;
     el.hidden = hide;
     el.dataset.pos = c.pos;

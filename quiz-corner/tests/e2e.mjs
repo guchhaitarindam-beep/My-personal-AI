@@ -360,6 +360,24 @@ await ctl.evaluate(() => window.QC.Show.jump('WINNER'));
 const sw = await overflowAt('winner-long');
 check('Winner with long name: no overflow', sw.length === 0, sw.join(', '));
 await ctl.evaluate(() => window.QC.Store.undo());
+// the question text stays large: a picture beside it may not shrink the words
+const qFont = async () => { await stage.waitForTimeout(2600); return stage.evaluate(() => { const el = document.querySelector('.layer:not(.exiting) .q-text'); return el ? parseFloat(getComputedStyle(el).fontSize) : 0; }); };
+await ctl.evaluate(() => { const QC = window.QC; QC.Show.go(QC.Show.rundown().find((x) => x.scene === 'QUESTION' && x.params.qid === 'Q07')); });
+const withImg = await qFont();
+const hasImg = await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .q-img img'));
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-noimg', (s) => { s.questions.find((q) => q.id === 'Q07').image = ''; }); });
+const noImg = await qFont();
+await ctl.evaluate(() => window.QC.Store.undo());
+check('Question picture shows and the question text stays large (≥ 85% of text-only size)', hasImg && withImg >= noImg * 0.85, withImg.toFixed(1) + 'px with picture vs ' + noImg.toFixed(1) + 'px without');
+// the spinning badge is in the corner of every screen, first to last
+const noLogo = [];
+for (const sc of ['ORGANIZER', 'LOGO', 'THEME', 'IDENTITY', 'TEAM_INTRO', 'ROUND_RULES', 'QUESTION', 'SCOREBOARD', 'WINNER', 'END']) {
+  await ctl.evaluate((sc) => { const QC = window.QC; const st = QC.Show.rundown().find((x) => x.scene === sc); if (st) QC.Show.go(st); else QC.Show.jump(sc); }, sc);
+  await stage.waitForTimeout(500);
+  const ok = await stage.evaluate(() => { const c = document.querySelector('.corner-logo'); const st = document.querySelector('.stage').getBoundingClientRect(); if (!c || c.hidden) return false; const r = c.getBoundingClientRect(); return r.width > 20 && r.right <= st.right + 2 && r.top >= st.top - 2; });
+  if (!ok) noLogo.push(sc);
+}
+check('Corner logo on every screen (first to last)', noLogo.length === 0, noLogo.join(', '));
 const relevant = errors.filter((e) => !/favicon/i.test(e));
 check('No JS errors in any window', relevant.length === 0, relevant.slice(0, 5).join(' | '));
 await browser.close();

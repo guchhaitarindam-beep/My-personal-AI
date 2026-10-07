@@ -901,3 +901,11 @@ body.role-host .preview-box { max-width: 900px; }
 .q-card .q-img { flex: 0 0 42%; align-self: stretch; }
 .q-card .q-img img { width: 100%; height: auto; max-height: 100%; box-shadow: 0 0 3cqh rgba(0, 0, 0, .6), 0 0 2.4cqh color-mix(in srgb, var(--gold) 35%, transparent); animation: qImgIn 1s cubic-bezier(.2, .9, .2, 1) .2s both; }
 @keyframes qImgIn { from { opacity: 0; transform: scale(.85) rotateY(-20deg); filter: blur(6px); } }
+/* corner badge: one calm, slow turn (about 24 s) on every screen */
+.stage .corner-logo .cl-in { animation: clSlow 24s linear infinite, clBorder 6s linear infinite; }
+@keyframes clSlow { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+.stage .corner-logo .cl-sweep::before { animation-duration: 7s; }
+.stage .corner-logo::after { animation-duration: 6s; }
+/* the question text always comes first: the picture stays small beside it */
+.q-card .q-img { flex: 0 0 24%; align-self: center; max-height: 62%; }
+.q-card .q-img img { max-height: 100%; }
