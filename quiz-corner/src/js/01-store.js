@@ -347,7 +347,6 @@ const Game = {
       if (kind === 'correct' && st.settings.autoRevealOnCorrect) st.live.revealed = true;
     });
     Cue.play(kind === 'correct' ? 'correct' : kind === 'wrong' ? 'wrong' : 'reveal', { round: s.live.roundId });
-    if (kind === 'correct') Bus.emit('fx', { type: 'confetti', small: true });
     return true;
   },
   flowName(f) { return { direct: 'সরাসরি', pass: 'পাস', bonus: 'বোনাস', challenge: 'চ্যালেঞ্জ' }[f] || f; },
