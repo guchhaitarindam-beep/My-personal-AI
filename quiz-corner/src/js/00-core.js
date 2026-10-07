@@ -5,6 +5,9 @@
    ===================================================================== */
 const VERSION = '66.0';
 const SCHEMA = 66;
+/* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
+   question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
+const RULES_VERSION = 3;
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -205,7 +208,7 @@ function defaultState() {
   while (rounds.length < 7) rounds.push(roundFromSeed({ id: 'R' + (rounds.length + 1) }, rounds.length));
   const crewPhotos = { 0: 'asset:crew0', 1: 'asset:crew1' };
   return {
-    schema: SCHEMA, rev: 0, updatedAt: 0,
+    schema: SCHEMA, rulesVersion: RULES_VERSION, rev: 0, updatedAt: 0,
     event: {
       brandEn: 'QUIZ CORNER', brandBn: 'খেজুরি কুইজ কর্নার', tagline: 'Knowledge is Power',
       programme: str(ev.name || 'জুনিয়র জিনিয়াস (সিজন ৪)'), subtitle: bannerLines[0] || 'আন্তঃপ্রাথমিক বিদ্যালয় কুইজ প্রতিযোগিতা',
@@ -286,6 +289,29 @@ function mergeDefaults(def, src) {
   return out;
 }
 
+/** Bring an older save up to the current built-in rules (13 Oct main stage). */
+function upgradeRules(s, def) {
+  s.rounds = arr(s.rounds).map((r) => {
+    const d = def.rounds.find((x) => isObj(r) && x.id === r.id);
+    if (!d) return r;
+    return Object.assign({}, r, { name: d.name, label: d.label, rules: d.rules, type: d.type, enabled: d.enabled, features: clone(d.features), scoring: clone(d.scoring), timers: clone(d.timers) });
+  });
+  const seedQ = new Map(def.questions.map((q) => [q.id, q]));
+  s.questions = arr(s.questions).map((q) => { const d = isObj(q) && seedQ.get(q.id); return d ? Object.assign({}, q, { roundId: d.roundId, number: d.number }) : q; });
+  if (isObj(s.prelim)) { s.prelim.count = def.prelim.count; s.prelim.rules = def.prelim.rules; }
+  s.flipPool = def.flipPool;
+  // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.
+  const plain = (t) => isObj(t) && GENERIC_TEAM_NAME.test(str(t.name).trim()) && !t.captain && !t.photo && !t.captainPhoto && !arr(t.players).some(Boolean) && !arr(t.playerPhotos).some(Boolean);
+  if (arr(s.teams).length > 8 && arr(s.teams).every(plain) && !arr(s.ledger).length) s.teams = s.teams.slice(0, 8);
+  if (isObj(s.settings)) { s.settings.showLifelines = false; s.settings.countdownStepMs = Math.max(num(s.settings.countdownStepMs, 1500), 1500); }
+  if (isObj(s.audio)) {
+    s.audio.master = 1;
+    Object.values(isObj(s.audio.cues) ? s.audio.cues : {}).forEach((c) => { if (isObj(c)) { c.vol = 1; c.mute = false; } });
+    ['theme', 'welcome', 'winner'].forEach((k) => { if (isObj(s.audio.music) && isObj(s.audio.music[k])) s.audio.music[k].vol = 1; });
+  }
+  if (isObj(s.design)) s.design.corner = Object.assign({}, def.design.corner, isObj(s.design.corner) ? s.design.corner : {}, { show: true });
+}
+
 function normalizeState(raw) {
   // Older saves kept one set of question/option/title sizes; carry them into the per-element styles.
   if (isObj(raw) && isObj(raw.design) && !isObj(raw.design.text) && raw.design.qScale !== undefined) {
@@ -298,6 +324,8 @@ function normalizeState(raw) {
   const def = defaultState();
   const s = mergeDefaults(def, raw);
   s.schema = SCHEMA;
+  if (isObj(raw) && num(raw.rulesVersion, 0) < RULES_VERSION) upgradeRules(s, def);
+  s.rulesVersion = RULES_VERSION;
   s.teams = arr(s.teams).slice(0, 60).map((t, i) => mergeDefaults(defaultTeam(i), t));
   s.teams.forEach((t, i) => { t.id = str(t.id || 'T' + (i + 1), 24); t.players = arr(t.players).concat(['', '', '']).slice(0, 3).map((p) => str(p, 80)); t.playerPhotos = arr(t.playerPhotos).concat(['', '', '']).slice(0, 3).map((p) => str(p, 120)); if (GENERIC_TEAM_NAME.test(str(t.name).trim())) t.name = teamCode(i); });
   if (!s.teams.length) s.teams = Array.from({ length: 8 }, (_, i) => defaultTeam(i));

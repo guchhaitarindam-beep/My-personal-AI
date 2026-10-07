@@ -314,6 +314,17 @@ const SelfTest = {
       T('আমাদের টিম: সব কার্ড এলে থামে', () => s().show.params.sub === nCrew);
       T('আমাদের টিম: অধিনায়ক মাঝখানে', () => { const html = Scenes.CREW(s(), s().show.params).html; const parts = html.match(/data-part="c\d+"/g) || []; return parts.length === nCrew && parts[Math.floor((nCrew - 1) / 2)] === 'data-part="c0"'; });
       T('আমাদের পরিচয়: OUR IDENTITY ও প্রতিটি কৃতজ্ঞতা কার্ড', () => { const html = Scenes.IDENTITY(s()).html; return html.includes('OUR IDENTITY') && (html.match(/class="id-credit"/g) || []).length === s().event.credits.split('\n').filter((x) => x.trim()).length; });
+      T('পুরনো সেভ: নতুন নিয়ম, নাম ও প্রশ্ন-বিন্যাস পায়, দল-ছবি অক্ষত', () => {
+        const old = defaultState(); delete old.rulesVersion;
+        old.rounds[2].name = 'দেখো তো চিনতে পারো কিনা'; old.rounds[2].type = 'bonus'; old.rounds[0].label = 'সাধারণ জ্ঞান ও চ্যালেঞ্জ'; old.rounds[0].rules = 'সময় ৩০ সেকেন্ড';
+        old.questions[0].roundId = 'R7'; old.questions[0].text = 'নিজের লেখা'; old.teams[0].name = 'আমার দল'; old.teams[0].captainPhoto = 'm_keep';
+        old.prelim.count = 20; old.audio.cues.correct.vol = 0.3;
+        const n = normalizeState(old); const d = defaultState();
+        return n.rounds[2].name === 'বুদ্ধির টক্কর' && n.rounds[2].type === 'standard' && n.rounds[0].label === d.rounds[0].label && n.rounds[0].rules === d.rounds[0].rules && n.questions[0].roundId === d.questions[0].roundId && n.questions[0].text === 'নিজের লেখা' && n.teams[0].name === 'আমার দল' && n.teams[0].captainPhoto === 'm_keep' && n.prelim.count === 15 && n.audio.cues.correct.vol === 1 && n.rulesVersion === RULES_VERSION;
+      });
+      T('পুরনো সেভ: ১২টি খালি "দল N" → ৮টি দল A / 1 … H / 8', () => { const old = defaultState(); delete old.rulesVersion; old.teams = Array.from({ length: 12 }, (_, i) => Object.assign(defaultTeam(i), { name: 'দল ' + bn(i + 1) })); const n = normalizeState(old); return n.teams.length === 8 && n.teams[7].name === 'H / 8'; });
+      T('নতুন সেভ: অপারেটরের নিজের নিয়ম-বদল থাকে', () => { const cur = defaultState(); cur.rounds[0].label = 'আমার লেখা'; return normalizeState(cur).rounds[0].label === 'আমার লেখা'; });
+      T('নিয়ম: রাউন্ড ১-এর পাশের লেখায় চ্যালেঞ্জ নেই', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
       // ---- design and sound ----
       T('নকশা: কোণে ঘুরন্ত লোগো চালু', () => s().design.corner.show && s().design.corner.spin && s().design.corner.pos === 'tr');
       T('নকশা: দৃশ্য বদলে স্পষ্ট রঙিন সুইপ', () => s().design.wipe === 'sweep');
