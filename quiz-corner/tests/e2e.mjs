@@ -95,7 +95,7 @@ check('Correct button +10', await ctl.evaluate((b) => window.QC.Sel.score(window
 await stage.waitForTimeout(600);
 check('Stage shows answer after correct', await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .answer-bar')));
 await stage.screenshot({ path: path.join(shots, '90-correct-reveal.png') });
-check('Coach card guides the operator', await ctl.evaluate(() => /উত্তর/.test((document.querySelector('.coach-t') || {}).textContent || '')));
+check('Coach card guides the operator', await ctl.evaluate(() => /answer/i.test((document.querySelector('.coach-t') || {}).textContent || '')));
 check('Action announced for screen readers', await ctl.evaluate(() => /সঠিক/.test(document.querySelector('#announce').textContent)));
 check('Coach makes the right buttons glow', await ctl.evaluate(() => document.querySelectorAll('#live .btn.glow').length > 0));
 await ctl.keyboard.press('Control+z');
@@ -147,7 +147,7 @@ check('Marking matrix updates prelim score', await ctl.evaluate(() => window.QC.
 // ---- every tab renders ----
 for (const t of ['show', 'prelim', 'teams', 'questions', 'rounds', 'scores', 'ai', 'event', 'text', 'colors', 'effects', 'scenes', 'media', 'audio', 'voice', 'backup', 'flow', 'tests', 'help']) {
   await openPage(t);
-  const ok = await ctl.evaluate(() => !document.querySelector('#tabBody').textContent.includes('লোড করা যায়নি'));
+  const ok = await ctl.evaluate(() => !/লোড করা যায়নি|could not be loaded|couldn't load|could not load/i.test(document.querySelector('#tabBody').textContent));
   if (!ok) check('Tab ' + t, false);
 }
 check('All settings pages render', true);
@@ -306,7 +306,7 @@ await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.settings.keyLayo
 await openPage('preshow');
 check('Pre-show check lists items', await ctl.evaluate(() => document.querySelectorAll('#tabBody .li').length >= 12));
 await openPage('display');
-check('TV & screen page renders', await ctl.evaluate(() => /দ্বিতীয় স্ক্রিন/.test(document.querySelector('#tabBody').textContent)));
+check('TV & screen page renders', await ctl.evaluate(() => /second screen/.test(document.querySelector('#tabBody').textContent)));
 // ---- host script window + roles ----
 const host = await ctx.newPage(); watch(host, 'host');
 await host.goto(url + '#host');
