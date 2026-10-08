@@ -38,6 +38,11 @@ const p1 = await ctl.evaluate(() => { const { Store, Sel } = window.QC; const p 
 const tvOpen = await tv.evaluate(() => (document.querySelector('.layer:not(.exiting) .dcard.open') || {}).textContent || '');
 step(p1 && p1.name === 'দক্ষিণ খেজুরি আদর্শ বিদ্যালয়' && tvOpen.includes(p1.code) && tvOpen.includes(p1.name), 'আবার ক্লিক: কার্ড খুলে পোডিয়াম ও স্কুলের নাম', JSON.stringify(p1));
 await tv.screenshot({ path: path.join(out, 'draw3.png') });
+// a card that is already taken cannot be chosen again — not from the TV, not with its number key, not from the control button
+const tvClickable = await tv.evaluate(() => document.querySelectorAll('.layer:not(.exiting) [data-draw="4"]').length); // an opened card is no longer clickable on the TV
+await ctl.keyboard.press('5'); await ctl.waitForTimeout(300); await ctl.keyboard.press('5'); await ctl.waitForTimeout(400);
+const again = await ctl.evaluate(() => { const d = window.QC.Store.state.draw; const btn = document.querySelector('[data-act="drawPick"][data-arg="4"]'); return { n: d.picks.length, pending: d.pending, disabled: !!(btn && btn.disabled), tick: !!(btn && btn.textContent.startsWith('✓')) }; });
+step(tvClickable === 0 && again.n === 1 && again.pending === -1 && again.disabled && again.tick, 'নেওয়া কার্ড (৫) আর বাছা যায় না — টিভিতে ক্লিক, কিবোর্ডে 5, কন্ট্রোলে ✓ ধূসর বোতাম', JSON.stringify(again));
 // the rest with the number keys on the control window
 for (const c of [0, 1, 2, 3, 5, 6, 7]) { await ctl.keyboard.press(String(c + 1)); await ctl.waitForTimeout(150); await ctl.keyboard.press(String(c + 1)); await ctl.waitForTimeout(250); }
 await tv.waitForTimeout(2500);
