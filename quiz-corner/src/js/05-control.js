@@ -246,7 +246,7 @@ const UI = {
     } else if (sc === 'DRAW') {
       const d = s.draw; const turn = Sel.team(Draw.next());
       const cards = Draw.cards().map((it, i) => { const pk = d.picks.find((p) => p.card === i); const t = pk && Sel.team(pk.team); return pk ? b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + ' → ' + esc(t ? Sel.code(t) : '') + ' ' + esc(t ? Sel.preName(t) : ''), 'ghost', String(i), '', true) : b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + (d.pending === i ? ' — আবার চাপলে খুলবে' : ''), d.pending === i ? 'gold' : 'primary', String(i), bn(i + 1)); }).join('');
-      h += '<div class="card"><h3>🎲 পোডিয়াম লটারি <span class="hint">' + (!d.queue.length ? 'চূড়ান্ত দল ঠিক হলে শুরু হবে' : turn ? 'এবার: ' + esc(Sel.preName(turn)) + ' (বাছাইয়ে ' + bn(d.queue.indexOf(turn.id) + 1) + ') — দল যে ছবি বলবে তাতে একবার চাপুন (জ্বলে উঠবে), আবার চাপলে পোডিয়াম খুলবে। টিভির পর্দায় ক্লিক বা ১–৮ চাপলেও হয়।' : '✔ সবাই পোডিয়াম পেয়েছে — দলের কোড ঠিক হয়ে গেছে') + '</span></h3><div class="deck">' + cards + '</div><div class="deck" style="margin-top:.5rem">' + b('drawReset', '↺ আবার প্রথম থেকে', 'warn') + b('undo', '↶ শেষ চাল ফেরাও', '', '', 'U') + b('tab', 'বিষয় / ছবি বদলাও', '', 'event') + '</div></div>';
+      h += '<div class="card"><h3>🎲 পোডিয়াম লটারি <span class="hint">' + (!d.queue.length ? 'চূড়ান্ত দল ঠিক হলে শুরু হবে' : turn ? 'এবার: ' + esc(Sel.preName(turn)) + ' (বাছাইয়ে ' + bn(d.queue.indexOf(turn.id) + 1) + ') — দল যে ছবি বলবে তাতে একবার চাপুন (জ্বলে উঠবে), আবার চাপলে পোডিয়াম খুলবে। টিভির পর্দায় ক্লিক বা ১–৮ চাপলেও হয়।' : '✔ সবাই পোডিয়াম পেয়েছে — দলের কোড ঠিক হয়ে গেছে') + '</span></h3><div class="deck">' + cards + '</div><div class="deck" style="margin-top:.5rem">' + b('drawReset', '↺ আবার প্রথম থেকে', 'warn') + b('undo', '↶ শেষ চাল ফেরাও', '', '', 'U') + b('tab', 'বিষয় / ছবি বদলাও', '', 'event') + '</div></div>' + this.schoolDeck(s);
     } else if (sc === 'FINAL') {
       h += '<div class="card"><h3>চূড়ান্ত ফলাফল প্রকাশ</h3><div class="deck">' + b('finalReveal', '▲ পরের স্থান প্রকাশ', 'lg gold span2', '', 'R') + b('finalAll', 'সব প্রকাশ') + b('jump', '🏆 বিজয়ী', 'good', 'WINNER', 'W') + '</div></div>';
     } else if (sc === 'WINNER') {
@@ -256,11 +256,23 @@ const UI = {
       h += '<div class="card"><h3>' + (slot === 'theme' ? 'থিম সং' : 'স্বাগত সংগীত') + ' <span class="hint">' + esc(Media.label(s.audio.music[slot].media)) + '</span></h3><div class="deck">' + b('music', '▶ বাজাও', 'good', slot) + b('musicStop', '■ থামাও (ফেড)', 'bad', slot) + '</div></div>';
     } else if (sc === 'PRELIM_COUNTDOWN' || sc === 'MAIN_COUNTDOWN') {
       h += '<div class="card"><h3>কাউন্টডাউন</h3><div class="deck">' + b('replay', '↻ আবার শুরু') + '</div></div>';
-    } else if (sc === 'PRELIM_RESULT' || sc === 'FINALISTS') {
-      h += '<div class="card"><h3>চূড়ান্ত দল</h3><div class="deck">' + b('tab', 'বাছাই ট্যাবে সম্পাদনা', '', 'prelim') + b('confirmFinalists', '✓ শীর্ষ ' + bn(s.prelim.finalistCount) + ' নিশ্চিত করুন', 'good span2') + '</div></div>';
+    } else if (sc === 'PRELIM_RESULT' || sc === 'FINALISTS' || sc === 'FINALIST_INTRO' || sc === 'WELCOME') {
+      h += this.schoolDeck(s);
+      if (sc === 'PRELIM_RESULT' || sc === 'FINALISTS') h += '<div class="card"><h3>চূড়ান্ত দল</h3><div class="deck">' + b('tab', 'বাছাই ট্যাবে সম্পাদনা', '', 'prelim') + b('confirmFinalists', '✓ শীর্ষ ' + bn(s.prelim.finalistCount) + ' নিশ্চিত করুন', 'good span2') + '</div></div>';
     }
     if (sc !== 'QUESTION' && sc !== 'PRELIM_Q') h += '<div class="card"><div class="deck">' + timerRow + '</div></div>';
     return h;
+  },
+  /** The finalists' schools and preliminary scores, editable right here at the venue (typing, then Tab or a click elsewhere saves). */
+  schoolDeck(s) {
+    const ids = Sel.finalistIds();
+    if (!ids.length) return '';
+    const rows = ids.map((id, i) => {
+      const ti = Sel.teamIndex(id); const t = s.teams[ti]; if (!t) return '';
+      const tag = Sel.codeHidden(t) || (s.draw.on && !Sel.drawDone() && !Sel.drawPicked(id)) ? 'বাছাই ' + bn(i + 1) : Sel.code(t);
+      return '<div class="school-row" style="--team:' + esc(t.color) + '"><span class="sr-tag">' + esc(tag) + '</span><input type="text" data-bind="teams.' + ti + '.school" value="' + esc(t.school) + '" placeholder="বিদ্যালয়ের নাম লিখুন" aria-label="' + esc(tag) + ' বিদ্যালয়"><input type="number" data-bind="teams.' + ti + '.prelim.manual" data-type="nullnum" value="' + (t.prelim.manual == null ? '' : esc(t.prelim.manual)) + '" placeholder="নম্বর" title="বাছাই পর্বের নম্বর" aria-label="' + esc(tag) + ' বাছাইয়ের নম্বর"></div>';
+    }).join('');
+    return '<div class="card"><h3>🏫 চূড়ান্ত দলের বিদ্যালয় ও বাছাইয়ের নম্বর <span class="hint">এখানেই বদলান — লিখে Tab চাপলে টিভিতে সঙ্গে সঙ্গে বদলায়; দলের ট্যাবেও বদলানো যায়</span></h3><div class="school-list">' + rows + '</div></div>';
   },
   /** V100 quick photos: two members per team (16 for A / 1 … H / 8). Click, drop a file, or hover and press Ctrl+V.
       It opens by itself while the teams are being introduced. */

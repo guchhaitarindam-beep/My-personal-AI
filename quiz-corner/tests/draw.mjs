@@ -18,6 +18,16 @@ const first = await ctl.evaluate(() => window.QC.Sel.preName(window.QC.Sel.team(
 step(first === 'হেঁড়িয়া শিশু শিক্ষা নিকেতন', 'বাছাইয়ে প্রথম দল প্রথমে বাছে', first);
 const tvTurn = await tv.evaluate(() => (document.querySelector('.layer:not(.exiting) .draw-turn') || {}).textContent || '');
 step(tvTurn.includes(first), 'টিভিতে লেখা: এবার বেছে নেবে …', tvTurn);
+// the school names are the operator's: edit one right in the live panel, the TV follows
+const inp = ctl.locator('.school-row input[type="text"]').first();
+await inp.fill('দক্ষিণ খেজুরি আদর্শ বিদ্যালয়'); await inp.press('Tab'); await tv.waitForTimeout(1200);
+const edited = await ctl.evaluate(() => window.QC.Sel.team(window.QC.Draw.next()).school);
+const tvTurn2 = await tv.evaluate(() => (document.querySelector('.layer:not(.exiting) .draw-turn') || {}).textContent || '');
+step(edited === 'দক্ষিণ খেজুরি আদর্শ বিদ্যালয়' && tvTurn2.includes('দক্ষিণ খেজুরি আদর্শ বিদ্যালয়'), 'লাইভ প্যানেলে স্কুলের নাম বদলানো যায় — টিভিতে সঙ্গে সঙ্গে বদলায়', tvTurn2);
+const sc = ctl.locator('.school-row input[type="number"]').first();
+await sc.fill('19'); await sc.press('Tab'); await ctl.waitForTimeout(400);
+step(await ctl.evaluate(() => window.QC.Sel.team(window.QC.Draw.next()).prelim.manual === 19), 'বাছাইয়ের নম্বরও এখানেই বদলানো যায়');
+await ctl.screenshot({ path: path.join(out, 'draw-control.png') });
 // TV click: once to choose, once more to open
 await tv.click('.layer:not(.exiting) [data-draw="4"]'); await tv.waitForTimeout(900);
 const pend = await ctl.evaluate(() => window.QC.Store.state.draw.pending);
@@ -26,7 +36,7 @@ step(pend === 4, 'টিভির পর্দায় ক্লিক: ছব�
 await tv.click('.layer:not(.exiting) [data-draw="4"]'); await tv.waitForTimeout(1800);
 const p1 = await ctl.evaluate(() => { const { Store, Sel } = window.QC; const p = Store.state.draw.picks[0]; return p && { code: Sel.code(Sel.team(p.team)), name: Sel.preName(Sel.team(p.team)), podium: p.podium }; });
 const tvOpen = await tv.evaluate(() => (document.querySelector('.layer:not(.exiting) .dcard.open') || {}).textContent || '');
-step(p1 && tvOpen.includes(p1.code) && tvOpen.includes(p1.name), 'আবার ক্লিক: কার্ড খুলে পোডিয়াম ও স্কুলের নাম', JSON.stringify(p1));
+step(p1 && p1.name === 'দক্ষিণ খেজুরি আদর্শ বিদ্যালয়' && tvOpen.includes(p1.code) && tvOpen.includes(p1.name), 'আবার ক্লিক: কার্ড খুলে পোডিয়াম ও স্কুলের নাম', JSON.stringify(p1));
 await tv.screenshot({ path: path.join(out, 'draw3.png') });
 // the rest with the number keys on the control window
 for (const c of [0, 1, 2, 3, 5, 6, 7]) { await ctl.keyboard.press(String(c + 1)); await ctl.waitForTimeout(150); await ctl.keyboard.press(String(c + 1)); await ctl.waitForTimeout(250); }
