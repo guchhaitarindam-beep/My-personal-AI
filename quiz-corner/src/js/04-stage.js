@@ -181,9 +181,9 @@ const Scenes = {
   MAIN_COUNTDOWN(s) { return Scenes.countdown(s, 'MAIN ROUND STARTS IN'); },
   drone(deliverAt, enabled) {
     const ms = Show.droneMs();
-    if (!enabled || !(now() - deliverAt < ms)) return { html: '', style: '--drone-ms:0' };
+    if (!enabled || !(now() - deliverAt < ms)) return { html: '', style: '--drone-ms:0;' };
     const path = { left: 'droneLeft', right: 'droneRight', top: 'droneTop' }[Store.state.settings.drone.path] || 'droneLeft';
-    return { html: '<div class="drone-wrap" data-part="drone"><div class="drone" style="--drone-path:' + path + '">' + DRONE_SVG + '</div></div>', style: '--drone-ms:' + ms, delivered: true };
+    return { html: '<div class="drone-wrap" data-part="drone"><div class="drone" style="--drone-path:' + path + '">' + DRONE_SVG + '</div></div>', style: '--drone-ms:' + ms + ';', delivered: true };
   },
   PRELIM_Q(s, p) {
     const qs = Sel.prelimQuestions();
@@ -215,7 +215,7 @@ const Scenes = {
   WELCOME(s) {
     const bars = Array.from({ length: 24 }, (_, i) => '<i style="animation-delay:' + (i * 0.07).toFixed(2) + 's"></i>').join('');
     const names = Sel.finalists().map((t) => esc(Sel.codeHidden(t) ? Sel.preName(t) : t.name)).join('  ✦  ');
-    return { key: 'WELCOME', anim: 'zoom', html: H.part('body', H.logo(s, 'logo-hero') + '<h1 class="s-title gold">স্বাগতম</h1><div class="s-sub" style="max-width:78cqw">' + esc(s.event.welcomeNote) + '</div><div class="eq">' + bars + '</div><div class="s-sub" style="color:var(--accent)">' + names + '</div>', 'center-col') };
+    return { key: 'WELCOME', anim: 'zoom', html: H.part('body', H.logo(s, 'logo-hero') + '<h1 class="s-title gold">স্বাগতম</h1><div class="s-sub welcome-note" style="max-width:78cqw">' + esc(s.event.welcomeNote) + '</div><div class="eq">' + bars + '</div><div class="s-sub welcome-names" style="color:var(--accent)">' + names + '</div>', 'center-col') };
   },
   /** Podium lottery: eight favourite things; a chosen card glows, an opened card shows the podium (team code) it hid. */
   DRAW(s) {

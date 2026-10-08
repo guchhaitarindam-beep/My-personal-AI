@@ -1090,7 +1090,7 @@ body.fx-premium .stage .q-card::before {
 @keyframes pTrace { 0% { opacity: 0; --pa: 0deg; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; --pa: 360deg; } }
 
 /* 3. options A → B → C → D, one after another: rise, turn straight, settle, glow */
-body.fx-premium .stage .opt {
+body.fx-premium .stage .opt:not(.right):not(.wrongpick) {
   background: linear-gradient(100deg, color-mix(in srgb, var(--panel-solid) 90%, #fff 5%), color-mix(in srgb, var(--panel-solid) 94%, #000));
   border-color: color-mix(in srgb, var(--gold) 70%, transparent);
   box-shadow: inset 0 0 0 .4cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 .55cqh var(--frame-in), 0 0 1.4cqh color-mix(in srgb, var(--gold) 22%, transparent);
@@ -1099,7 +1099,7 @@ body.fx-premium .stage .opt:not(.right):not(.wrongpick) {
   animation: pOptIn calc(.5s / var(--anim-speed)) var(--ease-p) both, pOptGlow calc(.9s / var(--anim-speed)) ease-out both;
   animation-delay: calc(var(--i, 0) * .2s / var(--anim-speed) + var(--opt-delay, 0s)), calc(var(--i, 0) * .2s / var(--anim-speed) + var(--opt-delay, 0s) + .45s / var(--anim-speed));
 }
-body.fx-premium .stage .opt .badge { background: linear-gradient(160deg, #fff6d6, var(--gold)); color: #1b1300; }
+body.fx-premium .stage .opt:not(.right):not(.wrongpick) .badge { background: linear-gradient(160deg, #fff6d6, var(--gold)); color: #1b1300; }
 @keyframes pOptIn { 0% { opacity: 0; transform: translateY(4.5cqh) rotate(-7deg) scale(.95); filter: blur(4px); } 70% { opacity: 1; transform: translateY(-.5cqh) rotate(.6deg); filter: blur(0); } }
 @keyframes pOptGlow { 0% { box-shadow: inset 0 0 0 .4cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 .55cqh var(--frame-in), 0 0 3.6cqh color-mix(in srgb, var(--gold) 70%, transparent); } }
 
@@ -1247,3 +1247,9 @@ body.live-mode .live-col > .preview-box { order: 1; width: 100%; max-width: 760p
 body.live-mode #live > * { order: 2; }
 body.live-mode #live > .hero { order: 0; }
 body.live-mode .live-col { padding-bottom: 180px; }
+/* welcome: the greeting is read from the back of the hall */
+.stage .welcome-note { font-size: calc(4.4cqh * var(--title-scale)); color: var(--text); max-width: 84cqw !important; }
+.stage .welcome-names { font-size: calc(3.4cqh * var(--title-scale)); font-family: var(--font-en); font-weight: 800; letter-spacing: .06em; }
+.stage .center-col:has(.welcome-note) .s-title { font-size: calc(11cqh * var(--title-scale)); }
+/* scoreboard rows sit on the theme's own deep colour (not near-black violet) */
+body.fx-premium .stage .sb-row { background: linear-gradient(90deg, color-mix(in srgb, var(--team) 30%, var(--panel-solid)), color-mix(in srgb, var(--panel-solid) 90%, #000)); }

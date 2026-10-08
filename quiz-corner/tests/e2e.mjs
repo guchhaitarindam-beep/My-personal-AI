@@ -354,6 +354,7 @@ const overflowAt = async (label) => {
 };
 const sq = await overflowAt('question-4k');
 check('4K + max font + long Bengali question/options/answer: no overflow', sq.length === 0, sq.join(', '));
+check('Answer reveal: the correct option turns green (not hidden by the theme)', await stage.evaluate(() => { const r = document.querySelector('.layer:not(.exiting) .opt.right'); const o = document.querySelector('.layer:not(.exiting) .opt:not(.right)'); return !!(r && o) && getComputedStyle(r).backgroundImage !== getComputedStyle(o).backgroundImage && getComputedStyle(r).borderTopColor !== getComputedStyle(o).borderTopColor; }));
 await ctl.evaluate(() => window.QC.Actions.teamIntroNow(window.QC.Store.state.teams[0].id));
 const si = await overflowAt('team-intro-long-name');
 check('Long team name intro: no overflow', si.length === 0, si.join(', '));
