@@ -384,6 +384,34 @@ const Cue = {
 };
 
 /* =====================================================================
+   RECORDED READINGS — the host's own voice (mp3 / phone / laptop mic) for
+   a question, its options and its answer. Plays on the audio window
+   through the loud music bus; the background music ducks under it.
+   ===================================================================== */
+const VoicePlayer = {
+  el: null,
+  playing: false,
+  async play(id) {
+    if (!id || Store.sandbox) return false;
+    if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'voice', id });
+    if (!AudioDirector.isOutput()) return true;
+    this.stopLocal();
+    if (Speech.supported) speechSynthesis.cancel();
+    const u = await Media.url(id);
+    if (!u) { Log.add('WARN', 'recording missing: ' + id); return false; }
+    const el = new Audio(u);
+    el.volume = clamp(num(Store.state.speech.recVol, 1), 0, 1);
+    if (AudioDirector.ctx && AudioDirector.musicBus) { try { AudioDirector.ctx.createMediaElementSource(el).connect(AudioDirector.musicBus); } catch (e) { Log.err('voice-route', e); } }
+    this.el = el; this.playing = true;
+    el.onended = el.onerror = () => { if (this.el === el) { this.el = null; this.playing = false; } };
+    el.play().catch((e) => { if (this.el === el) { this.el = null; this.playing = false; } Log.err('voice', e); });
+    return true;
+  },
+  stopLocal() { if (this.el) { try { this.el.pause(); } catch (e) { /* gone */ } } this.el = null; this.playing = false; },
+  stop() { this.stopLocal(); if (MODE === 'control' && Store.state.audio.output !== 'control') Sync.send({ type: 'voice', stop: true }); },
+};
+
+/* =====================================================================
    SPEECH DIRECTOR — Bengali (bn-IN / bn-BD) where the OS provides it.
    ===================================================================== */
 const Speech = {
@@ -414,23 +442,28 @@ const Speech = {
       speechSynthesis.speak(u);
     } catch (e) { Log.err('speech', e); }
   },
-  stop() { if (this.supported) speechSynthesis.cancel(); if (MODE === 'control') Sync.send({ type: 'speech', stop: true }); },
+  stop() { VoicePlayer.stop(); if (this.supported) speechSynthesis.cancel(); if (MODE === 'control') Sync.send({ type: 'speech', stop: true }); },
+  /** A recording wins over the computer voice: always when asked for, and on its own when "recordings play by themselves" is on. */
+  rec(id, force) { if (!id || !(force || Store.state.speech.rec)) return false; VoicePlayer.play(id); return true; },
   readQuestion(force = true) {
     const s = Store.state;
     if (s.show.scene === 'PRELIM_Q') { const q = Sel.prelimQuestions()[s.prelimLive.idx]; if (q) this.say('প্রশ্ন ' + bn(s.prelimLive.idx + 1) + '। ' + q.text, 'question', force); return; }
     const q = Sel.liveQuestion(); if (!q) return;
+    if (this.rec(q.voiceQ, force)) return;
     this.say(q.speech || q.text, 'question', force);
     if (s.live.optionsShown) this.readOptions(force);
   },
   readOptions(force = true) {
     const q = Sel.liveQuestion(); if (!q) return;
     const l = Store.state.live;
+    if (!l.eliminated.length && this.rec(q.voiceOpt, force)) return; // the recording reads all four; with two left the computer voice reads the two
     this.say(q.options.map((o, i) => (o && !l.eliminated.includes(i) ? OPT_LABELS[i] + '। ' + o : '')).filter(Boolean).join('। '), 'options', force);
   },
   readAnswer(force) {
     const s = Store.state;
     if (s.show.scene === 'PRELIM_Q') { const q = Sel.prelimQuestions()[s.prelimLive.idx]; if (q) this.say('সঠিক উত্তর: ' + q.answer, 'answer', force); return; }
     const q = Sel.liveQuestion(); if (!q) return;
+    if (this.rec(q.voiceAns, force)) return;
     this.say('সঠিক উত্তর: ' + (q.answerText || q.options[q.answer] || ''), 'answer', force);
   },
   readTeam(force = true) { const t = Sel.team(Sel.answeringTeam()); if (t) this.say(t.name + (t.school ? '। ' + t.school : ''), 'team', force); },
@@ -507,7 +540,8 @@ const Sync = {
     else if (m.type === 'ping') { this.lastPong = Date.now(); this.send({ type: 'pong', t: m.t }); }
     else if (m.type === 'cue' && AudioDirector.isOutput()) AudioDirector.playCue(m.name, m.opts || {});
     else if (m.type === 'music' && AudioDirector.isOutput()) AudioDirector.music(m.slot, m.action, m.media);
-    else if (m.type === 'speech' && AudioDirector.isOutput()) { if (m.stop) Speech.supported && speechSynthesis.cancel(); else Speech.say(m.text, m.category, m.force); }
+    else if (m.type === 'voice' && AudioDirector.isOutput()) { if (m.stop) VoicePlayer.stopLocal(); else VoicePlayer.play(m.id); }
+    else if (m.type === 'speech' && AudioDirector.isOutput()) { if (m.stop) { VoicePlayer.stopLocal(); if (Speech.supported) speechSynthesis.cancel(); } else Speech.say(m.text, m.category, m.force); }
     else if (m.type === 'media') { Media.forget(m.id); Media.loadIndex().then(() => Bus.emit('change', { label: 'media' })); }
     else if (m.type === 'fx') Bus.emit('fx', m.fx);
     else if (m.type === 'countvoice' && AudioDirector.isOutput()) CountVoice.say(m.n);

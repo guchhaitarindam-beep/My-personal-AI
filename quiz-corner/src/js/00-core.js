@@ -183,6 +183,8 @@ function questionFromSeed(q, i) {
     hint: str(q.hint || q.clue, 400), difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
     clip: str(q.clip, 200),
     timer: q.timer == null ? null : int(q.timer, 60, 5, 600), points: q.points == null ? null : int(q.points, 10, -100, 100), speech: str(q.speech, 2000),
+    // the host's own recorded reading: question / options / answer (media ids)
+    voiceQ: str(q.voiceQ, 200), voiceOpt: str(q.voiceOpt, 200), voiceAns: str(q.voiceAns, 200),
   };
 }
 
@@ -256,7 +258,7 @@ function defaultState() {
         background: { media: '', vol: 0.35, fadeIn: 2, fadeOut: 2, loop: true, delay: 0 },
       },
     },
-    speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true },
+    speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true, rec: true, recVol: 1 },
     display: { webgl: true, strobe: true, fireworks: true, calib: 'off', aspect: '16:9', safeMargin: 0, testCard: false },
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,

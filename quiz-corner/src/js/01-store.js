@@ -555,7 +555,7 @@ const Game = {
     const r = Sel.round(Store.state.live.roundId);
     if (r && !r.features.options && !Store.state.live.optionsShown) { UI.toast('এই রাউন্ডে বিকল্প নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
     Store.commit('options', (s) => { s.live.optionsShown = !s.live.optionsShown; });
-    if (Store.state.live.optionsShown) Cue.play('option');
+    if (Store.state.live.optionsShown) { Cue.play('option'); if (Store.state.speech.rec && q.voiceOpt) setTimeout(() => Speech.readOptions(false), 500); }
     return true;
   },
   wrongIndexes(q) {
@@ -644,7 +644,8 @@ const Game = {
     const rn = Store.state.rounds.filter((x) => x.enabled).indexOf(r) + 1;
     if (rn > 0) setTimeout(() => Cue.play('rq' + Math.min(6, rn)), (drone ? Show.droneMs() * 0.6 : 250) + 120);
     if (Store.state.settings.autoTimer) Timer.start('direct', Timer.durationFor('direct'), drone ? Show.droneMs() : 900);
-    if (Store.state.speech.autoQuestion) setTimeout(() => Speech.readQuestion(), drone ? Show.droneMs() : 800);
+    const sp = Store.state.speech;
+    if (sp.autoQuestion || (sp.rec && q.voiceQ)) setTimeout(() => Speech.readQuestion(sp.autoQuestion), drone ? Show.droneMs() : 800);
     return true;
   },
   adjust(teamId, delta, reason) {

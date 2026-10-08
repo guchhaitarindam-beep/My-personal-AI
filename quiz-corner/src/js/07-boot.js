@@ -370,6 +370,26 @@ const SelfTest = {
       T('নতুন সেভ: অপারেটরের নিজের নিয়ম-বদল থাকে', () => { const cur = defaultState(); cur.rounds[0].label = 'আমার লেখা'; return normalizeState(cur).rounds[0].label === 'আমার লেখা'; });
       T('নিয়ম: রাউন্ড ১-এর পাশের লেখায় চ্যালেঞ্জ নেই', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
       T('একসাথে মিডিয়া: ফাইলের নাম থেকে রাউন্ড ও প্রশ্ন', () => { const a = bulkMediaTarget('R1-5.jpg'); const b = bulkMediaTarget('r2_10.png'); const c = bulkMediaTarget('রাউন্ড৩-প্রশ্ন৭.mp3'); const d = bulkMediaTarget('holiday photo.jpg'); return a.round === 1 && a.n === 5 && b.round === 2 && b.n === 10 && c.round === 3 && c.n === 7 && d === null; });
+      T('রেকর্ডিং: ফাইলের নাম থেকে প্রশ্ন / বিকল্প / উত্তর / ক্লিপ', () => { const a = bulkMediaTarget('R1-5.mp3'); const b = bulkMediaTarget('R1-5-বিকল্প.mp3'); const c = bulkMediaTarget('r2_3-উত্তর.m4a'); const d = bulkMediaTarget('R3-7-clip.mp3'); const e = bulkMediaTarget('R1-5-opt.mp3'); const f = bulkMediaTarget('R2-4 ans.wav'); return a.voice === 'q' && b.voice === 'opt' && b.n === 5 && c.voice === 'ans' && c.round === 2 && c.n === 3 && d.voice === 'clip' && e.voice === 'opt' && f.voice === 'ans'; });
+      T('রেকর্ডিং: পুরনো সেভে খালি ঘর, নতুনটিতে থাকে', () => { const q = questionFromSeed({ voiceQ: 'm_x', voiceAns: 'm_y' }, 0); const old = mergeDefaults(questionFromSeed({}, 0), { id: 'Q', text: 'ক' }); return q.voiceQ === 'm_x' && q.voiceAns === 'm_y' && q.voiceOpt === '' && old.voiceQ === '' && old.voiceOpt === ''; });
+      {
+        const realPlay = VoicePlayer.play; const played = []; VoicePlayer.play = (id) => { played.push(id); return true; };
+        const realSay = Speech.say; const said = []; Speech.say = (t) => { said.push(t); };
+        try {
+          Store.state.show.scene = 'QUESTION';
+          const q1 = Sel.roundQuestions('R1')[2]; Game.load(q1.id, Sel.finalistIds()[0]);
+          Object.assign(Sel.question(q1.id), { voiceQ: 'm_q', voiceOpt: 'm_o', voiceAns: 'm_a' });
+          Store.state.speech.rec = true;
+          Speech.readQuestion(false); Speech.readOptions(false); Speech.readAnswer(false);
+          T('রেকর্ডিং: প্রশ্ন / বিকল্প / উত্তর — নিজের গলার রেকর্ডিং বাজে, কম্পিউটারের ভয়েস নয়', () => played.join() === 'm_q,m_o,m_a' && said.length === 0);
+          played.length = 0; Store.state.live.eliminated = [0, 1]; Speech.readOptions(true);
+          T('রেকর্ডিং: দুই বিকল্পে নামলে চার-বিকল্পের রেকর্ডিং বাজে না', () => played.length === 0 && said.length === 1 && !said[0].includes(Sel.question(q1.id).options[0]));
+          played.length = 0; Store.state.speech.rec = false; Speech.readQuestion(false); Speech.readQuestion(true);
+          T('রেকর্ডিং: "নিজে বাজাও" বন্ধ থাকলে শুধু বোতাম টিপলে বাজে', () => played.join() === 'm_q');
+          T('রেকর্ডিং: কন্ট্রোলে "🎙 প্রশ্ন শোনাও" ও "পড়া থামাও" বোতাম', () => { const h = UI.liveHtml(); return h.includes('🎙 প্রশ্ন শোনাও') && h.includes('🎙 উত্তর শোনাও') && h.includes('পড়া থামাও'); });
+          T('রেকর্ডিং তালিকা: ফাইলের নাম ও পড়ার লেখা', () => voiceScript(Sel.question(q1.id), 'voiceOpt').startsWith(OPT_LABELS[0] + ') ') && voiceScript(Sel.question(q1.id), 'voiceAns').startsWith('সঠিক উত্তর: '));
+        } finally { VoicePlayer.play = realPlay; Speech.say = realSay; }
+      }
       T('ব্ল্যাকআউট হলে কন্ট্রোলে লাল সতর্কতা ও ফেরানোর বোতাম', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
       {
         const ids = Sel.finalistIds();
@@ -389,6 +409,7 @@ const SelfTest = {
         Show.next();
         const h1 = Scenes.SCOREBOARD(s(), s().show.params).html;
         T('স্কোরবোর্ড ধাপ ২: র‍্যাঙ্ক অনুযায়ী (নিচ থেকে ওপরে খোলে) ও রাউন্ড চ্যাম্পিয়ন', () => s().show.scene === 'SCOREBOARD' && h1.includes('reveal-up') && h1.includes('রাউন্ড চ্যাম্পিয়ন') && h1.includes('TEAM A / 1') && h1.includes('+১০'));
+        T('স্কোরবোর্ড: প্রতিটি সারিতে দলের ছবি, চ্যাম্পিয়নের ব্যানারেও ছবি', () => (h1.match(/class="sb-row/g) || []).length === Sel.standings().length && (h1.match(/team-photo/g) || []).length >= Sel.standings().length && h1.includes('rc-photo'));
         Show.next();
         T('তৃতীয় রাউন্ডের পরে: চূড়ান্ত ফল → সেরা ৩ → বিজয়ী → সমাপনী, আর কোনো রাউন্ড নেই', () => { const rr = Show.rundown(); const last = rr.map((x) => x.scene); const iSB3 = rr.findIndex((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R3'); return last.slice(iSB3 + 1).join() === 'FINAL,TOP3,WINNER,END' && rr.filter((x) => x.scene === 'ROUND_INTRO').length === 3; });
       }
@@ -523,6 +544,6 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

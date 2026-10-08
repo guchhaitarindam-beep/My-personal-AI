@@ -25,8 +25,22 @@ const TEXT_SAMPLES = { question: 'বিশ্বের বৃহত্তম �
 function bulkMediaTarget(name) {
   const t = String(name || '').replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d))).replace(/\.[a-z0-9]+$/i, '');
   const m = t.match(/(?:^|[^0-9])(?:r|round|রাউন্ড)?\s*([1-7])\s*[-_. ]+\s*(?:q|প্রশ্ন)?\s*([0-9]{1,2})(?![0-9])/i);
-  return m ? { round: int(m[1]), n: int(m[2]) } : null;
+  if (!m) return null;
+  // what follows the number says which reading it is: R1-5.mp3 / R1-5-প্রশ্ন = question, R1-5-বিকল্প / -opt = options, R1-5-উত্তর / -ans = answer, R1-5-clip = a sound clip shown with the question
+  const rest = t.slice(m.index + m[0].length);
+  const voice = /^[\s\-_.]*(opt|option|বিকল্প)/i.test(rest) ? 'opt' : /^[\s\-_.]*(ans|answer|উত্তর)/i.test(rest) ? 'ans' : /^[\s\-_.]*(clip|ক্লিপ|music|গান)/i.test(rest) ? 'clip' : 'q';
+  return { round: int(m[1]), n: int(m[2]), voice };
 }
+const VOICE_SLOTS = [['voiceQ', 'প্রশ্ন পড়া', 'প্রশ্ন'], ['voiceOpt', 'বিকল্প পড়া', 'বিকল্প'], ['voiceAns', 'উত্তর পড়া', 'উত্তর']];
+const VOICE_FIELD = { q: 'voiceQ', opt: 'voiceOpt', ans: 'voiceAns' };
+/** What the host reads into each recording (shown while recording, and in the recording list). */
+function voiceScript(q, field) {
+  if (field === 'voiceOpt') return q.options.map((o, i) => (o ? OPT_LABELS[i] + ') ' + o : '')).filter(Boolean).join('   ');
+  if (field === 'voiceAns') return 'সঠিক উত্তর: ' + (q.answerText || q.options[q.answer] || '');
+  return q.speech || q.text;
+}
+/** Laptop-microphone recorder for the question readings. */
+const Rec = { mr: null, stream: null, chunks: [], blob: null, url: '', path: '', t0: 0, iv: 0 };
 
 const TabRender = {
   /* ---------------- SHOW ---------------- */
@@ -112,7 +126,7 @@ const TabRender = {
     const rounds = s.rounds;
     const list = s.questions.filter((q) => !filter || q.roundId === filter).sort((a, b) => Sel.roundIndex(a.roundId) - Sel.roundIndex(b.roundId) || a.number - b.number);
     const filt = '<div class="row">' + F.btn('qFilter', 'সব (' + bn(s.questions.length) + ')', 'sm' + (!filter ? ' on' : ''), '') + rounds.map((r) => F.btn('qFilter', esc(r.name) + ' (' + bn(Sel.roundQuestions(r.id).length) + ')', 'sm' + (filter === r.id ? ' on' : ''), r.id)).join('') + '</div>';
-    const rows = list.map((q) => '<div class="li' + (UI.qEdit === q.id ? ' active' : '') + (s.board.played[q.id] ? ' done' : '') + '"><span class="n">' + bn(q.number) + '</span><div class="t">' + esc(q.text.slice(0, 110)) + (q.text.length > 110 ? '…' : '') + '<small>' + esc((Sel.round(q.roundId) || {}).name || q.roundId) + ' • উত্তর: ' + esc(q.answerText || q.options[q.answer] || '—') + (q.image ? ' • 🖼' : '') + '</small></div><div class="acts">' + F.btn('qEdit', '✎', 'sm primary', q.id) + F.btn('showQ', '▶', 'sm good', q.id) + (s.board.played[q.id] ? F.btn('qUnused', '♻', 'sm', q.id) : '') + F.btn('qMove', '↑', 'sm', q.id + '|-1') + F.btn('qMove', '↓', 'sm', q.id + '|1') + F.btn('qDup', '⧉', 'sm', q.id) + F.btn('qDel', '🗑', 'sm bad', q.id) + '</div></div>').join('');
+    const rows = list.map((q) => '<div class="li' + (UI.qEdit === q.id ? ' active' : '') + (s.board.played[q.id] ? ' done' : '') + '"><span class="n">' + bn(q.number) + '</span><div class="t">' + esc(q.text.slice(0, 110)) + (q.text.length > 110 ? '…' : '') + '<small>' + esc((Sel.round(q.roundId) || {}).name || q.roundId) + ' • উত্তর: ' + esc(q.answerText || q.options[q.answer] || '—') + (q.image ? ' • 🖼' : '') + (q.voiceQ || q.voiceOpt || q.voiceAns ? ' • 🎙' + bn([q.voiceQ, q.voiceOpt, q.voiceAns].filter(Boolean).length) : '') + '</small></div><div class="acts">' + F.btn('qEdit', '✎', 'sm primary', q.id) + F.btn('showQ', '▶', 'sm good', q.id) + (s.board.played[q.id] ? F.btn('qUnused', '♻', 'sm', q.id) : '') + F.btn('qMove', '↑', 'sm', q.id + '|-1') + F.btn('qMove', '↓', 'sm', q.id + '|1') + F.btn('qDup', '⧉', 'sm', q.id) + F.btn('qDel', '🗑', 'sm bad', q.id) + '</div></div>').join('');
     let editor = '';
     const qi = s.questions.findIndex((q) => q.id === UI.qEdit);
     if (qi >= 0) {
@@ -122,9 +136,10 @@ const TabRender = {
         '<div class="g2">' + [0, 1, 2, 3].map((i) => '<label class="field"><span><input type="radio" name="ans" data-bind="' + p + '.answer" data-type="int" value="' + i + '"' + (q.answer === i ? ' checked' : '') + '> সঠিক — বিকল্প ' + OPT_LABELS[i] + '</span><input type="text" data-bind="' + p + '.options.' + i + '" value="' + esc(q.options[i] || '') + '"></label>').join('') + '</div>' +
         '<div class="g2">' + F.text(p + '.answerText', 'লিখিত উত্তর (বিকল্প না থাকলে)', q.answerText) + F.num(p + '.points', 'নম্বর (খালি = রাউন্ড ডিফল্ট)', q.points, -100, 100, 1, 'nullnum') + '</div>' +
         F.area(p + '.explanation', 'ব্যাখ্যা', q.explanation, 2) + '<div class="g2">' + F.text(p + '.hint', 'সংকেত (Hint)', q.hint) + F.select(p + '.difficulty', 'কাঠিন্য', [['easy', 'সহজ'], ['medium', 'মাঝারি'], ['hard', 'কঠিন']], q.difficulty) + '</div>' + F.area(p + '.speech', 'ভয়েসের জন্য লেখা (ঐচ্ছিক)', q.speech, 2) + '<div class="card" style="margin:.5rem 0"><h3>✔ বানান ও গঠন পরীক্ষা (V100 অডিটর)</h3>' + auditHtml(q) + '</div>' +
+        '<div class="card voice-card" style="margin:.5rem 0"><h3>🎙 প্রশ্ন পড়ে শোনানো — নিজের গলায় রেকর্ডিং</h3><p class="muted">ল্যাপটপের মাইকে এখানেই রেকর্ড করুন, অথবা ফোনে রেকর্ড করা mp3 দিন। প্রশ্ন স্টেজে এলে প্রশ্নের রেকর্ডিং, বিকল্প দেখালে বিকল্পের, উত্তর দেখালে উত্তরের রেকর্ডিং নিজে বাজে।</p><div class="row">' + VOICE_SLOTS.map(([f, l]) => '<div class="voice-slot">' + F.media(p + '.' + f, (q[f] ? '✔ ' : '') + l, q[f], 'audio/*,.mp3,.m4a,.wav,.ogg,.webm', 'audio') + '<div class="row">' + F.btn('recOpen', '🎙 রেকর্ড', 'sm warn', p + '.' + f) + (q[f] ? F.btn('voicePreview', '▶ শুনুন', 'sm', q[f]) : '') + '</div></div>').join('') + '</div></div>' +
         '<div class="row">' + F.media(p + '.image', 'প্রশ্নের ছবি', q.image) + F.media(p + '.clip', 'অডিও / ভিডিও ক্লিপ', q.clip, 'audio/*,video/*', 'video') + '<div class="deck" style="flex:1">' + F.btn('showQ', '▶ স্টেজে দেখাও', 'good', q.id) + F.btn('qEdit', 'বন্ধ', '', '') + '</div></div>');
     }
-    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('importOpen', '⇧ আমদানি (CSV / Excel / JSON / লেখা)', 'warn') + F.btn('qMediaBulk', '🖼 একসাথে সব ছবি / অডিও / ভিডিও (নাম: R1-5.jpg)', 'primary') + F.btn('csvTemplate', '⇩ খালি CSV ছাঁচ') + F.btn('exportQuestionsCsv', '⇩ প্রশ্ন CSV') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON') + F.btn('bankAudit', '🔎 বানান ও প্রশ্ন-ব্যাংক পরীক্ষা') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
+    return editor + F.card('প্রশ্ন ব্যবস্থাপক', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ নতুন প্রশ্ন', 'primary') + F.btn('importOpen', '⇧ আমদানি (CSV / Excel / JSON / লেখা)', 'warn') + F.btn('qMediaBulk', '🖼 একসাথে সব ছবি / অডিও / ভিডিও (নাম: R1-5.jpg)', 'primary') + F.btn('voiceList', '🎙 রেকর্ডিং তালিকা (কোন ফাইলে কী পড়বেন)') + F.btn('csvTemplate', '⇩ খালি CSV ছাঁচ') + F.btn('exportQuestionsCsv', '⇩ প্রশ্ন CSV') + F.btn('exportQuestions', '⇩ প্রশ্ন JSON') + F.btn('bankAudit', '🔎 বানান ও প্রশ্ন-ব্যাংক পরীক্ষা') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="সময় (সেকেন্ড)">' + F.btn('setTimeAll', '⏱ ' + (filter ? 'এই রাউন্ডের' : 'সব') + ' প্রশ্নে এই সময়') + F.btn('setTimeClear', 'সময় রাউন্ড-ডিফল্টে') + F.btn('shuffleAnswers', '🔀 উত্তরের অবস্থান এলোমেলো') + F.btn('resetBoard', '♻ সব "ব্যবহৃত" মুছুন') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">এই রাউন্ডে কোনো প্রশ্ন নেই</p>') + '</div>');
   },
 
   /* ---------------- ROUNDS ---------------- */
@@ -229,7 +244,7 @@ const TabRender = {
     const voices = Speech.voices.map((v) => [v.name, v.name + ' (' + v.lang + ')' + (/^bn/i.test(v.lang) ? ' ★' : '')]);
     const hasBn = Speech.voices.some((v) => /^bn/i.test(v.lang));
     const sp = s.speech;
-    return F.card('ভয়েস (Speech)', (Speech.supported ? '' : '<p class="badge-warn">এই ব্রাউজারে ভয়েস সমর্থিত নয়</p>') + (Speech.supported && !hasBn ? '<p class="badge-warn">বাংলা ভয়েস পাওয়া যায়নি — Windows Settings ▸ Time & Language ▸ Speech থেকে Bengali (India) ভয়েস যোগ করুন।</p>' : '') + '<div class="row">' + F.check('speech.enabled', 'ভয়েস চালু', sp.enabled) + F.check('speech.autoQuestion', 'প্রশ্ন স্বয়ংক্রিয়ভাবে পড়ো', sp.autoQuestion) + F.check('speech.announceTeam', 'দলের নাম ঘোষণা', sp.announceTeam) + '</div><div class="g4">' + F.select('speech.voice', 'ভয়েস', [['', 'স্বয়ংক্রিয় (bn-IN)']].concat(voices), sp.voice) + F.range('speech.rate', 'গতি', sp.rate, 0.5, 1.5, 0.05) + F.range('speech.pitch', 'পিচ', sp.pitch, 0.5, 1.5, 0.05) + F.select('speech.timerVoice', 'টাইমার ঘোষণা', [['off', 'বন্ধ'], ['last10', 'শেষ ১০ সেকেন্ড'], ['marks', '৬০/৫০/…/১০ ও শেষ ৫'], ['all', '১০-এর ঘর + শেষ ১০']], sp.timerVoice) + '</div><div class="row">' + F.btn('speechTest', '🔊 পরীক্ষা') + F.btn('speak', 'প্রশ্ন পড়ো', '', 'question') + F.btn('speak', 'উত্তর পড়ো', '', 'answer') + F.btn('speak', 'দলের নাম', '', 'team') + F.btn('speak', 'রাউন্ডের নাম', '', 'round') + '</div>');
+    return F.card('ভয়েস (Speech)', (Speech.supported ? '' : '<p class="badge-warn">এই ব্রাউজারে ভয়েস সমর্থিত নয়</p>') + (Speech.supported && !hasBn ? '<p class="badge-warn">বাংলা ভয়েস পাওয়া যায়নি — Windows Settings ▸ Time & Language ▸ Speech থেকে Bengali (India) ভয়েস যোগ করুন।</p>' : '') + '<div class="row">' + F.check('speech.enabled', 'ভয়েস চালু', sp.enabled) + F.check('speech.autoQuestion', 'প্রশ্ন স্বয়ংক্রিয়ভাবে পড়ো', sp.autoQuestion) + F.check('speech.announceTeam', 'দলের নাম ঘোষণা', sp.announceTeam) + F.check('speech.rec', '🎙 প্রশ্ন / বিকল্প / উত্তরের রেকর্ডিং নিজে বাজাও', sp.rec) + '</div><div class="g4">' + F.range('speech.recVol', 'রেকর্ডিংয়ের ভলিউম', sp.recVol, 0, 1, 0.05) + '</div><p class="muted">নিজের গলার রেকর্ডিং থাকলে সেটাই বাজে, না থাকলে কম্পিউটারের ভয়েস (চালু থাকলে)। Edge ব্রাউজারে ইন্টারনেট থাকলে "Microsoft Tanishaa Online (Natural) — Bengali" ভয়েস প্রায় মানুষের মতো; ইন্টারনেট ছাড়া নিশ্চিত নয় — তাই আসল অনুষ্ঠানে রেকর্ডিং সবচেয়ে ভরসাযোগ্য।</p><div class="g4">' + F.select('speech.voice', 'ভয়েস', [['', 'স্বয়ংক্রিয় (bn-IN)']].concat(voices), sp.voice) + F.range('speech.rate', 'গতি', sp.rate, 0.5, 1.5, 0.05) + F.range('speech.pitch', 'পিচ', sp.pitch, 0.5, 1.5, 0.05) + F.select('speech.timerVoice', 'টাইমার ঘোষণা', [['off', 'বন্ধ'], ['last10', 'শেষ ১০ সেকেন্ড'], ['marks', '৬০/৫০/…/১০ ও শেষ ৫'], ['all', '১০-এর ঘর + শেষ ১০']], sp.timerVoice) + '</div><div class="row">' + F.btn('speechTest', '🔊 পরীক্ষা') + F.btn('speak', 'প্রশ্ন পড়ো', '', 'question') + F.btn('speak', 'উত্তর পড়ো', '', 'answer') + F.btn('speak', 'দলের নাম', '', 'team') + F.btn('speak', 'রাউন্ডের নাম', '', 'round') + '</div>');
   },
 
   /* ---------------- BACKUP & RESET ---------------- */
@@ -356,9 +371,60 @@ Object.assign(Actions, {
   logoReset() { Store.commit('logo-reset', (s) => { s.logo = 'asset:logo'; }); },
   crewAdd() { Store.commit('crew-add', (s) => { s.crew.push({ name: '', role: '', photo: '' }); }); },
   crewDel(i) { const c = Store.state.crew[int(i)]; if (!c || !confirm('"' + (c.name || 'এই সদস্য') + '"-কে আমাদের টিম থেকে সরাবেন? (Ctrl+Z দিয়ে ফেরানো যায়)')) return; Store.commit('crew-del', (s) => { s.crew.splice(int(i), 1); }); },
+  /** Records one reading from the laptop microphone, shows the words to read, lets the host listen before keeping it. */
+  recOpen(path) {
+    const qPath = path.replace(/\.voice\w+$/, ''); const field = path.split('.').pop();
+    const q = getPath(Store.state, qPath); if (!q) return;
+    Rec.path = path; Rec.blob = null;
+    const slot = VOICE_SLOTS.find((x) => x[0] === field) || VOICE_SLOTS[0];
+    UI.modal('🎙 রেকর্ড — ' + ((Sel.round(q.roundId) || {}).name || q.roundId) + ', প্রশ্ন ' + bn(q.number) + ' • ' + slot[1], '<p class="muted">মাইকের কাছে মুখ রেখে স্পষ্ট করে পড়ুন। পুরো লেখা না পড়ে নিজের ভাষায় মূল কথাটা বললেও চলবে।</p><div class="rec-script">' + esc(voiceScript(q, field)) + '</div><div class="rec-state" id="recState">প্রস্তুত</div><div class="deck">' + F.btn('recStart', '⏺ রেকর্ড শুরু', 'lg bad', '') + F.btn('recStop', '■ থামাও', 'lg', '') + F.btn('recPlay', '▶ শুনে দেখুন', 'lg', '') + F.btn('recSave', '✔ এটাই রাখুন', 'lg good', '') + '</div>');
+  },
+  async recStart() {
+    if (Rec.mr && Rec.mr.state === 'recording') return;
+    const st = (t) => { const el = document.getElementById('recState'); if (el) el.textContent = t; };
+    if (!navigator.mediaDevices || !window.MediaRecorder) { st('এই ব্রাউজারে রেকর্ড করা যায় না — ফোনে রেকর্ড করে mp3 দিন'); return; }
+    try { Rec.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); } catch (e) { st('মাইক পাওয়া যায়নি — ব্রাউজারের ঠিকানার পাশে 🎙 থেকে মাইকের অনুমতি দিন'); Log.err('mic', e); return; }
+    const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
+    Rec.chunks = []; Rec.blob = null;
+    Rec.mr = new MediaRecorder(Rec.stream, type ? { mimeType: type } : undefined);
+    Rec.mr.ondataavailable = (e) => { if (e.data && e.data.size) Rec.chunks.push(e.data); };
+    Rec.mr.onstop = () => { clearInterval(Rec.iv); Rec.blob = new Blob(Rec.chunks, { type: (Rec.mr.mimeType || 'audio/webm').split(';')[0] }); if (Rec.url) URL.revokeObjectURL(Rec.url); Rec.url = URL.createObjectURL(Rec.blob); Rec.stream.getTracks().forEach((t) => t.stop()); st('✔ রেকর্ড হয়েছে (' + bn(Math.round((Date.now() - Rec.t0) / 1000)) + ' সেকেন্ড) — শুনে দেখুন, ঠিক থাকলে "এটাই রাখুন"'); };
+    Rec.mr.start(); Rec.t0 = Date.now();
+    Rec.iv = setInterval(() => st('⏺ রেকর্ড হচ্ছে… ' + bn(Math.round((Date.now() - Rec.t0) / 1000)) + ' সেকেন্ড'), 250);
+  },
+  recStop() { if (Rec.mr && Rec.mr.state === 'recording') Rec.mr.stop(); },
+  recPlay() { if (Rec.url) new Audio(Rec.url).play().catch(() => {}); },
+  async recSave() {
+    if (!Rec.blob || !Rec.blob.size) { UI.toast('আগে রেকর্ড করুন', 'err'); return; }
+    const q = getPath(Store.state, Rec.path.replace(/\.voice\w+$/, '')); const field = Rec.path.split('.').pop();
+    const ext = /ogg/.test(Rec.blob.type) ? '.ogg' : /mp4/.test(Rec.blob.type) ? '.m4a' : '.webm';
+    const name = q.roundId + '-' + q.number + { voiceQ: '', voiceOpt: '-বিকল্প', voiceAns: '-উত্তর' }[field] + ext;
+    try {
+      const id = await Media.add(new File([Rec.blob], name, { type: Rec.blob.type }), 'audio');
+      const path = Rec.path;
+      Store.commit('voice-rec:' + path, (s) => setPath(s, path, id));
+      UI.closeModal(); UI.toast('রেকর্ডিং রাখা হয়েছে ✓', 'ok');
+    } catch (e) { UI.toast(e.message || 'রাখা যায়নি', 'err'); }
+  },
+  voicePreview(id) { Media.url(id).then((u) => { if (u) new Audio(u).play().catch(() => {}); }); },
+  /** A text list of every recording to make: file name and the words to read, for the main rounds. */
+  voiceList() {
+    const lines = ['কুইজ কর্নার — প্রশ্ন পড়ার রেকর্ডিং তালিকা', 'ফোনে রেকর্ড করে ফাইলের নাম ঠিক এভাবে দিন, তারপর প্রশ্ন ট্যাব ▸ "একসাথে সব ছবি / অডিও / ভিডিও" দিয়ে সব একবারে দিন।', ''];
+    Store.state.rounds.filter((r) => r.enabled).forEach((r, ri) => {
+      lines.push('==== রাউন্ড ' + (ri + 1) + ' — ' + r.name + ' ====');
+      Sel.roundQuestions(r.id).forEach((q) => {
+        const base = r.id + '-' + q.number; // the same name the "all at once" button reads back
+        lines.push(base + '.mp3  (প্রশ্ন' + (q.voiceQ ? ', আছে ✔' : '') + '): ' + voiceScript(q, 'voiceQ'));
+        if (r.features.options && q.options.filter(Boolean).length > 1) lines.push(base + '-বিকল্প.mp3  (বিকল্প' + (q.voiceOpt ? ', আছে ✔' : '') + '): ' + voiceScript(q, 'voiceOpt'));
+        lines.push(base + '-উত্তর.mp3  (উত্তর' + (q.voiceAns ? ', আছে ✔' : '') + '): ' + voiceScript(q, 'voiceAns'));
+        lines.push('');
+      });
+    });
+    download('recording-list-' + stamp() + '.txt', new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/plain;charset=utf-8' }));
+  },
   /** All pictures / sounds / videos for the questions in one go: a file named R1-5.jpg goes to round 1, question 5. */
   qMediaBulk() {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,audio/*,video/*';
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,audio/*,video/*,.mp3,.m4a,.wav,.ogg,.webm';
     inp.onchange = async () => {
       const files = Array.from(inp.files || []); if (!files.length) return;
       const done = []; const skipped = [];
@@ -369,11 +435,13 @@ Object.assign(Actions, {
         const kind = /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif)$/i.test(f.name) ? 'image' : /^audio\//.test(f.type) || /\.(mp3|wav|m4a|ogg)$/i.test(f.name) ? 'audio' : 'video';
         try {
           const id = await Media.add(f, kind);
-          Store.commit('bulk-media', (s) => { const t = s.questions.find((x) => x.id === q.id); if (kind === 'image') t.image = id; else t.clip = id; });
-          done.push(f.name + ' → রাউন্ড ' + bn(m.round) + ', প্রশ্ন ' + bn(m.n));
+          const field = kind === 'image' ? 'image' : kind === 'audio' && m.voice !== 'clip' ? VOICE_FIELD[m.voice] : 'clip';
+          Store.commit('bulk-media', (s) => { const t = s.questions.find((x) => x.id === q.id); t[field] = id; });
+          const what = { image: 'ছবি', clip: 'ক্লিপ', voiceQ: 'প্রশ্ন পড়া', voiceOpt: 'বিকল্প পড়া', voiceAns: 'উত্তর পড়া' }[field];
+          done.push(f.name + ' → রাউন্ড ' + bn(m.round) + ', প্রশ্ন ' + bn(m.n) + ' (' + what + ')');
         } catch (e) { skipped.push(f.name + ' (' + (e.message || 'খোলা যায়নি') + ')'); }
       }
-      UI.modal('একসাথে ছবি / অডিও / ভিডিও', '<p class="ok">' + bn(done.length) + 'টি ফাইল প্রশ্নে বসেছে।</p>' + (done.length ? '<div class="list" style="max-height:30vh;overflow:auto">' + done.map((x) => '<div class="li">✔ ' + esc(x) + '</div>').join('') + '</div>' : '') + (skipped.length ? '<p class="badge-warn">' + bn(skipped.length) + 'টি ফাইলের নাম থেকে প্রশ্ন বোঝা যায়নি — নাম এভাবে দিন: R1-5.jpg (রাউন্ড ১, প্রশ্ন ৫)</p><div class="list">' + skipped.map((x) => '<div class="li">✘ ' + esc(x) + '</div>').join('') + '</div>' : ''));
+      UI.modal('একসাথে ছবি / অডিও / ভিডিও', '<p class="ok">' + bn(done.length) + 'টি ফাইল প্রশ্নে বসেছে।</p>' + (done.length ? '<div class="list" style="max-height:30vh;overflow:auto">' + done.map((x) => '<div class="li">✔ ' + esc(x) + '</div>').join('') + '</div>' : '') + (skipped.length ? '<p class="badge-warn">' + bn(skipped.length) + 'টি ফাইলের নাম থেকে প্রশ্ন বোঝা যায়নি — নাম এভাবে দিন: R1-5.jpg (রাউন্ড ১, প্রশ্ন ৫ — ছবি), R1-5.mp3 (প্রশ্ন পড়া), R1-5-বিকল্প.mp3, R1-5-উত্তর.mp3</p><div class="list">' + skipped.map((x) => '<div class="li">✘ ' + esc(x) + '</div>').join('') + '</div>' : ''));
     };
     inp.click();
   },

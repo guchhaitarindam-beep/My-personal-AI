@@ -234,7 +234,7 @@ const UI = {
         h += '<div class="deck-sep">✋ হাত তোলা / বাজার' + (r.features.singleChallenger ? ' (কেবল প্রথম দল)' : '') + ' — Shift+১–৮</div>' + b('timerRaise', '✋ হাত তোলার সময় ' + bn(r.timers.raise) + 's', 'warn');
         h += others.map((id) => { const t = Sel.team(id); if (!t) return ''; const up = l.hands.includes(id); const j = l.handsJudged[id]; return up && !j ? b('judgeHand', '✓ ' + esc(t.name) + ' +' + bn(r.scoring.challengeRight), 'good', id + '|1') + b('judgeHand', '✕ ' + esc(t.name) + ' ' + bn(r.scoring.challengeWrong), 'bad', id + '|0') + b('raiseHand', '✋ নামাও', 'sm', id) : b('raiseHand', (j ? (j === 'right' ? '✓ ' : '✕ ') : '✋ ') + esc(t.name), up ? 'on' : '', id, '', !!j); }).join('');
       }
-      h += timerRow + '<div class="deck-sep">ভয়েস ও প্রশ্ন</div>' + b('speak', '🔊 প্রশ্ন পড়ো', '', 'question', 'E') + b('speak', '🔊 বিকল্প পড়ো', '', 'options') + b('speak', '🔊 উত্তর পড়ো', '', 'answer', 'A') + b('speak', '🔊 দলের নাম', '', 'team', 'T') + b('qStep', '⏮ আগের প্রশ্ন', '', '-1') + b('qStep', 'পরের প্রশ্ন ⏭', '', '1') + b('gotoGrid', '▦ প্রশ্ন বোর্ড');
+      h += timerRow + '<div class="deck-sep">ভয়েস ও প্রশ্ন</div>' + b('speak', q && q.voiceQ ? '🎙 প্রশ্ন শোনাও' : '🔊 প্রশ্ন পড়ো', q && q.voiceQ ? 'good' : '', 'question', 'E') + b('speak', q && q.voiceOpt ? '🎙 বিকল্প শোনাও' : '🔊 বিকল্প পড়ো', q && q.voiceOpt ? 'good' : '', 'options') + b('speak', q && q.voiceAns ? '🎙 উত্তর শোনাও' : '🔊 উত্তর পড়ো', q && q.voiceAns ? 'good' : '', 'answer', 'A') + b('speak', '■ পড়া থামাও', '', 'stop') + b('speak', '🔊 দলের নাম', '', 'team', 'T') + b('qStep', '⏮ আগের প্রশ্ন', '', '-1') + b('qStep', 'পরের প্রশ্ন ⏭', '', '1') + b('gotoGrid', '▦ প্রশ্ন বোর্ড');
       h += '</div></div>';
     } else if (sc === 'PRELIM_Q') {
       const idx = s.prelimLive.idx; const q = Sel.prelimQuestions()[idx];
@@ -469,7 +469,7 @@ const Actions = {
     Actions.loadQ(q.id); return true;
   },
   lifeline(k) { Game.useLifeline(k); },
-  speak(what) { AudioDirector.unlock(); ({ question: () => Speech.readQuestion(true), options: () => Speech.readOptions(true), answer: () => Speech.readAnswer(true), team: () => Speech.readTeam(true), round: () => Speech.readRound(true) }[what] || (() => {}))(); },
+  speak(what) { AudioDirector.unlock(); ({ question: () => Speech.readQuestion(true), options: () => Speech.readOptions(true), answer: () => Speech.readAnswer(true), team: () => Speech.readTeam(true), round: () => Speech.readRound(true), stop: () => Speech.stop() }[what] || (() => {}))(); },
   qStep(d) {
     const s = Store.state; const r = Sel.round(s.live.roundId); if (!r) return;
     const qs = Sel.roundQuestions(r.id); const i = qs.findIndex((q) => q.id === s.live.qid);
