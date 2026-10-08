@@ -455,9 +455,19 @@ const SelfTest = {
         T('Board: then the 3rd team, and so on', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[2]);
         Actions.loadQ(qn(5).id);
         T('Board: an earlier played number does not open from its button either', () => s().show.scene === 'GRID' && s().live.qid === qn(10).id);
-        Sel.roundQuestions(rid).forEach((q) => { if (!s().board.played[q.id]) { Actions.gridKey(q.number); Show.next(); } });
-        T('Board: when all 10 are played, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
-        T('Board: the turn keeps rotating — round 2 starts with the team after round 1 (C / 3)', () => Game.turnFor('R2') === ids[10 % ids.length]);
+        // the other 5 teams take their turns (C … H)
+        const free = () => Sel.roundQuestions(rid).filter((q) => !s().board.played[q.id]);
+        for (let k = 0; k < 6; k++) { Actions.gridKey(free()[0].number); Show.next(); }
+        T('Board: each of the 8 teams gets exactly one turn (A / 1 … H / 8)', () => R(rid).turnsTaken.join() === ids.join() && Game.turnFor(rid) === '');
+        T('Board: after H / 8 the board says "audience question"', () => s().show.scene === 'GRID' && Scenes.GRID(s(), s().show.params).html.includes('দর্শকদের প্রশ্ন'));
+        const led = s().ledger.length;
+        Actions.gridKey(free()[0].number);
+        T('Audience question: no team, judging gives no points', () => s().live.audience === true && !s().live.active && Game.judge('correct') === false && s().ledger.length === led);
+        T('Audience question: choosing a team is refused too', () => Game.setActive(ids[0]) === false && !s().live.active);
+        T('Audience question: the TV shows the audience card', () => Scenes.QUESTION(s(), s().show.params).html.includes('audience-card'));
+        Show.next(); Show.next();
+        T('Board: with only audience numbers left, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
+        T('Turn order: round 2 runs anti-clockwise, H / 8 first; round 3 starts again at A / 1', () => Game.turnFor('R2') === ids[ids.length - 1] && Game.turnFor('R3') === ids[0]);
         Store.state = normalizeState(defaultState()); Show._rd = null;
       }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });

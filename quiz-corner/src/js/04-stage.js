@@ -279,7 +279,7 @@ const Scenes = {
     const tiles = qs.length ? qs.map((q, i) => '<div class="tile' + (s.board.played[q.id] ? ' played' : '') + (s.live.qid === q.id ? ' current' : '') + '" style="--i:' + i + '">' + bn(q.number) + '</div>').join('') : '<div class="s-sub" style="grid-column:1/-1;text-align:center;align-self:center">এই রাউন্ডে এখনও প্রশ্ন যোগ করা হয়নি</div>';
     return {
       key: 'GRID:' + r.id, anim: 'flip', style: H.roundVars(r), bg: r.design.bg,
-      html: H.head(s, '<span class="round-tag">' + esc(r.name) + '</span>', turn ? '<span class="qnum" style="' + H.teamVars(turn) + 'color:var(--team)">পালা: ' + H.tn(turn) + '</span>' : '') + H.part('board', tiles, 'board', 'grid-template-columns:repeat(' + cols + ',1fr)'),
+      html: H.head(s, '<span class="round-tag">' + esc(r.name) + '</span>', turn ? '<span class="qnum" style="' + H.teamVars(turn) + 'color:var(--team)">পালা: ' + H.tn(turn) + '</span>' : Sel.finalistIds().length ? '<span class="qnum" style="color:var(--accent)">👥 দর্শকদের প্রশ্ন</span>' : '') + H.part('board', tiles, 'board', 'grid-template-columns:repeat(' + cols + ',1fr)'),
     };
   },
   QUESTION(s, p) {
@@ -300,7 +300,8 @@ const Scenes = {
     } else if (r && r.features.challenge && r.type !== 'rapid' && l.hands.length && Sel.team(l.hands[0])) {
       const ch = Sel.team(l.hands[0]);
       side = '<div class="glass team-swap" data-part="team-vs-' + esc(ch.id) + '-' + Sel.score(ch.id) + '-' + (active ? Sel.score(active.id) : 0) + '" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh"><div class="flowtag" style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--warn);color:#000">✋ CHALLENGE</div><div class="vs-row">' + H.mini(ch, 'চ্যালেঞ্জার') + '<span class="vs">VS</span>' + H.mini(active, 'উত্তরদাতা') + '</div></div>';
-    } else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
+    } else if (l.audience) side = '<div class="glass audience-card" data-part="aud"><div class="aud-ic">👥</div><b>দর্শকদের প্রশ্ন</b><small>এই প্রশ্নের উত্তর দেবেন দর্শকেরা • কোনো দল নম্বর পাবে না</small></div>';
+    else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
     const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + H.tn(t) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';

@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 10;
+const RULES_VERSION = 11;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -185,6 +185,8 @@ function roundFromSeed(r, i) {
     sounds: { correct: '', wrong: '', reveal: '' },
     voiceIntro: true,
     turn: 0,
+    // each round every team chooses once (8 turns); round 1 A→H, round 2 H→A, round 3 A→H; the remaining numbers are audience questions
+    turnOrder: i % 2 ? 'reverse' : 'forward', turnsTaken: [],
   };
 }
 
@@ -293,7 +295,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { turnDone: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { turnDone: false, owner: '', audience: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */

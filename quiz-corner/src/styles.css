@@ -1010,3 +1010,8 @@ body.role-host .preview-box { max-width: 900px; }
 .mainnav .mn.warn { border-color: #b45309; background: #3a2208; color: #fde68a; }
 .mainnav .mn.reh-btn.on { background: #7c2d12; border-color: #f97316; color: #fff; animation: rehPulse 1.6s ease-in-out infinite; }
 @keyframes rehPulse { 50% { box-shadow: 0 0 0 4px rgba(249, 115, 22, .35); } }
+/* audience questions (after all 8 teams have had their turn) */
+.audience-card { padding: 2cqh 1.4cqw; display: flex; flex-direction: column; align-items: center; gap: 1cqh; text-align: center; border-color: var(--accent); }
+.audience-card .aud-ic { font-size: 9cqh; line-height: 1; }
+.audience-card b { font-size: 4cqh; color: var(--accent); }
+.audience-card small { font-size: 2.4cqh; color: #fff; opacity: .85; line-height: 1.35; }

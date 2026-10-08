@@ -151,10 +151,11 @@ const Show = {
     if (rid && rd.some((x) => x.scene === 'GRID' && x.params.roundId === rid)) {
       const left = Sel.roundQuestions(rid).filter((q) => !s.board.played[q.id]).length;
       if (s.show.scene === 'QUESTION') {
-        if (s.live.qid && !s.live.turnDone) Store.commit('turn-next', (st) => { const r = st.rounds.find((x) => x.id === rid); if (r) r.turn = (r.turn || 0) + 1; st.live.turnDone = true; }, { undo: false });
+        Game.closeTurn();
         return left ? this.jump('GRID', { key: rid, roundId: rid }) : this.jump('SCOREBOARD', { key: rid, roundId: rid });
       }
-      if (left) { if (typeof UI !== 'undefined' && UI.toast) UI.toast('The team chooses a number on the board — press 1–9 (0 = 10). ' + left + ' left. (Scoreboard: S)', 'err'); return false; }
+      // all 8 teams have had their turn: the numbers left are for the audience — open one, or Next goes to the scoreboard
+      if (left && Sel.turnsLeft(Sel.round(rid)) > 0) { if (typeof UI !== 'undefined' && UI.toast) UI.toast('The team chooses a number on the board — press 1–9 (0 = 10). ' + left + ' left. (Scoreboard: S)', 'err'); return false; }
       return this.jump('SCOREBOARD', { key: rid, roundId: rid });
     }
     const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]);

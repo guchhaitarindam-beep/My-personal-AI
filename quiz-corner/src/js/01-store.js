@@ -139,7 +139,7 @@ const Store = {
         s.questions = s.testQuestions.map((q, i) => Object.assign({}, q, { id: 'TQ' + (i + 1), roundId: (enabled[i % Math.max(1, enabled.length)] || s.rounds[0]).id }));
       }
       s.ledger = [];
-      s.board = { played: {}, prevRanks: {} };
+      s.board = { played: {}, prevRanks: {} }; s.rounds.forEach((r) => { r.turnsTaken = []; r.turn = 0; });
       s.live = emptyLive();
     }, { undo: false });
     Bus.emit('rehearsal', true);
@@ -277,11 +277,14 @@ const Sel = {
   turnTeam(round) {
     const ids = this.finalistIds();
     if (!ids.length) return '';
-    // the turn keeps going round across the rounds: round 2 starts with the team after round 1's last chooser, so every team gets a fair share
-    let off = 0;
-    if (round) for (const r of Store.state.rounds) { if (r.id === round.id) break; if (r.enabled) off += this.roundQuestions(r.id).length; }
-    return ids[(off + (round ? round.turn : 0)) % ids.length];
+    if (!round) return ids[0];
+    // one turn per team per round, in the round's order (A→H or H→A); after the 8th team the rest are audience questions ('')
+    const taken = arr(round.turnsTaken);
+    const seq = round.turnOrder === 'reverse' ? ids.slice().reverse() : ids;
+    return seq.find((id) => !taken.includes(id)) || '';
   },
+  /** How many teams still have their turn to come in this round. */
+  turnsLeft(round) { const ids = this.finalistIds(); return round ? ids.filter((id) => !arr(round.turnsTaken).includes(id)).length : 0; },
 };
 
 /* =====================================================================
@@ -478,7 +481,7 @@ const Game = {
     return base * mult;
   },
   /** A locked question refuses scoring changes until the operator unlocks it. */
-  guard() { if (Store.state.live.locked) { UI.toast('Question is locked — unlock it first (L)', 'err'); return false; } return true; },
+  guard() { if (Store.state.live.audience) { UI.toast('Audience question — no team plays it and nobody gets points', 'err'); return false; } if (Store.state.live.locked) { UI.toast('Question is locked — unlock it first (L)', 'err'); return false; } return true; },
   toggleLock() { if (!Store.state.live.qid) return false; Store.commit('lock', (s) => { s.live.locked = !s.live.locked; }); return true; },
   judge(kind) {
     if (!this.guard()) return false;
@@ -602,9 +605,10 @@ const Game = {
   },
   setActive(teamId) {
     if (!Sel.team(teamId)) return false;
+    if (Store.state.live.audience) { UI.toast('Audience question — no team plays it and nobody gets points', 'err'); return false; }
     Store.commit('active-team', (s) => {
       if (s.live.flow === 'challenge' && s.live.active && teamId !== s.live.active) s.live.challenger = teamId;
-      else { s.live.active = teamId; }
+      else { s.live.active = teamId; if (!s.live.result && s.live.flow === 'direct') s.live.owner = teamId; } // the operator chose which team takes this turn
     });
     return true;
   },
@@ -704,7 +708,8 @@ const Game = {
     const r = Sel.round(q.roundId);
     const drone = Store.state.settings.drone.main;
     Store.commit('load-q', (s) => {
-      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: teamId || Sel.turnTeam(r), deliverAt: now(), drone });
+      const owner = teamId || Sel.turnTeam(r);
+      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: owner, owner, audience: !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
       s.board.played[qid] = true;
       if (r && r.features.twoOptions) s.live.eliminated = this.wrongIndexes(q).slice(0, 2);
       if (r && (r.type === 'rapid' || (!r.features.judgeOptions && r.features.options && !r.features.challenge))) s.live.optionsShown = r.type === 'rapid';
@@ -727,5 +732,11 @@ const Game = {
     return true;
   },
   removeEntry(id) { return Store.commit('ledger-remove', (s) => { const i = s.ledger.findIndex((e) => e.id === id); if (i < 0) return false; s.ledger.splice(i, 1); }); },
-  advanceTurn(rid) { Store.commit('turn', (s) => { const r = s.rounds.find((x) => x.id === rid); if (r) r.turn = (r.turn || 0) + 1; }, { undo: false }); },
+  advanceTurn() { this.closeTurn(); },
+  /** The team whose turn it was has had it (counted once per question; audience questions do not count). */
+  closeTurn() {
+    const l = Store.state.live;
+    if (!l.qid || l.turnDone || l.audience || !l.owner) return;
+    Store.commit('turn-done', (s) => { const r = s.rounds.find((x) => x.id === s.live.roundId); if (r) { r.turnsTaken = arr(r.turnsTaken); if (!r.turnsTaken.includes(s.live.owner)) r.turnsTaken.push(s.live.owner); r.turn = r.turnsTaken.length; } s.live.turnDone = true; }, { undo: false });
+  },
 };

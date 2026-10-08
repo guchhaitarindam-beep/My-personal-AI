@@ -32,9 +32,10 @@ const Coach = {
         const r = Sel.round(s.show.params.roundId);
         const left = r ? Sel.roundQuestions(r.id).filter((q) => !s.board.played[q.id]).length : 0;
         const turn = r ? Sel.team(Game.turnFor(r.id)) : null;
+        if (left && turn) return { t: 'It is ' + Sel.label(turn) + '\'s turn' + (r.turnOrder === 'manual' ? ' (suggested — you can give the turn to another team: open the number, then press that team\'s number before they answer)' : '') + '. Click the number the team calls out (' + Sel.turnsLeft(r) + ' team turns left).', glow: ['loadQ'] };
         return left
-          ? { t: 'It is ' + (turn ? turn.name : 'the next team') + '\'s turn. Click the question number the team calls out below (' + left + ' left).', glow: ['loadQ'] }
-          : { t: 'All questions in this round are done. Press "📊 Scoreboard" (S).', glow: ['scoreboard'] };
+          ? { t: 'All 8 teams have had their turn. The ' + left + ' number(s) left are AUDIENCE questions — nobody gets points. Open one for the audience, or press "Next ▶" (→) → scoreboard.', glow: ['loadQ', 'next'] }
+          : { t: 'All questions in this round are done. Press "Next ▶" (→) → scoreboard.', glow: ['next'] };
       }
       case 'QUESTION': return this.question(s, l);
       case 'SCOREBOARD': return { t: 'The scoreboard is showing. ' + NEXT + ' → next round.', glow: ['next'] };
@@ -52,6 +53,7 @@ const Coach = {
     const r = Sel.round(l.roundId);
     const t = Sel.team(Sel.answeringTeam());
     const name = t ? t.name : 'The team';
+    if (l.audience) return { t: 'AUDIENCE question — let the audience answer; no team gets points. Then "Show answer" (R), and "Next ▶" (→).', glow: ['reveal', 'next'] };
     if (!r || !l.qid) return { t: 'No question loaded — go back to the question board and pick a number.', glow: ['gotoGrid'] };
     if (l.locked) return { t: 'The question is locked. Press L to unlock.', glow: ['lock'] };
     if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "Next ▶" (→) → back to the question board; the NEXT team chooses a number (played numbers stay closed).', glow: ['next'] };
