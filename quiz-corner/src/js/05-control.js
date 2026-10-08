@@ -57,6 +57,14 @@ const UI = {
       <option value="controller">কন্ট্রোলার</option><option value="quizmaster">কুইজ মাস্টার</option><option value="host">হোস্ট (শুধু দেখা)</option>
     </select>
   </header>
+  <nav class="mainnav" aria-label="Main">
+    <button class="mn" data-act="navHome">🏠 Home</button>
+    <button class="mn" data-act="navShow">🎬 Show</button>
+    <button class="mn" data-act="navTeams">👥 Teams</button>
+    <button class="mn" data-act="navQuestions">❓ Questions</button>
+    <button class="mn reh-btn" data-act="rehearsalToggle" id="btnReh">🎭 Start Rehearsal</button>
+    <button class="mn warn" data-act="newGame">✚ New Game</button>
+  </nav>
   <div id="announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <main class="ctl-main">
     <section class="live-col" aria-label="লাইভ নিয়ন্ত্রণ">
@@ -175,6 +183,7 @@ const UI = {
     sv.textContent = Store.storageOk ? (Store.rehearsal ? 'রিহার্সাল (আলাদা সংরক্ষণ)' : 'স্বয়ংক্রিয় সংরক্ষণ ✓') : 'সংরক্ষণ ব্যর্থ!';
     sv.className = 'status-pill ' + (Store.storageOk ? 'ok' : 'bad');
     $('#pillReh').hidden = !Store.rehearsal;
+    const rb = $('#btnReh'); if (rb) { rb.classList.toggle('on', !!Store.rehearsal); rb.textContent = Store.rehearsal ? '↩ End Rehearsal (back to the real event)' : '🎭 Start Rehearsal'; }
     $('#btnUndo').disabled = !Store.past.length; $('#btnRedo').disabled = !Store.future.length;
     $('#btnUndo').title = Store.past.length ? 'আনডু: ' + Store.past[Store.past.length - 1].label : 'আনডু';
   },
@@ -396,6 +405,29 @@ const Actions = {
   tab(k) { UI.tab = pageInfo(k) ? k : ''; UI.savePref('tab', UI.tab); UI.renderTabs(); UI.renderTab(true); const t = $('#tabs'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start' }); },
   tabHome() { Actions.tab(''); },
   openStage() { Sync.openStage(); },
+  navHome() { Actions.tab(''); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  navShow() { Actions.tab('show'); },
+  navTeams() { Actions.tab('teams'); },
+  navQuestions() { Actions.tab('questions'); },
+  /** Rehearsal: play freely on a copy; ending it puts the real event back exactly as it was. */
+  rehearsalToggle() {
+    if (Store.rehearsal) { if (!confirm('End the rehearsal?\n\nEverything goes back to how it was before the rehearsal (scores, questions, show position).')) return; Store.exitRehearsal(); UI.toast('Rehearsal ended — back to the real event', 'ok'); }
+    else { Store.enterRehearsal(false); Show.go(Show.rundown()[0]); UI.toast('Rehearsal started — play freely; the real event is kept safe', 'ok'); }
+  },
+  /** A fresh game with the same teams, schools, photos, questions and recordings: scores, played questions, lottery and show position start again. */
+  newGame() {
+    if (!confirm('Start a NEW GAME?\n\nGoes back to zero: all scores, played questions, the podium lottery and the show position.\nKept: teams, schools, photos, questions, recordings and all settings.\n\n(Ctrl+Z undoes this.)')) return;
+    Store.commit('new-game', (s) => {
+      s.ledger = []; s.board = { played: {}, prevRanks: {} }; s.live = emptyLive(); s.lifelines = {}; s.finalReveal = 0;
+      s.rounds.forEach((r) => { r.turn = 0; });
+      s.draw.picks = []; s.draw.pending = -1; s.draw.queue = [];
+      s.prelimLive = Object.assign({}, s.prelimLive, { idx: 0, reveal: false });
+      s.show.blackout = false;
+    });
+    Timer.reset && Timer.reset();
+    Show.go(Show.rundown()[0]);
+    UI.toast('New game ready — press → to begin', 'ok');
+  },
   previewFull() { const el = $('#preview .stage'); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else if (el && el.requestFullscreen) el.requestFullscreen().catch((e) => UI.toast('ফুলস্ক্রিন হয়নি: ' + e.message, 'err')); },
   blackout() { Show.toggleBlackout(); },
   undo() { const l = Store.undo(); UI.toast(l ? 'আনডু: ' + l : 'আনডু করার কিছু নেই', l ? 'ok' : ''); },

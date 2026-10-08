@@ -1002,3 +1002,11 @@ body.role-host .preview-box { max-width: 900px; }
 .school-row { display: grid; grid-template-columns: 5.5rem 1fr 5.5rem; gap: .4rem; align-items: center; }
 .school-row .sr-tag { font-weight: 700; padding: .3rem .4rem; border-radius: 8px; text-align: center; background: color-mix(in srgb, var(--team, #888) 35%, transparent); border: 1px solid var(--team, #888); white-space: nowrap; }
 .crew-card2.spacer { visibility: hidden; }
+
+/* ---------- Main navigation (control) ---------- */
+.mainnav { display: flex; flex-wrap: wrap; gap: .4rem; padding: .45rem .8rem; background: #0b1030; border-bottom: 1px solid #2c2a66; }
+.mainnav .mn { font: inherit; font-weight: 800; font-size: 1rem; padding: .55rem 1rem; border-radius: 10px; border: 1px solid #3b3a7a; background: #16163f; color: #fff; cursor: pointer; }
+.mainnav .mn:hover { background: #22225c; }
+.mainnav .mn.warn { border-color: #b45309; background: #3a2208; color: #fde68a; }
+.mainnav .mn.reh-btn.on { background: #7c2d12; border-color: #f97316; color: #fff; animation: rehPulse 1.6s ease-in-out infinite; }
+@keyframes rehPulse { 50% { box-shadow: 0 0 0 4px rgba(249, 115, 22, .35); } }
