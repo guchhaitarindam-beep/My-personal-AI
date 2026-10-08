@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 12;
+const RULES_VERSION = 13;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -105,12 +105,12 @@ const FONT_MAP = Object.fromEntries(FONT_CHOICES);
 const ANIMS = ['fade', 'slide', 'zoom', 'flip', 'spin', 'cube', 'door', 'push', 'orbit', 'none'];
 const ROUND_ANIMS = ['flip', 'cube', 'zoom', 'spin', 'slide', 'door', 'sweep', 'burst', 'push', 'orbit', 'glass', 'digital'];
 const THEMES = {
-  // 55-inch TV, read from far away: very dark calm background, warm light text, soft gold highlights (no neon behind the words)
-  midnight: { label: 'Midnight Blue · Ivory · Soft Gold (recommended)', bg: '#050f29', bg2: '#0c2a66', text: '#fff8e7', muted: '#dfe5f2', accent: '#e9c46a', accent2: '#1f4fa3', gold: '#e9c46a', neon: '#f2d488', panel: '#0a1a40', correct: '#3ddc97', wrong: '#ff5d73', timer: '#f2d488', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
-  violetGold: { label: 'Deep Violet · White · Champagne Gold (festive)', bg: '#120828', bg2: '#2c1462', text: '#ffffff', muted: '#e6defc', accent: '#f1d38a', accent2: '#6d3fd6', gold: '#f1d38a', neon: '#f1d38a', panel: '#1a0e3d', correct: '#3ddc97', wrong: '#ff5d73', timer: '#f1d38a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
-  tealIvory: { label: 'Deep Teal · Ivory · Gold (fresh)', bg: '#031c1c', bg2: '#0a4744', text: '#fffaf0', muted: '#d4ece6', accent: '#e6c35c', accent2: '#13807a', gold: '#e6c35c', neon: '#e6c35c', panel: '#062b29', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#e6c35c', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
-  navyCyan: { label: 'Navy · Light Cyan · Gold (modern broadcast)', bg: '#040b1c', bg2: '#0d2246', text: '#eafaff', muted: '#bfe1ef', accent: '#8fe3ff', accent2: '#2b6cb0', gold: '#f2c94c', neon: '#8fe3ff', panel: '#09162e', correct: '#3ddc97', wrong: '#ff5d73', timer: '#8fe3ff', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
-  royalYellow: { label: 'Royal Blue · White · Soft Yellow (cheerful)', bg: '#081a4d', bg2: '#1a46ad', text: '#ffffff', muted: '#e2eaff', accent: '#ffe27a', accent2: '#3b82f6', gold: '#ffe27a', neon: '#ffe27a', panel: '#0c2366', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#ffe27a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
+  // 55-inch TV, read from far away: deep calm background, warm light text, champagne-gold highlights (no neon behind the words)
+  midnight: { label: 'Midnight Royal Blue · Warm White · Champagne Gold (default)', bg: '#071a3d', bg2: '#102d63', text: '#fff9e8', head: '#ffffff', muted: '#e3e8f4', accent: '#f4d27a', accent2: '#2a5ab8', gold: '#f4d27a', neon: '#f8e2a4', panel: '#0b2150', correct: '#3ddc97', wrong: '#ff5d73', timer: '#f4d27a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.5 },
+  violetGold: { label: 'Deep Violet · Ivory · Rose Gold (special / festival)', bg: '#170d38', bg2: '#3a176b', text: '#fffdf5', head: '#ffffff', muted: '#ece2f7', accent: '#e8b7c8', accent2: '#7a3fc4', gold: '#e8b7c8', neon: '#f2cfdb', panel: '#1f1048', correct: '#3ddc97', wrong: '#ff5d73', timer: '#e8b7c8', warn: '#ffb347', crit: '#ff4d5e', glow: 0.5 },
+  tealIvory: { label: 'Deep Teal · Pearl White · Champagne (kids / junior)', bg: '#062f35', bg2: '#07545a', text: '#f8fcf7', head: '#ffffff', muted: '#d6ece8', accent: '#e8d39a', accent2: '#13807a', gold: '#e8d39a', neon: '#f0e2b8', panel: '#08393f', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#e8d39a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.5 },
+  navyCyan: { label: 'Navy · Electric Blue · White (technology / speed)', bg: '#050d24', bg2: '#092b66', text: '#ffffff', head: '#ffffff', muted: '#cfe6f5', accent: '#70cfff', accent2: '#2b6cb0', gold: '#70cfff', neon: '#a6e2ff', panel: '#081a3c', correct: '#3ddc97', wrong: '#ff5d73', timer: '#70cfff', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
+  royalYellow: { label: 'Royal Blue · Soft Lavender · Gold (grand finale)', bg: '#071f57', bg2: '#173f8f', text: '#fffdf7', head: '#ffffff', muted: '#e6dcff', accent: '#d9c2ff', accent2: '#5b4bd1', gold: '#f2d27d', neon: '#d9c2ff', panel: '#0c2a6e', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#f2d27d', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
   broadcast: { label: 'Broadcast Violet (neon)', bg: '#05030f', bg2: '#140a3a', text: '#ffffff', muted: '#c7cbef', accent: '#38e8ff', accent2: '#8b5cf6', gold: '#ffd166', neon: '#38e8ff', panel: '#0d0a26', correct: '#2ef2a0', wrong: '#ff4d6d', timer: '#38e8ff', warn: '#ffb020', crit: '#ff3b5c', glow: 1 },
   daylight: { label: 'Daylight — maximum contrast', bg: '#000000', bg2: '#0a0a1a', text: '#ffffff', muted: '#f2f2f2', accent: '#00f0ff', accent2: '#6a5cff', gold: '#ffe14d', neon: '#ffffff', panel: '#000000', correct: '#00ff8c', wrong: '#ff2a4a', timer: '#00f0ff', warn: '#ffc400', crit: '#ff1f3d', glow: .6 },
   led: { label: 'Stage LED Neon', bg: '#02010a', bg2: '#1d0640', text: '#ffffff', muted: '#d7d0ff', accent: '#ff3df2', accent2: '#3d7bff', gold: '#ffe066', neon: '#ff3df2', panel: '#0c0424', correct: '#3dff9e', wrong: '#ff3d6e', timer: '#3dd9ff', warn: '#ffb020', crit: '#ff2050', glow: 1.4 },
@@ -187,7 +187,7 @@ function roundFromSeed(r, i) {
     timers: { direct: 60, pass: 45, raise: 5 },
     multiplier: 1,
     rulesImage: '',
-    design: { primary: palette[0], secondary: palette[1], accent: palette[2], bg: '', anim: ROUND_ANIMS[i % ROUND_ANIMS.length], titleFont: '', questionFont: '', optionFont: '', qScale: 1, music: '', timerStyle: 'ring' },
+    design: { primary: palette[0], secondary: palette[1], accent: palette[2], bg: '', anim: ROUND_ANIMS[i % ROUND_ANIMS.length], theme: '', titleFont: '', questionFont: '', optionFont: '', qScale: 1, music: '', timerStyle: 'ring' },
     sounds: { correct: '', wrong: '', reveal: '' },
     voiceIntro: true,
     turn: 0,
@@ -268,6 +268,8 @@ function defaultState() {
     sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
       theme: 'midnight', colors: Object.assign({}, THEMES.midnight),
+      finaleTheme: '', // optional: another theme for the final scoreboard, top 3 and winner
+      textFx: 'premium', // premium 3D text motion (directional fly-in, depth, gold border light) | 'classic'
       fonts: { bn: 'Hind Siliguri', en: 'Hind Siliguri', timer: 'Mina' },
       text: defaultTextStyles(),
       box: { show: true, width: 0.28, radius: 2.2, opacity: 0.88 },
@@ -320,9 +322,12 @@ function mergeDefaults(def, src) {
 }
 
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
-function upgradeRules(s, def) {
+function upgradeRules(s, def, from = 0) {
   // the calm TV look (Midnight Blue · Ivory · Soft Gold) replaces the old neon default — only where the operator had not chosen colours
-  if (isObj(s.design) && (!s.design.theme || s.design.theme === 'broadcast')) { s.design.theme = 'midnight'; s.design.colors = Object.assign({}, THEMES.midnight); }
+  if (isObj(s.design) && (!s.design.theme || (s.design.theme === 'broadcast' && from < 12))) { s.design.theme = 'midnight'; s.design.colors = Object.assign({}, THEMES.midnight); }
+  // the five calm themes got their final colours — a save still on the earlier shade of the same theme moves to the new one
+  const OLD_THEME_BG = { midnight: '#050f29', violetGold: '#120828', tealIvory: '#031c1c', navyCyan: '#040b1c', royalYellow: '#081a4d' };
+  if (isObj(s.design) && isObj(s.design.colors) && OLD_THEME_BG[s.design.theme] && str(s.design.colors.bg).toLowerCase() === OLD_THEME_BG[s.design.theme]) s.design.colors = Object.assign({}, THEMES[s.design.theme]);
   const OLD_PRIMARY = ['#7c3aed', '#2563eb', '#db2777'];
   arr(s.rounds).forEach((r, i) => { if (isObj(r) && isObj(r.design) && r.design.primary === OLD_PRIMARY[i] && def.rounds[i]) Object.assign(r.design, { primary: def.rounds[i].design.primary, secondary: def.rounds[i].design.secondary, accent: def.rounds[i].design.accent }); });
   if (OLD_CREW_NAMES.includes(arr(s.crew).map((c) => isObj(c) && str(c.name).trim()).join('|'))) {
@@ -382,7 +387,7 @@ function normalizeState(raw) {
   const def = defaultState();
   const s = mergeDefaults(def, raw);
   s.schema = SCHEMA;
-  if (isObj(raw) && num(raw.rulesVersion, 0) < RULES_VERSION) upgradeRules(s, def);
+  if (isObj(raw) && num(raw.rulesVersion, 0) < RULES_VERSION) upgradeRules(s, def, num(raw.rulesVersion, 0));
   s.rulesVersion = RULES_VERSION;
   s.teams = arr(s.teams).slice(0, 60).map((t, i) => mergeDefaults(defaultTeam(i), t));
   s.teams.forEach((t, i) => { t.id = str(t.id || 'T' + (i + 1), 24); t.players = arr(t.players).concat(['', '', '']).slice(0, 3).map((p) => str(p, 80)); t.playerPhotos = arr(t.playerPhotos).concat(['', '', '']).slice(0, 3).map((p) => str(p, 120)); if (GENERIC_TEAM_NAME.test(str(t.name).trim())) t.name = teamCode(i); });

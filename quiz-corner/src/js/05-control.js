@@ -34,38 +34,60 @@ const UI = {
     return back;
   },
   closeModal() { $$('.modal-back').forEach((m) => m.remove()); },
+  /** A slide-up panel from the bottom (MORE, history …) — a lighter modal. */
+  sheet(title, html) { const back = this.modal(title, html); back.classList.add('sheet-back'); return back; },
+  /** Simple yes / no: one sentence, CANCEL and the action. */
+  confirmBox(title, text, okLabel, fn, kind = 'bad') {
+    const back = this.modal(title, '<p class="confirm-text">' + esc(text) + '</p><div class="confirm-row"><button class="btn lg" data-act="closeModal">CANCEL</button><button class="btn lg ' + kind + '" id="confirmOk">' + esc(okLabel) + '</button></div>');
+    back.classList.add('confirm-back');
+    const ok = $('#confirmOk', back); ok.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.closeModal(); safe('confirm', fn); });
+    setTimeout(() => ok.focus(), 0);
+  },
+  /** After an important change: a short message with an UNDO button, then it goes away. */
+  undoToast(msg) {
+    if (Store.sandbox || MODE !== 'control') return;
+    let host = $('.toast-host');
+    if (!host) { host = document.createElement('div'); host.className = 'toast-host'; host.setAttribute('role', 'status'); host.setAttribute('aria-live', 'polite'); document.body.appendChild(host); }
+    $$('.toast.undo', host).forEach((x) => x.remove());
+    const el = document.createElement('div'); el.className = 'toast undo';
+    el.innerHTML = '<span>' + esc(msg) + '</span><button class="btn sm gold" data-act="undo">UNDO</button>';
+    host.appendChild(el); setTimeout(() => el.remove(), 6000);
+  },
+  setLive(on) {
+    document.body.classList.toggle('live-mode', !!on); this.savePref('live', !!on);
+    this.liveSig = ''; this.renderLive(); this.renderStatus();
+    if (on) window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
 
   mount() {
     document.body.classList.add('mode-control');
     document.body.innerHTML = `
 <div class="ctl">
   <header class="topbar" role="banner">
-    <div class="brandmark"><img data-media="${esc(Store.state.logo)}" alt=""><div><b>Quiz Corner V66</b><small>ULTIMATE BROADCAST ENGINE</small></div></div>
+    <button class="btn menu-btn" data-act="menuToggle" id="btnMenu" aria-haspopup="true" aria-expanded="false">☰ MENU</button>
+    <div class="brandmark"><img data-media="${esc(Store.state.logo)}" alt=""><div><b id="evName">${esc(Store.state.event.programme || 'Quiz Corner')}</b><small>QUIZ CORNER</small></div></div>
+    <span class="status-pill live-pill" id="pillReh">● LIVE</span>
     <span class="status-pill" id="pillStage">STAGE —</span>
     <span class="status-pill" id="pillSave">Saved</span>
-    <span class="status-pill reh" id="pillReh" hidden>Rehearsal mode</span>
     <span class="grow"></span>
-    <button class="btn primary" data-act="openStage" title="O">🖥 Stage window <kbd>O</kbd></button>
-    <button class="btn" data-act="previewFull" title="F">⛶ Fullscreen <kbd>F</kbd></button>
-    <button class="btn" data-act="blackout" title="B">◼ Blackout <kbd>B</kbd></button>
-    <button class="btn" data-act="undo" id="btnUndo" title="Ctrl+Z">↶ Undo</button>
-    <button class="btn" data-act="redo" id="btnRedo" title="Ctrl+Y">↷ Redo</button>
-    <button class="btn" data-act="stopAudio" title="Stop all music and voice">■ Stop music</button>
-    <button class="btn" data-act="mute" id="btnMute" title="M">🔇 Mute <kbd>M</kbd></button>
-    <button class="btn" data-act="shortcuts" title="?">⌨ Shortcuts</button>
-    <select id="roleSel" aria-label="Role" style="width:auto;min-height:38px">
-      <option value="controller">Controller</option><option value="quizmaster">Quiz master</option><option value="host">Host (view only)</option>
-    </select>
+    <label class="vol" title="Master volume ( [ and ] )"><span id="volIcon">🔊</span><input type="range" id="volRange" min="0" max="1" step="0.05" aria-label="Master volume"></label>
+    <button class="btn primary" data-act="openStage" title="O">🖥 Stage <kbd>O</kbd></button>
+    <button class="btn" data-act="navSettings" title="Settings">⚙ Settings</button>
+    <div class="menu-panel" id="menuPanel" hidden>
+      <div class="mp-grid">
+        <button class="btn lg" data-act="previewFull" title="F">⛶ Full screen <kbd>F</kbd></button>
+        <button class="btn lg" data-act="blackout" title="B">◼ Blackout <kbd>B</kbd></button>
+        <button class="btn lg" data-act="undo" id="btnUndo" title="Ctrl+Z">↶ Undo</button>
+        <button class="btn lg" data-act="redo" id="btnRedo" title="Ctrl+Y">↷ Redo</button>
+        <button class="btn lg" data-act="stopAudio" title="Stop all music and voice">■ Stop music</button>
+        <button class="btn lg" data-act="mute" id="btnMute" title="M">🔇 Mute <kbd>M</kbd></button>
+        <button class="btn lg" data-act="shortcuts" title="?">⌨ Shortcuts</button>
+        <label class="field mp-role"><span>Who is using this screen</span><select id="roleSel" aria-label="Role">
+          <option value="controller">Controller</option><option value="quizmaster">Quiz master</option><option value="host">Host (view only)</option>
+        </select></label>
+      </div>
+    </div>
   </header>
-  <nav class="mainnav" aria-label="Main">
-    <button class="mn" data-act="navHome">🏠 Home</button>
-    <button class="mn" data-act="navShow">🎬 Show</button>
-    <button class="mn go" data-act="skipToMain" title="Jump straight to the main-round countdown">⏭ Skip to Main Round</button>
-    <button class="mn" data-act="navTeams">👥 Teams</button>
-    <button class="mn" data-act="navQuestions">❓ Questions</button>
-    <button class="mn reh-btn" data-act="rehearsalToggle" id="btnReh">🎭 Start Rehearsal</button>
-    <button class="mn warn" data-act="newGame">✚ New Game</button>
-  </nav>
   <div id="announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <main class="ctl-main">
     <section class="live-col" aria-label="Live controls">
@@ -77,12 +99,20 @@ const UI = {
       <div class="tab-body" id="tabBody"></div>
     </section>
   </main>
+  <nav class="dock" aria-label="Quick actions">
+    <button class="dk" data-act="navHome" data-dock="home"><i>🏠</i>HOME</button>
+    <button class="dk" data-act="navLive" data-dock="live"><i>🔴</i>LIVE</button>
+    <button class="dk" data-act="navTeams" data-dock="teams"><i>👥</i>TEAMS</button>
+    <button class="dk" data-act="navQuestions" data-dock="questions"><i>❓</i>QUESTIONS</button>
+    <button class="dk" data-act="moreOpen" data-dock="more"><i>☰</i>MORE</button>
+  </nav>
 </div>`;
     this.preview = new StageView($('#preview'), { preview: true });
     const pref = safe('prefs', () => JSON.parse(localStorage.getItem(LS_PREF) || '{}'), {}) || {};
     $('#roleSel').value = pref.role || 'controller';
     this.applyRole();
     if (pref.bigUi) document.body.classList.add('big-ui');
+    if (pref.live) document.body.classList.add('live-mode');
     this.tab = pref.tab && pageInfo(pref.tab) ? pref.tab : '';
     this.renderTabs();
     this.bindEvents();
@@ -107,6 +137,7 @@ const UI = {
       const fn = Actions[el.dataset.act];
       if (!fn) { Log.add('WARN', 'unknown action ' + el.dataset.act); return; }
       e.preventDefault();
+      if (el.closest('.sheet-back') && el.dataset.act !== 'closeModal') UI.closeModal();
       safe('action:' + el.dataset.act, () => fn(el.dataset.arg, el));
     });
     const onBind = (e) => {
@@ -147,6 +178,9 @@ const UI = {
     document.addEventListener('change', onBind);
     document.addEventListener('focusout', () => setTimeout(() => { if (this.tabDirty && !this.typing()) this.renderTab(); }, 0));
     $('#roleSel').addEventListener('change', () => { this.applyRole(); this.savePref('role', $('#roleSel').value); });
+    $('#volRange').addEventListener('input', (e) => { const v = clamp(num(e.target.value, 1), 0, 1); Store.commit('volume', (s) => { s.audio.master = v; }, { undo: false }); AudioDirector.setMaster(v); });
+    // the MENU panel closes on any click outside it, and after any button inside it
+    document.addEventListener('click', (e) => { const m = $('#menuPanel'); if (!m || m.hidden) return; if (e.target.closest('#btnMenu')) return; if (!e.target.closest('#menuPanel') || e.target.closest('button')) { m.hidden = true; $('#btnMenu').setAttribute('aria-expanded', 'false'); } });
     Bus.on('change', (c) => this.onChange(c));
     Bus.on('stage-status', () => this.renderStatus());
     Bus.on('storage', () => this.renderStatus());
@@ -167,6 +201,7 @@ const UI = {
     const label = (c && c.label) || '';
     Announcer.onChange(c, Store.state);
     const hl = HostLines.auto(label); if (hl) this.hostLine = hl;
+    const um = UNDO_MSG(label); if (um && !(c && c.undo === false) && Store.past.length && Store.past[Store.past.length - 1].label === label) this.undoToast(um);
     const qk = Store.state.live.qid + '|' + Store.state.prelimLive.idx + '|' + Store.state.show.scene; if (qk !== this.ansKey) { this.ansKey = qk; this.showAns = false; }
     this.renderLive();
     if (label.startsWith('timer-')) return;
@@ -183,8 +218,13 @@ const UI = {
     const sv = $('#pillSave');
     sv.textContent = Store.storageOk ? (Store.rehearsal ? 'Rehearsal (saved separately)' : 'Auto-saved ✓') : 'Save failed!';
     sv.className = 'status-pill ' + (Store.storageOk ? 'ok' : 'bad');
-    $('#pillReh').hidden = !Store.rehearsal;
-    const rb = $('#btnReh'); if (rb) { rb.classList.toggle('on', !!Store.rehearsal); rb.textContent = Store.rehearsal ? '↩ End Rehearsal (back to the real event)' : '🎭 Start Rehearsal'; }
+    const lp = $('#pillReh'); lp.textContent = Store.rehearsal ? '● REHEARSAL' : '● LIVE'; lp.className = 'status-pill live-pill ' + (Store.rehearsal ? 'reh' : 'on');
+    const live = document.body.classList.contains('live-mode');
+    const dockKey = live ? 'live' : this.tab === 'teams' ? 'teams' : this.tab === 'questions' ? 'questions' : !this.tab ? 'home' : 'more';
+    $$('.dock .dk').forEach((d) => d.classList.toggle('on', d.dataset.dock === dockKey));
+    const vr = $('#volRange'); if (vr && document.activeElement !== vr) vr.value = String(Store.state.audio.master);
+    const vi = $('#volIcon'); if (vi) vi.textContent = SoundDirector.muted ? '🔇' : '🔊';
+    const ev = $('#evName'); if (ev) ev.textContent = Store.state.event.programme || 'Quiz Corner';
     $('#btnUndo').disabled = !Store.past.length; $('#btnRedo').disabled = !Store.future.length;
     $('#btnUndo').title = Store.past.length ? 'Undo: ' + Store.past[Store.past.length - 1].label : 'Undo';
   },
@@ -192,6 +232,7 @@ const UI = {
     const el = $('#bigTime'); if (!el) return;
     const s = Store.state; const t = s.timer; const rem = Sel.timerRemaining(t); const sec = Math.ceil(rem / 1000);
     el.textContent = t.expired ? '0' : fmtTime(rem);
+    const ht = $('#heroTime'); if (ht) { ht.textContent = el.textContent; ht.className = 'hero-time ' + el.className.replace('bigtime', '').trim(); }
     el.className = 'bigtime ' + (t.expired || sec <= s.settings.critAt ? 'crit' : sec <= s.settings.warnAt ? 'warn' : '');
     const tb = $('[data-act="timerToggle"]'); if (tb) tb.innerHTML = (t.running ? '⏸ Pause' : '▶ Start') + ' <kbd>Space</kbd>';
   },
@@ -218,13 +259,31 @@ const UI = {
     let out = s.show.blackout ? '<div class="card blackout-alert"><b>⚠ The TV screen is black now (Blackout)</b><span>The audience sees nothing.</span>' + b('blackout', '▶ Show on TV again', 'lg good', '', 'B') + '</div>' : '';
     out += '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENE_LABELS[s.show.scene] || SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">Step ' + (i + 1) + ' / ' + rd.length + (nxt ? ' • Next: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
     out += '<div class="deck" style="margin-top:.6rem">' + b('prev', '◀ Previous', 'lg', '', '←') + b('next', 'Next ▶', 'lg primary', '', '→') + b('timerToggle', '▶ Start', 'lg', '', '') + b('replay', '↻ Replay scene', '') + b('scoreboard', '📊 Scoreboard', '', '', 'S') + '</div></div>';
+    out = this.heroHtml(s, b) + out;
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);
     out += this.teamDeck(s);
     out += this.photoDeck(s);
     out += '<div class="card"><div class="row"><button class="btn sm' + (this.boardOpen ? ' on' : '') + '" data-act="soundboardToggle">🎛 Soundboard</button></div>' + (this.boardOpen ? '<div class="deck" style="margin-top:.5rem">' + SOUNDBOARD.map(([k, l]) => b('pad', l, 'sm', k)).join('') + '</div>' : '') + '</div>';
     out += '<div class="card"><div class="row"><button class="btn sm' + (this.hostOpen ? ' on' : '') + '" data-act="hostToggle">🎙 Host helper (commentary)</button></div>' + (this.hostOpen ? '<p class="host-line">' + esc(this.hostLine || HostLines.line('open')) + '</p><div class="deck">' + b('hostLine', 'Score line', '', 'score') + b('hostLine', 'Wrong-answer line', '', 'wrong') + b('hostLine', 'Suspense', '', 'tension') + b('hostLine', 'Round-start line', '', 'open') + b('hostLine', 'Winner line', '', 'win') + b('hostSpeak', '🔊 Speak', 'good') + '</div>' : '') + '</div>';
-    return out;
+    return out + this.actionBar(s, b);
+  },
+  /** LIVE: what the operator needs at a glance — team, question, timer, points, A–D. */
+  heroHtml(s, b) {
+    if (s.show.scene !== 'QUESTION' || !s.live.qid) return '';
+    const l = s.live; const q = Sel.liveQuestion(); const r = Sel.round(l.roundId);
+    const ans = Sel.team(Sel.answeringTeam());
+    const who = l.audience ? '👥 Audience question' : ans ? Sel.label(ans) : 'Choose the team (1–8)';
+    const opts = q ? q.options.map((o, i) => (o ? '<button class="btn hero-opt' + (l.picked === i ? ' on' : '') + '" data-act="pick" data-arg="' + i + '"' + (!l.optionsShown || l.eliminated.includes(i) ? ' disabled' : '') + ' title="Shift+' + 'ABCD'[i] + '"><b>' + 'ABCD'[i] + '</b><small>' + OPT_LABELS[i] + '</small></button>' : '')).join('') : '';
+    return '<div class="card hero"><div class="hero-team" style="--team:' + esc(ans ? ans.color : 'var(--gold)') + '">' + esc(who) + '</div>' +
+      '<div class="hero-q">' + esc(r ? r.name : '') + ' • QUESTION ' + String(q ? q.number : '').padStart(2, '0') + '</div>' +
+      '<div class="hero-mid"><div class="hero-time" id="heroTime">—</div><div class="hero-pts">' + (l.audience ? 'NO POINTS' : signed(Game.pointsFor('correct')) + ' POINTS') + '</div></div>' +
+      (opts ? '<div class="hero-opts">' + opts + '</div>' : '') + '</div>';
+  },
+  /** Always at the bottom of the live column: PASS · CORRECT · WRONG · NEXT (NEXT is the main action). */
+  actionBar(s, b) {
+    const q = s.show.scene === 'QUESTION' && s.live.qid && !s.live.audience; const r = Sel.round(s.live.roundId);
+    return '<div class="action-bar">' + b('pass', '➜ PASS', 'violet', '', 'P', !q || (r && !r.features.pass)) + b('judge', '✓ CORRECT', 'good', 'correct', 'C', !q) + b('judge', '✕ WRONG', 'bad', 'wrong', 'W', !q) + b('next', 'NEXT ▶', 'next-main', '', '→') + '</div>';
   },
   contextDeck(s, b) {
     const sc = s.show.scene;
@@ -261,7 +320,7 @@ const UI = {
       const cards = Draw.cards().map((it, i) => { const pk = d.picks.find((p) => p.card === i); const t = pk && Sel.team(pk.team); return pk ? b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + ' → ' + esc(t ? Sel.code(t) : '') + ' ' + esc(t ? Sel.preName(t) : ''), 'ghost', String(i), '', true) : b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + (d.pending === i ? ' — press again to open' : ''), d.pending === i ? 'gold' : 'primary', String(i), String(i + 1)); }).join('');
       h += '<div class="card"><h3>🎲 Podium lottery <span class="hint">' + (!d.queue.length ? 'Starts once the finalist teams are set' : turn ? 'Now: ' + esc(Sel.preName(turn)) + ' (prelim #' + (d.queue.indexOf(turn.id) + 1) + ') — press the picture the team names once (it lights up), press again to open the podium. Clicking on the TV screen or pressing 1–8 also works.' : '✔ Every team has a podium — team codes are set') + '</span></h3><div class="deck">' + cards + '</div><div class="deck" style="margin-top:.5rem">' + b('drawReset', '↺ Start over', 'warn') + b('undo', '↶ Undo last pick', '', '', 'U') + b('tab', 'Change theme / pictures', '', 'event') + '</div></div>' + this.schoolDeck(s);
     } else if (sc === 'FINAL') {
-      h += '<div class="card"><h3>Final results reveal</h3><div class="deck">' + b('finalReveal', '▲ Reveal next place', 'lg gold span2', '', 'R') + b('finalAll', 'Reveal all') + b('jump', '🏆 Winner', 'good', 'WINNER', 'W') + '</div></div>';
+      h += '<div class="card"><h3>Final results reveal</h3><div class="deck">' + b('finalReveal', '▲ Reveal next place', 'lg gold span2', '', 'R') + b('finalAll', 'Reveal all') + b('jump', '🏆 Winner', 'good', 'WINNER', '⇧W') + '</div></div>';
     } else if (sc === 'WINNER') {
       h += '<div class="card"><h3>Winner</h3><div class="deck">' + b('music', '🎺 Winner music', 'gold', 'winner') + b('cue', '🎉 Fanfare', '', 'fanfare') + b('replay', '🎊 Celebrate again') + b('jump', 'Closing logo', '', 'END') + '</div></div>';
     } else if (sc === 'THEME' || sc === 'WELCOME') {
@@ -392,8 +451,28 @@ const SETTINGS_GROUPS = [
   ]],
 ];
 /** The settings home page: Android-style grouped list. */
+const UNDO_MSG = (label) => {
+  const l = String(label || '');
+  if (l === 'judge-correct') return '✓ Correct — points added';
+  if (l === 'judge-wrong') return '✕ Wrong answer marked';
+  if (l.startsWith('judge-')) return 'Result marked';
+  const m = { pass: '➜ Passed to the next team', bonus: '★ Bonus given', adjust: 'Score changed', challenge: '⚔ Challenge set', 'q-del': 'Question deleted', 'team-del': 'Team deleted', 'new-game': 'Event reset', 'reset-board': 'Question board reset', 'reset-scores': 'Scores reset', 'ledger-remove': 'Score entry removed', 'crew-del': 'Person removed', 'prelim-del': 'Prelim question deleted', 'q-unused': 'Question marked unused', 'gallery-del': 'Picture removed' };
+  if (m[l]) return m[l];
+  if (l.startsWith('hand-')) return 'Buzz result marked';
+  return '';
+};
+function HomeCards(s) {
+  const rd = Show.rundown(); const cur = rd[Show.index()];
+  const card = (act, ic, title, sub, cls = '') => '<button class="home-card ' + cls + '" data-act="' + act + '"><span class="hc-ic">' + ic + '</span><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></button>';
+  return '<section class="home-cards">' +
+    card('homeContinue', '▶', 'Continue Event', 'Live control • now: ' + (cur ? cur.label : '—'), 'go') +
+    card('newGame', '✚', 'New Event', 'Scores back to zero — teams, questions and photos kept', 'warn') +
+    card('rehearsalToggle', '🎭', Store.rehearsal ? 'End Rehearsal' : 'Rehearsal Mode', Store.rehearsal ? 'Back to the real event exactly as it was' : 'Practise freely — the real event stays safe', 'reh' + (Store.rehearsal ? ' on' : '')) +
+    card('skipToMain', '⏭', 'Skip to Main Round', 'Straight to the main-round countdown') +
+    '</section><h4 class="home-sub">Event settings</h4>';
+}
 function SettingsHome(s) {
-  return SETTINGS_GROUPS.map(([title, rows]) => '<section class="set-group"><h4>' + esc(title) + '</h4><div class="set-list">' + rows.map(([k, ic, col, name, sub]) => '<button class="set-row" data-act="tab" data-arg="' + k + '"><span class="set-ic" style="--c:' + col + '">' + ic + '</span><span class="set-tx"><b>' + esc(name) + '</b><small>' + esc(safe('sub', () => sub(s), '')) + '</small></span><span class="chev" aria-hidden="true">›</span></button>').join('') + '</div></section>').join('');
+  return HomeCards(s) + SETTINGS_GROUPS.map(([title, rows]) => '<section class="set-group"><h4>' + esc(title) + '</h4><div class="set-list">' + rows.map(([k, ic, col, name, sub]) => '<button class="set-row" data-act="tab" data-arg="' + k + '"><span class="set-ic" style="--c:' + col + '">' + ic + '</span><span class="set-tx"><b>' + esc(name) + '</b><small>' + esc(safe('sub', () => sub(s), '')) + '</small></span><span class="chev" aria-hidden="true">›</span></button>').join('') + '</div></section>').join('');
 }
 const TABS = SETTINGS_GROUPS.flatMap((g) => g[1].map((r) => [r[0], r[1] + ' ' + r[3]]));
 const pageInfo = (k) => { for (const g of SETTINGS_GROUPS) for (const r of g[1]) if (r[0] === k) return r; return null; };
@@ -406,19 +485,35 @@ const Actions = {
   tab(k) { UI.tab = pageInfo(k) ? k : ''; UI.savePref('tab', UI.tab); UI.renderTabs(); UI.renderTab(true); const t = $('#tabs'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start' }); },
   tabHome() { Actions.tab(''); },
   openStage() { Sync.openStage(); },
-  navHome() { Actions.tab(''); window.scrollTo({ top: 0, behavior: 'smooth' }); },
-  navShow() { Actions.tab('show'); },
-  skipToMain() { Show.jump('MAIN_COUNTDOWN'); UI.toast('Main round countdown — press → after GO! for round 1', 'ok'); },
-  navTeams() { Actions.tab('teams'); },
-  navQuestions() { Actions.tab('questions'); },
+  navHome() { UI.setLive(false); Actions.tab(''); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  navShow() { UI.setLive(false); Actions.tab('show'); },
+  navLive() { UI.setLive(true); },
+  homeContinue() { UI.setLive(true); UI.toast('Live control — NEXT ▶ (→) moves the show on', 'ok'); },
+  navSettings() { UI.setLive(false); Actions.tab(''); setTimeout(() => { const h = $('.home-sub'); if (h) h.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 0); },
+  menuToggle() { const m = $('#menuPanel'); m.hidden = !m.hidden; $('#btnMenu').setAttribute('aria-expanded', String(!m.hidden)); },
+  moreOpen() {
+    const c = (act, ic, label, arg = '') => '<button class="more-card" data-act="' + act + '"' + (arg ? ' data-arg="' + arg + '"' : '') + '><i>' + ic + '</i><b>' + label + '</b></button>';
+    UI.sheet('More', '<div class="more-grid">' + c('morePage', '🏆', 'Scores', 'scores') + c('history', '🕘', 'History') + c('undo', '↶', 'Undo') + c('redo', '↷', 'Redo') + c('morePage', '🔊', 'Audio', 'audio') + c('morePage', '🖥', 'Display', 'display') + c('morePage', '🎨', 'Themes', 'colors') + c('navSettings', '⚙', 'Settings') + c('morePage', '❔', 'Help', 'help') +
+      c('navShow', '🎬', 'Show rundown') + c('skipToMain', '⏭', 'Skip to Main Round') + c('rehearsalToggle', '🎭', Store.rehearsal ? 'End Rehearsal' : 'Rehearsal') + c('blackout', '◼', 'Blackout') + c('previewFull', '⛶', 'Full screen') + c('shortcuts', '⌨', 'Shortcuts') + '</div>');
+  },
+  morePage(k) { UI.setLive(false); Actions.tab(k); },
+  history() {
+    const rows = Store.past.slice(-30).reverse().map((h, i) => '<div class="hist-row"><span>' + (i === 0 ? '<b>Last:</b> ' : '') + esc(UNDO_MSG(h.label) || h.label) + '</span></div>').join('') || '<p class="muted">Nothing done yet.</p>';
+    UI.sheet('History', '<div class="hist">' + rows + '</div><div class="confirm-row"><button class="btn lg" data-act="undo">↶ Undo last</button><button class="btn lg" data-act="redo">↷ Redo</button></div>');
+  },
+  skipToMain() { Show.jump('MAIN_COUNTDOWN'); UI.setLive(true); UI.toast('Main round countdown — press → after GO! for round 1', 'ok'); },
+  navTeams() { UI.setLive(false); Actions.tab('teams'); },
+  navQuestions() { UI.setLive(false); Actions.tab('questions'); },
   /** Rehearsal: play freely on a copy; ending it puts the real event back exactly as it was. */
   rehearsalToggle() {
-    if (Store.rehearsal) { if (!confirm('End the rehearsal?\n\nEverything goes back to how it was before the rehearsal (scores, questions, show position).')) return; Store.exitRehearsal(); UI.toast('Rehearsal ended — back to the real event', 'ok'); }
+    if (Store.rehearsal) { UI.confirmBox('End rehearsal?', 'Everything goes back to how it was before the rehearsal: scores, questions and show position.', 'END REHEARSAL', () => { Store.exitRehearsal(); UI.toast('Rehearsal ended — back to the real event', 'ok'); }, 'warn'); }
     else { Store.enterRehearsal(false); Show.go(Show.rundown()[0]); UI.toast('Rehearsal started — play freely; the real event is kept safe', 'ok'); }
   },
   /** A fresh game with the same teams, schools, photos, questions and recordings: scores, played questions, lottery and show position start again. */
   newGame() {
-    if (!confirm('Start a NEW GAME?\n\nGoes back to zero: all scores, played questions, the podium lottery and the show position.\nKept: teams, schools, photos, questions, recordings and all settings.\n\n(Ctrl+Z undoes this.)')) return;
+    UI.confirmBox('Reset event?', 'All scores, played questions, the podium lottery and the show position go back to zero. Teams, schools, photos, questions, recordings and settings are kept.', 'RESET', () => Actions.newGameNow());
+  },
+  newGameNow() {
     Store.commit('new-game', (s) => {
       s.ledger = []; s.board = { played: {}, prevRanks: {} }; s.live = emptyLive(); s.lifelines = {}; s.finalReveal = 0;
       s.rounds.forEach((r) => { r.turn = 0; r.turnsTaken = []; });
@@ -556,8 +651,8 @@ const Actions = {
 const SOUNDBOARD = [['drumroll', '🥁 Drumroll'], ['applause', '👏 Applause'], ['suspense', '😱 Suspense'], ['gong', '🔔 Gong'], ['ding', '✨ Ding'], ['fanfare', '🎺 Fanfare'], ['correct', '✓ Correct'], ['wrong', '✗ Wrong'], ['buzzer', '⏰ Buzzer'], ['tick', '⏱ Tick-tock'], ['pass', '➜ Pass'], ['option', '◉ Pop'], ['siren', '🚨 Siren'], ['laser', '⚡ Laser'], ['heartbeat', '❤ Heartbeat']];
 const SHORTCUTS = [
   ['Space', 'Timer start / pause'], ['→ / PgDn', 'Next scene'], ['← / PgUp', 'Previous scene'], ['D', 'Direct timer (60s)'], ['P', 'Pass: next team + 45s'], ['Shift+P', '45s timer only'],
-  ['R', 'Show answer / reveal next place'], ['C', 'Correct'], ['X', 'Wrong'], ['N', 'No score'], ['H', 'Challenge (then 1–8)'], ['V', 'Show / hide options'],
-  ['1–10 (on board)', 'On the question board a number opens that question (0 = 10)'], ['Shift+A/B/C/D', 'The option the team named — judged at once in Round 1'], ['V / Shift+V', 'Show 4 options / cut to 2 options'], ['1–9', 'Choose the answering team; after a wrong answer = pass to that team; in Round 3 = that team buzzed'], ['Alt+1/2/3', '50:50 / poll / flip'], ['0', 'Timer reset'], ['+ / −', 'Add / subtract 10 seconds'], ['S', 'Scoreboard'], ['W', 'Winner'],
+  ['R', 'Show answer / reveal next place'], ['C', 'Correct'], ['X / W', 'Wrong'], ['N', 'No score'], ['H', 'Challenge (then 1–8)'], ['V', 'Show / hide options'],
+  ['1–10 (on board)', 'On the question board a number opens that question (0 = 10)'], ['Shift+A/B/C/D', 'The option the team named — judged at once in Round 1'], ['V / Shift+V', 'Show 4 options / cut to 2 options'], ['1–9', 'Choose the answering team; after a wrong answer = pass to that team; in Round 3 = that team buzzed'], ['Alt+1/2/3', '50:50 / poll / flip'], ['0', 'Timer reset'], ['+ / −', 'Add / subtract 10 seconds'], ['S', 'Scoreboard'], ['Shift+W', 'Winner'],
   ['B', 'Blackout'], ['L', 'Lock / unlock question'], ['Shift+L', 'Read out the full scores'], ['G', 'Bonus'], ['Shift+1–8', 'Buzz'], ['F', 'Fullscreen'], ['O', 'Open Stage window'], ['E', 'Read question aloud'], ['A', 'Read answer aloud'], ['T', 'Read team name'], ['M', 'Mute / unmute'], ['[ / ]', 'Master volume down / up'],
   ['G', 'Question board'], ['Ctrl+Z', 'Undo'], ['Ctrl+Y', 'Redo'], ['Ctrl+S', 'Save now'], ['?', 'This list'], ['Esc', 'Cancel / close'],
 ];
@@ -652,7 +747,7 @@ const Keys = {
       case '+': case '=': Actions.timerAdd(10); return true;
       case '-': Actions.timerAdd(-10); return true;
       case 's': Actions.scoreboard(); return true;
-      case 'w': Actions.jump('WINNER'); return true;
+      case 'w': if (m.shift) Actions.jump('WINNER'); else Actions.judge('wrong'); return true;
       case 'g': Actions.gotoGrid(); return true;
       case 'b': Actions.blackout(); return true;
       case 'g': Actions.bonus(); return true;
@@ -666,7 +761,7 @@ const Keys = {
       case '[': Actions.volume(-0.1); return true;
       case ']': Actions.volume(0.1); return true;
       case '?': case 'F1': Actions.shortcuts(); return true;
-      case 'Escape': if (UI.picker) { Actions.cancelPicker(); return true; } return false;
+      case 'Escape': { const mp = $('#menuPanel'); if (mp && !mp.hidden) { mp.hidden = true; return true; } } if (UI.picker) { Actions.cancelPicker(); return true; } return false;
       case 'Home': Actions.goStep(0); return true;
       default: return false;
     }

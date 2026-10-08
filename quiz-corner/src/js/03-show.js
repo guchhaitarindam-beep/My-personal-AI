@@ -219,13 +219,23 @@ Game.turnFor = function turnFor(rid) { return Sel.turnTeam(Sel.round(rid)); };
    ===================================================================== */
 const DesignSystem = {
   lastSig: '',
+  /** A round (or the finale) may use another theme; everything else uses the show theme. */
+  sceneTheme(s) {
+    const sc = s.show.scene; const p = s.show.params || {};
+    if (['FINAL', 'TOP3', 'WINNER', 'END'].includes(sc)) return THEMES[s.design.finaleTheme] ? s.design.finaleTheme : '';
+    const rid = sc === 'QUESTION' ? s.live.roundId : ['ROUND_INTRO', 'ROUND_RULES', 'GRID', 'SCOREBOARD'].includes(sc) ? p.roundId : '';
+    const r = rid && Sel.round(rid); const k = r && r.design && r.design.theme;
+    return k && THEMES[k] ? k : '';
+  },
   apply() {
     const d = Store.state.design;
-    const sig = JSON.stringify(d);
+    const over = this.sceneTheme(Store.state);
+    const sig = JSON.stringify(d) + '|' + over;
     if (sig === this.lastSig) return;
     this.lastSig = sig;
     const root = document.documentElement.style;
-    const c = d.colors;
+    const c = over ? Object.assign({}, d.colors, THEMES[over]) : d.colors;
+    root.setProperty('--head', c.head || '#ffffff');
     const set = (k, v) => root.setProperty(k, v);
     set('--bg', c.bg); set('--bg2', c.bg2); set('--text', c.text); set('--muted', c.muted); set('--accent', c.accent); set('--accent2', c.accent2);
     set('--gold', c.gold); set('--neon', c.neon); set('--panel-solid', c.panel); set('--correct', c.correct); set('--wrong', c.wrong);
@@ -247,6 +257,7 @@ const DesignSystem = {
     set('--q-valign', { top: 'flex-start', center: 'center', bottom: 'flex-end' }[d.vAlign] || 'center');
     set('--anim-speed', String(d.animSpeed)); set('--ring-w', String(d.ringWidth));
     document.body.classList.toggle('no-motion', !d.motion);
+    document.body.classList.toggle('fx-premium', d.textFx !== 'classic');
   },
 };
 function hexA(hex, a) {

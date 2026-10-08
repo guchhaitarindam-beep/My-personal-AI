@@ -521,6 +521,21 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
+      T('Theme: default is Midnight Royal Blue · Warm White · Champagne Gold', () => { const c = defaultState().design.colors; return defaultState().design.theme === 'midnight' && c.bg === '#071a3d' && c.bg2 === '#102d63' && c.text === '#fff9e8' && c.head === '#ffffff' && c.gold === '#f4d27a'; });
+      T('Theme: five calm themes with their exact colours', () => THEMES.violetGold.bg === '#170d38' && THEMES.violetGold.gold === '#e8b7c8' && THEMES.tealIvory.bg2 === '#07545a' && THEMES.navyCyan.accent === '#70cfff' && THEMES.royalYellow.accent === '#d9c2ff' && THEMES.royalYellow.gold === '#f2d27d');
+      T('Theme: a round (or the finale) can have its own theme; default = show theme', () => {
+        const st = Store.state; const r0 = st.rounds[0]; const keep = [st.show.scene, st.show.params, r0.design.theme, st.design.finaleTheme];
+        st.show.scene = 'GRID'; st.show.params = { roundId: r0.id }; const none = DesignSystem.sceneTheme(st);
+        r0.design.theme = 'violetGold'; const one = DesignSystem.sceneTheme(st);
+        st.show.scene = 'WINNER'; st.design.finaleTheme = 'royalYellow'; const fin = DesignSystem.sceneTheme(st);
+        [st.show.scene, st.show.params, r0.design.theme, st.design.finaleTheme] = keep;
+        return none === '' && one === 'violetGold' && fin === 'royalYellow';
+      });
+      T('Theme: a save on the earlier Midnight shade moves to the final colours; a chosen theme stays', () => {
+        const a = defaultState(); a.rulesVersion = 12; a.design.colors = Object.assign({}, a.design.colors, { bg: '#050f29' });
+        const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
+        return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
+      });
       T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
       // ---- text fitting with long Bengali ----

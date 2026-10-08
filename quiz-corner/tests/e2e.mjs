@@ -315,9 +315,9 @@ await host.goto(url + '#host');
 await host.waitForFunction(() => window.QC && window.QC.MODE === 'host');
 await host.waitForTimeout(800);
 check('Host script window shows scores', await host.evaluate(() => document.querySelectorAll('#host .chip').length >= 8));
-await ctl.selectOption('#roleSel', 'quizmaster');
+await ctl.click('#btnMenu'); await ctl.selectOption('#roleSel', 'quizmaster'); // the role picker lives in the MENU panel
 check('Quiz-master role hides preparation tabs', await ctl.evaluate(() => getComputedStyle(document.querySelector('.ctl-main > section:last-child')).display === 'none'));
-await ctl.selectOption('#roleSel', 'controller');
+await ctl.evaluate(() => { const m = document.querySelector('#menuPanel'); if (m.hidden) document.querySelector('#btnMenu').click(); }); await ctl.selectOption('#roleSel', 'controller'); await ctl.keyboard.press('Escape');
 // ---- scene engine override ----
 await ctl.evaluate(() => { window.QC.Store.commit('t', (s) => { s.sceneFx.SCOREBOARD = { anim: 'cube', cue: 'none', bg: '' }; }); window.QC.Show.scoreboard(); });
 await stage.waitForTimeout(500);
