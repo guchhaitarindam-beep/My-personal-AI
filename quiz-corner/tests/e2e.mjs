@@ -38,7 +38,7 @@ check('Stage shows no operator controls', await stage.evaluate(() => !document.q
 // ---- walk the full rundown, screenshot key scenes, check overflow ----
 const rd = await ctl.evaluate(() => window.QC.Show.rundown().map((s) => ({ key: s.key, scene: s.scene })));
 check('Rundown length', rd.length > 60, rd.length + ' steps');
-const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'GIFT', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
+const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'IDENTITY', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
 const shot = new Set();
 let overflowIssues = [];
 let syncIssues = 0;

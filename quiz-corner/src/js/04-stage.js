@@ -112,7 +112,7 @@ const Scenes = {
     const cards = row.map(({ m, j }) => {
       const vis = j < shown;
       const side = j === 0 ? 'from-top' : j % 2 ? 'from-left' : 'from-right';
-      return '<div data-part="c' + j + '" class="crew-card2 ' + side + (vis ? '' : ' hidden') + (j === 0 ? ' captain' : '') + '">' + (vis ? H.photo(m.photo, m.name, 'crew-face') + '<b class="mem-name">' + esc(m.name) + '</b>' + (m.role || j === 0 ? '<small class="mem-role">' + esc(m.role || 'অধিনায়ক') + '</small>' : '') : '') + '</div>';
+      return '<div data-part="c' + j + '" class="crew-card2 ' + side + (vis ? '' : ' hidden') + (j === 0 ? ' captain' : '') + '">' + (vis ? H.photo(m.photo, m.name, 'crew-face') + '<b class="mem-name">' + esc(m.name) + '</b>' + (m.role ? '<small class="mem-role">' + esc(m.role) + '</small>' : '') : '') + '</div>';
     }).join('') + (left.length > right.length ? '<div data-part="sp" class="crew-card2 spacer" aria-hidden="true"></div>' : ''); // an even team: an empty place on the right keeps the captain in the very middle
     const slots = n + (left.length > right.length ? 1 : 0);
     const cur = crew[shown - 1];
@@ -203,7 +203,7 @@ const Scenes = {
   PRELIM_RESULT(s) {
     const rows = Sel.prelimRanking();
     const half = Math.ceil(rows.length / 2);
-    const body = '<div class="res-table" style="grid-template-rows:repeat(' + half + ',1fr)">' + rows.map((r, i) => '<div class="res-row' + (r.qualified ? ' q' : '') + '" style="--i:' + i + '"><span class="rk">' + bn(r.rank) + '</span><b>' + esc(r.team.name) + (r.team.school ? ' <small class="muted" style="font-weight:500">' + esc(r.team.school) + '</small>' : '') + '</b><span class="sc">' + bn(r.score) + '</span><span class="st">★' + bn(r.stars) + '</span></div>').join('') + '</div>';
+    const body = '<div class="res-table" style="grid-template-rows:repeat(' + half + ',1fr)">' + rows.map((r, i) => '<div class="res-row' + (r.qualified ? ' q' : '') + '" style="--i:' + i + '"><span class="rk">' + bn(r.rank) + '</span><b>' + (Sel.codeHidden(r.team) ? esc(Sel.preName(r.team)) : esc(r.team.name) + (r.team.school ? ' <small class="muted" style="font-weight:500">' + esc(r.team.school) + '</small>' : '') )+ '</b><span class="sc">' + bn(r.score) + '</span><span class="st">★' + bn(r.stars) + '</span></div>').join('') + '</div>';
     return { key: 'PRES', anim: 'slide', html: H.head(s, '<span class="round-tag">বাছাই পর্বের ফলাফল</span>', '<span class="qnum">শীর্ষ ' + bn(s.prelim.finalistCount) + ' দল মূল পর্বে</span>') + H.part('table', body, '', 'flex:1;display:flex;flex-direction:column;min-height:0') };
   },
   FINALISTS(s) {
@@ -256,7 +256,7 @@ const Scenes = {
   },
   PODIUM(s) {
     const teams = Sel.finalists();
-    return { key: 'PODIUM', anim: 'push', html: H.head(s, '<span class="round-tag">মূল পর্বের দলসমূহ</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') + H.part('grid', '<div class="podium" style="flex:1;display:flex;min-height:0">' + Scenes.teamGrid(teams, (t) => (t.gift && t.gift.item ? '<span class="gift">' + esc(t.gift.item) + '</span>' : '') + (t.players.filter(Boolean).length ? '<small>' + esc(t.players.filter(Boolean).join(' • ')) + '</small>' : '')) + '</div>', '', 'flex:1;display:flex;min-height:0') };
+    return { key: 'PODIUM', anim: 'push', html: H.head(s, '<span class="round-tag">মূল পর্বের দলসমূহ</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') + H.part('grid', '<div class="podium" style="flex:1;display:flex;min-height:0">' + Scenes.teamGrid(teams, (t) => { const pk = s.draw.picks.find((x) => x.team === t.id); const it = pk && s.draw.items[pk.card]; const g = it ? '<span class="gift">' + esc((it.emoji ? it.emoji + ' ' : '') + it.label) + '</span>' : s.settings.giftScenes && t.gift && t.gift.item ? '<span class="gift">' + esc(t.gift.item) + '</span>' : ''; return g + (t.players.filter(Boolean).length ? '<small>' + esc(t.players.filter(Boolean).join(' • ')) + '</small>' : ''); }) + '</div>', '', 'flex:1;display:flex;min-height:0') };
   },
   ROUND_INTRO(s, p) {
     const r = Sel.round(p.roundId);
@@ -313,7 +313,7 @@ const Scenes = {
     }).join(''), 'opts', dr.delivered ? '--opt-delay:' + (Show.droneMs() * 0.0008).toFixed(2) + 's' : '') : '';
     const poll = l.poll ? H.part('poll', l.poll.map((v, i) => (q.options[i] ? '<div class="bar"><span class="pct">' + bn(v) + '%</span><div class="fill" style="--h:' + Math.max(2, v) + '%"></div><span class="lab">' + OPT_LABELS[i] + '</span></div>' : '<div></div>')).join(''), 'poll glass') : '';
     const ansText = q.answerText || q.options[q.answer] || '';
-    const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + (q.options[q.answer] && !q.answerText ? '(' + OPT_LABELS[q.answer] + ') ' : '') + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
+    const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + (q.options[q.answer] && !q.answerText && l.optionsShown ? '(' + OPT_LABELS[q.answer] + ') ' : '') /* the option letter only when the options were on screen */ + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
     const stamp = l.result ? '<div class="stamp ' + l.result + '" data-part="stamp-' + l.resultAt + '">' + ({ correct: 'সঠিক ✓', wrong: 'ভুল ✗', noscore: 'নো স্কোর' }[l.result]) + '</div>' + (l.lastPoints ? '<div class="points-fly" data-part="pts-' + l.resultAt + '">' + signed(l.lastPoints) + '</div>' : '') : '';
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
@@ -364,10 +364,9 @@ const Scenes = {
     const w = Show.winner();
     if (!w) return { key: 'WIN:none', html: H.part('body', '<h1 class="s-title">বিজয়ী নির্ধারিত হয়নি</h1>', 'center-col') };
     const t = w.team;
-    const photo = s.winnerPhoto || t.photo;
     return {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
-      html: H.part('body', H.photo(photo, t.name, 'wphoto', '', bn(Sel.teamIndex(t.id) + 1)) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + H.tn(t) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
+      html: H.part('body', (s.winnerPhoto ? H.photo(s.winnerPhoto, t.name, 'wphoto', '', Sel.code(t).charAt(0)) : H.tphoto(t, 'wphoto')) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + H.tn(t) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
   },
   TOP3(s) {

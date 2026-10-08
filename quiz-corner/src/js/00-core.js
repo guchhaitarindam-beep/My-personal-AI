@@ -7,10 +7,10 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 8;
+const RULES_VERSION = 9;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
-const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল'];
-const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && c.includes('চন্দন পাল ও') && !c.includes('সৌরভ'));
+const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
+const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -124,7 +124,7 @@ const DRAW_THEMES = {
   sports: { name: 'প্রিয় খেলা', items: [['ফুটবল', '⚽'], ['ক্রিকেট', '🏏'], ['ব্যাডমিন্টন', '🏸'], ['হকি', '🏑'], ['দাবা', '♟️'], ['বাস্কেটবল', '🏀'], ['টেনিস', '🎾'], ['ভলিবল', '🏐']] },
   fruits: { name: 'প্রিয় ফল', items: [['আম', '🥭'], ['কলা', '🍌'], ['আপেল', '🍎'], ['আঙুর', '🍇'], ['তরমুজ', '🍉'], ['আনারস', '🍍'], ['কমলালেবু', '🍊'], ['স্ট্রবেরি', '🍓']] },
   food: { name: 'প্রিয় খাবার', items: [['আইসক্রিম', '🍦'], ['কেক', '🎂'], ['চকোলেট', '🍫'], ['মোমো', '🥟'], ['পিৎজা', '🍕'], ['নুডলস', '🍜'], ['পপকর্ন', '🍿'], ['ডোনাট', '🍩']] },
-  greats: { name: 'মনীষী', items: [['রবীন্দ্রনাথ ঠাকুর', ''], ['স্বামী বিবেকানন্দ', ''], ['নেতাজি সুভাষচন্দ্র বসু', ''], ['ঈশ্বরচন্দ্র বিদ্যাসাগর', ''], ['কাজী নজরুল ইসলাম', ''], ['এ পি জে আব্দুল কালাম', ''], ['জগদীশচন্দ্র বসু', ''], ['সত্যজিৎ রায়', '']] },
+  greats: { name: 'মনীষী', items: [['রবীন্দ্রনাথ ঠাকুর', ''], ['স্বামী বিবেকানন্দ', ''], ['নেতাজি সুভাষচন্দ্র বসু', ''], ['ঈশ্বরচন্দ্র বিদ্যাসাগর', ''], ['কাজী নজরুল ইসলাম', ''], ['এ. পি. জে. আবদুল কালাম', ''], ['জগদীশচন্দ্র বসু', ''], ['সত্যজিৎ রায়', '']] },
   cartoons: { name: 'প্রিয় কার্টুন', items: [['ছোটা ভীম', ''], ['গোপাল ভাঁড়', ''], ['মোটু পাতলু', ''], ['ডোরেমন', ''], ['টম ও জেরি', ''], ['নন্টে ফন্টে', ''], ['হাঁদা ভোঁদা', ''], ['বাঁটুল দি গ্রেট', '']] },
 };
 function drawItems(theme) { return (DRAW_THEMES[theme] || DRAW_THEMES.animals).items.map(([label, emoji]) => ({ label, emoji, image: '' })); }
@@ -279,7 +279,7 @@ function defaultState() {
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
-      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, autoApplause: true,
+      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, giftScenes: false, autoApplause: true,
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },
@@ -315,6 +315,7 @@ function upgradeRules(s, def) {
     const oldPhotos = arr(s.crew).map((c) => c.photo);
     s.crew = def.crew.map((c, i) => Object.assign(clone(c), { photo: (i < 2 && oldPhotos[i]) || c.photo || '' }));
   }
+  if (isObj(s.draw)) arr(s.draw.items).forEach((it) => { if (isObj(it) && it.label === 'এ পি জে আব্দুল কালাম') it.label = 'এ. পি. জে. আবদুল কালাম'; });
   if (isObj(s.event) && OLD_CREDITS(str(s.event.credits))) s.event.credits = def.event.credits;
   s.rounds = arr(s.rounds).map((r) => {
     const d = def.rounds.find((x) => isObj(r) && x.id === r.id);
@@ -324,12 +325,14 @@ function upgradeRules(s, def) {
   const seedQ = new Map(def.questions.map((q) => [q.id, q]));
   // Questions the show rewrote get the new wording only where the operator had not changed the old one.
   const prevText = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevText).map(String)]));
+  const prevExp = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevExplanation).map(String)]));
   s.questions = arr(s.questions).map((q) => {
     const d = isObj(q) && seedQ.get(q.id);
     if (!d) return q;
     const out = Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {});
     if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, explanation: d.explanation });
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
+    if ((prevExp.get(q.id) || []).includes(str(out.explanation))) out.explanation = d.explanation; // a corrected explanation the operator had not changed
     return out;
   });
   // Questions the show added later (e.g. moved up from the preliminary bank) join an older save.

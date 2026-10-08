@@ -16,7 +16,7 @@ const Show = {
   _rdSig: '',
   rundown() {
     const s = Store.state;
-    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title].join('|');
+    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENES[scene] });
@@ -35,7 +35,8 @@ const Show = {
     // meet the finalists: the team, then its two members one by one (photos)
     const fin = Sel.finalistIds();
     fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'দল পরিচিতি • ' + Sel.label(t)); });
-    Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'বিশেষ উপস্থাপনা • ' + ((Sel.team(id) || {}).name || '')));
+    // the old "special presentation" cards (one per team) are off by default: the podium lottery replaced them
+    if (s.settings.giftScenes) Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'বিশেষ উপস্থাপনা • ' + ((Sel.team(id) || {}).name || '')));
     add('PODIUM'); add('MAIN_COUNTDOWN');
     s.rounds.forEach((r, ri) => {
       if (!r.enabled) return;
