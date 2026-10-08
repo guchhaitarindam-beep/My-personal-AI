@@ -296,15 +296,26 @@ const Scenes = {
       return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + H.tn(r.team) + '</b>' + (titles ? '<small class="rtitle">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</small>' : (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
     }).join('');
   },
+  /** End of a round, in two steps: first every team in code order (A / 1 … H / 8) with this round's points and the
+      total; then (→) the ranking appears from the last place up to the first, and the round champion is announced. */
   SCOREBOARD(s, p) {
     const r = Sel.round(p.roundId);
-    const rows = Sel.standings(undefined, r ? r.id : '');
+    const rid = r ? r.id : '';
+    const rows = Sel.standings(undefined, rid);
+    const ranked = int(p.sub, 0) >= 1;
+    const head = H.head(s, '<span class="round-tag">' + (r ? esc(r.name) + ' — ' : '') + 'স্কোরবোর্ড</span>', '<span class="qnum">' + (ranked ? 'র‍্যাঙ্ক অনুযায়ী' : 'দলের কোড অনুযায়ী') + '</span>');
+    if (!ranked) {
+      const byCode = rows.slice().sort((a, b) => Sel.teamIndex(a.team.id) - Sel.teamIndex(b.team.id));
+      const list = byCode.map((x, i) => { const nm = str(x.team.name).trim(); const c = Sel.code(x.team); return '<div class="sb-row" style="--i:' + i + ';' + H.teamVars(x.team) + '"><span class="rank code">' + esc(c) + '</span>' + H.tphoto(x.team) + '<div class="nm"><b>' + (nm && nm !== c ? esc(nm) : 'TEAM ' + esc(c)) + '</b>' + (x.team.school ? '<small>' + esc(x.team.school) + '</small>' : '') + '</div><span class="rs">' + (rid ? signed(x.rscore) : '') + '</span><span class="tot">' + bn(x.score) + '</span><span></span></div>'; }).join('');
+      return { key: 'SB:' + (rid || 'all'), anim: 'slide', style: H.roundVars(r), html: head + H.part('sb-code', '<div class="sb-head"><span>CODE</span><span></span><span>TEAM</span><span>' + (rid ? 'এই রাউন্ডে' : '') + '</span><span>মোট</span><span></span></div>' + list, 'sb') };
+    }
+    const n = rows.length;
     const star = r ? Sel.roundStar(r.id) : null;
+    const champDelay = (n * 0.5 + 0.7).toFixed(2);
+    const champ = star ? '<div class="round-champ" style="--d:' + champDelay + 's">' + '<span class="rc-cup">🏆</span><div class="rc-txt"><small>' + (r ? esc(r.name) + ' — ' : '') + 'রাউন্ড চ্যাম্পিয়ন</small><b>' + star.teams.map((t) => 'TEAM ' + esc(Sel.code(t)) + (str(t.name).trim() !== Sel.code(t) ? ' ' + esc(t.name) : '')).join(' ও ') + '</b><span>এই রাউন্ডে +' + bn(star.pts) + ' • মোট ' + star.teams.map((t) => bn(Sel.score(t.id))).join(' / ') + ' পয়েন্ট</span></div></div>' : '';
     return {
-      key: 'SB:' + (r ? r.id : 'all'), anim: 'slide', style: H.roundVars(r),
-      html: H.head(s, '<span class="round-tag">স্কোরবোর্ড' + (r ? ' • ' + esc(r.name) : '') + '</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') +
-        H.part('sb', '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span>' + (r ? 'ROUND' : '') + '</span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, r ? r.id : ''), 'sb') +
-        (star ? H.part('star', '★ রাউন্ড স্টার: ' + star.teams.map((t) => esc(Sel.label(t))).join(' ও ') + ' — এই রাউন্ডে +' + bn(star.pts), 'round-star') : ''),
+      key: 'SB:' + (rid || 'all'), anim: 'slide', style: H.roundVars(r),
+      html: head + H.part('sb-rank', '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span>' + (rid ? 'এই রাউন্ডে' : '') + '</span><span>মোট</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, rid), 'sb reveal-up', '--n:' + n) + H.part('champ', champ),
     };
   },
   FINAL(s) {

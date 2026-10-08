@@ -946,3 +946,14 @@ body.role-host .preview-box { max-width: 900px; }
 .intro-info .fin-score { width: fit-content; max-width: 100%; }
 .blackout-alert { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; background: #7f1d1d !important; border: 2px solid #ef4444 !important; color: #fff; animation: glowPulse 1.6s ease-in-out infinite; }
 .blackout-alert b { font-size: 1.15rem; }
+
+/* end of round: code order, then the ranking rising from the last place, then the round champion */
+.sb-row .rank.code { font-family: var(--font-en); font-weight: 900; font-size: 3cqh; color: #0A0F1D; background: linear-gradient(180deg, #fff3b0, var(--gold)); border-radius: 1.2cqh; padding: .4cqh 0; }
+.sb.reveal-up .sb-row { animation: revealRow 1s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc((var(--n) - 1 - var(--i)) * .5s + .3s); }
+.round-champ { flex: 0 0 auto; display: flex; align-items: center; gap: 2cqw; margin-top: 1.4cqh; padding: 1.2cqh 2.4cqw; border-radius: 2cqh; color: #0A0F1D; background: linear-gradient(90deg, #fff3b0, var(--gold), #fff3b0); box-shadow: 0 0 5cqh color-mix(in srgb, var(--gold) 70%, transparent); animation: champIn 1.1s cubic-bezier(.2, 1.3, .4, 1) both, keyGlow 2.4s ease-in-out infinite; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+.round-champ .rc-cup { font-size: 7cqh; line-height: 1; }
+.round-champ .rc-txt { display: flex; flex-direction: column; min-width: 0; }
+.round-champ small { font-size: 2.2cqh; font-weight: 800; letter-spacing: .04em; }
+.round-champ b { font-family: var(--font-en), var(--font-bn); font-size: 4.2cqh; font-weight: 900; line-height: 1.3; overflow-wrap: anywhere; }
+.round-champ span { font-size: 2.6cqh; font-weight: 800; }
+@keyframes champIn { from { opacity: 0; transform: scale(.5) translateY(6cqh); } }

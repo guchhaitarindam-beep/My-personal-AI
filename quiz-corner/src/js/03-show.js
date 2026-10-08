@@ -105,6 +105,7 @@ const Show = {
   subRange(scene, p) {
     if (scene === 'CREW') return [1, Math.max(1, Sel.crew().length)];
     if (scene === 'TEAM_INTRO') return [0, Sel.members(Sel.team(p && p.teamId)).length];
+    if (scene === 'SCOREBOARD') return [0, 1]; // code order first, then the ranking and the round champion
     return null;
   },
   /** Move one sub-step; false when the scene has no more steps that way. */
@@ -114,6 +115,13 @@ const Show = {
     const cur = int(sh.params.sub, r[0]); const n = cur + d;
     if (n < r[0] || n > r[1]) return false;
     Store.commit('sub-step', (s) => { s.show.params.sub = n; }, { undo: false });
+    if (d > 0 && sh.scene === 'SCOREBOARD') {
+      // the ranking rises from the last place; drumroll, then fanfare and applause for the round champion
+      Cue.play('drumroll');
+      const rows = Sel.standings().length; const at = Store.state.show.startedAt;
+      clearTimeout(this.champT); this.champT = setTimeout(() => { if (Store.state.show.startedAt !== at) return; Cue.play('fanfare'); setTimeout(() => Cue.play('applause'), 900); }, rows * 500 + 700);
+      return true;
+    }
     if (d > 0) {
       Cue.play('transition');
       const st = Store.state;

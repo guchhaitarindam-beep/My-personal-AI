@@ -51,6 +51,8 @@ for (let i = 0; i < rd.length; i++) {
     shot.add(sc);
     await stage.waitForTimeout(sc === 'PRELIM_Q' || sc === 'QUESTION' ? 4600 : 1600);
     await stage.screenshot({ path: path.join(shots, String(shot.size).padStart(2, '0') + '-' + sc + '.png') });
+    // let one-shot entrance animations (e.g. scale(1.2) row reveals) settle before measuring
+    await stage.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter((a) => { const t = a.effect && a.effect.getComputedTiming(); return t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => 0))), new Promise((r) => setTimeout(r, 5000))]));
     const ov = await stage.evaluate(() => {
       const st = document.querySelector('.stage').getBoundingClientRect();
       const bad = [];

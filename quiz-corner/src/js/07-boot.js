@@ -371,6 +371,27 @@ const SelfTest = {
       T('নিয়ম: রাউন্ড ১-এর পাশের লেখায় চ্যালেঞ্জ নেই', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
       T('একসাথে মিডিয়া: ফাইলের নাম থেকে রাউন্ড ও প্রশ্ন', () => { const a = bulkMediaTarget('R1-5.jpg'); const b = bulkMediaTarget('r2_10.png'); const c = bulkMediaTarget('রাউন্ড৩-প্রশ্ন৭.mp3'); const d = bulkMediaTarget('holiday photo.jpg'); return a.round === 1 && a.n === 5 && b.round === 2 && b.n === 10 && c.round === 3 && c.n === 7 && d === null; });
       T('ব্ল্যাকআউট হলে কন্ট্রোলে লাল সতর্কতা ও ফেরানোর বোতাম', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
+      {
+        const ids = Sel.finalistIds();
+        Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
+        // a played round: A/1 direct +10, B/2 wrong then C/3 on the pass +5, D/4 via 2 options +3
+        const qs = Sel.roundQuestions('R1');
+        Game.load(qs[0].id, ids[0]); Game.judge('correct');
+        Game.load(qs[1].id, ids[1]); Game.judge('wrong'); Game.pass(ids[2]); Game.judge('correct');
+        Game.load(qs[2].id, ids[3]); Game.twoOptions(); Game.pick(Sel.liveQuestion().answer);
+        T('হিসাব: A/1 = ১০, B/2 = ০, C/3 = ৫, D/4 = ৩, মোট = ১৮', () => Sel.score(ids[0]) === 10 && Sel.score(ids[1]) === 0 && Sel.score(ids[2]) === 5 && Sel.score(ids[3]) === 3 && ids.reduce((t, id) => t + Sel.score(id), 0) === 18);
+        T('হিসাব: রাউন্ডের নম্বর আলাদা, মোটের সঙ্গে মেলে', () => ids.every((id) => Sel.roundScore(id, 'R1') === Sel.score(id)));
+        T('হিসাব: প্রতিটি নম্বর লেজারে আগে-পরে সহ', () => s().ledger.every((e) => e.after === e.before + e.delta));
+        const sbStep = Show.rundown().find((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R1'); Show.go(sbStep);
+        const h0 = Scenes.SCOREBOARD(s(), s().show.params).html;
+        const order = (h0.match(/class="rank code">([^<]+)</g) || []).map((x) => x.replace(/.*>/, '').replace('<', ''));
+        T('স্কোরবোর্ড ধাপ ১: কোড অনুযায়ী A / 1 … H / 8', () => order.join('|') === ids.map((id) => Sel.code(Sel.team(id))).join('|') && order[0] === 'A / 1');
+        Show.next();
+        const h1 = Scenes.SCOREBOARD(s(), s().show.params).html;
+        T('স্কোরবোর্ড ধাপ ২: র‍্যাঙ্ক অনুযায়ী (নিচ থেকে ওপরে খোলে) ও রাউন্ড চ্যাম্পিয়ন', () => s().show.scene === 'SCOREBOARD' && h1.includes('reveal-up') && h1.includes('রাউন্ড চ্যাম্পিয়ন') && h1.includes('TEAM A / 1') && h1.includes('+১০'));
+        Show.next();
+        T('তৃতীয় রাউন্ডের পরে: চূড়ান্ত ফল → সেরা ৩ → বিজয়ী → সমাপনী, আর কোনো রাউন্ড নেই', () => { const rr = Show.rundown(); const last = rr.map((x) => x.scene); const iSB3 = rr.findIndex((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R3'); return last.slice(iSB3 + 1).join() === 'FINAL,TOP3,WINNER,END' && rr.filter((x) => x.scene === 'ROUND_INTRO').length === 3; });
+      }
       // ---- design and sound ----
       T('নকশা: কোণে ঘুরন্ত লোগো চালু', () => s().design.corner.show && s().design.corner.spin && s().design.corner.pos === 'tr');
       T('নকশা: দৃশ্য বদলে স্পষ্ট রঙিন সুইপ', () => s().design.wipe === 'sweep');
