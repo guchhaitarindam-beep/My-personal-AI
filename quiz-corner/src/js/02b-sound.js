@@ -108,11 +108,11 @@ const Sfx = (() => {
   return { attach, playBuffer, render, decode(ab) { return ensure() ? ctx.decodeAudioData(ab) : Promise.reject(new Error('audio unavailable')); }, testTone, play(n, a) { try { const f = LIB[n]; boost = LEVEL[n] || 1; f && f(a); } catch (_) {} finally { boost = 1; } }, setVolume(v) { vol = Math.max(0, Math.min(1, v)); if (master) master.gain.value = vol; }, setMuted(m) { muted = !!m; }, get muted() { return muted; }, get ctx() { return ctx; }, names: () => Object.keys(LIB) };
 })();
 
-/* the countdown voice: a female English voice counts "ten ... one, go" (an Indian English voice is preferred when installed) */
+/* the countdown voice: a female English voice counts "ten ... one, zero, go" (an Indian English voice is preferred when installed) */
 const CountVoice = (() => {
-  let v = null; const WORDS = ['Go!', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+  let v = null; const WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
   function pick() { try { const vs = speechSynthesis.getVoices().filter((x) => /^en/i.test(x.lang || '')); for (const r of [/neerja/i, /heera/i, /aria/i, /jenny/i, /zira/i, /sonia/i, /libby/i, /female/i, /samantha/i, /hazel/i, /susan/i]) { const f = vs.find((x) => r.test(x.name || '')); if (f) return f; } return vs.find((x) => /en-IN/i.test(x.lang)) || vs[0] || null; } catch (_) { return null; } }
-  function say(n) { try { if (typeof speechSynthesis === 'undefined' || n < 0 || n > 10) return; if (!v) v = pick(); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(WORDS[n]); u.lang = v ? v.lang : 'en-US'; if (v) u.voice = v; u.rate = n === 0 ? 0.95 : 1.05; u.pitch = 1.15; u.volume = 1; speechSynthesis.speak(u); } catch (_) {} }
+  function say(n) { try { if (typeof speechSynthesis === 'undefined' || n < -1 || n > 10) return; if (!v) v = pick(); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(n === -1 ? 'Go!' : WORDS[n]); u.lang = v ? v.lang : 'en-US'; if (v) u.voice = v; u.rate = n === -1 ? 0.95 : 1.05; u.pitch = 1.15; u.volume = 1; speechSynthesis.speak(u); } catch (_) {} }
   try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.addEventListener('voiceschanged', () => { v = null; }); } catch (_) {}
   return { say, voiceName: () => { const x = v || pick(); return x ? x.name : 'none'; } };
 })();

@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 9;
+const RULES_VERSION = 10;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -277,7 +277,7 @@ function defaultState() {
     speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true, rec: true, recVol: 1 },
     display: { webgl: true, strobe: true, fireworks: true, calib: 'off', aspect: '16:9', safeMargin: 0, testCard: false },
     settings: {
-      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,
+      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 10, countdownStepMs: 1000, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
       operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, giftScenes: false, autoApplause: true,
     },
@@ -347,7 +347,7 @@ function upgradeRules(s, def) {
   // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.
   const plain = (t) => isObj(t) && GENERIC_TEAM_NAME.test(str(t.name).trim()) && !t.captain && !t.photo && !t.captainPhoto && !arr(t.players).some(Boolean) && !arr(t.playerPhotos).some(Boolean);
   if (arr(s.teams).length > 8 && arr(s.teams).every(plain) && !arr(s.ledger).length) s.teams = s.teams.slice(0, 8);
-  if (isObj(s.settings)) { s.settings.showLifelines = false; s.settings.countdownStepMs = Math.max(num(s.settings.countdownStepMs, 1500), 1500); }
+  if (isObj(s.settings)) { s.settings.showLifelines = false; s.settings.countdownStepMs = 1000; s.settings.countdownFrom = 10; } // 13 Oct: 10, 9 … 1, 0, GO! — one second per number
   if (isObj(s.audio)) {
     s.audio.master = 1;
     Object.values(isObj(s.audio.cues) ? s.audio.cues : {}).forEach((c) => { if (isObj(c)) { c.vol = 1; c.mute = false; } });

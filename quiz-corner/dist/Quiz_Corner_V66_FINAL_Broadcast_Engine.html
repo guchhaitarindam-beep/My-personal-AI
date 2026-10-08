@@ -1262,7 +1262,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 9;
+const RULES_VERSION = 10;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -1532,7 +1532,7 @@ function defaultState() {
     speech: { enabled: false, rate: 0.92, pitch: 1, voice: '', autoQuestion: false, timerVoice: 'last10', announceTeam: true, rec: true, recVol: 1 },
     display: { webgl: true, strobe: true, fireworks: true, calib: 'off', aspect: '16:9', safeMargin: 0, testCard: false },
     settings: {
-      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 3, countdownStepMs: 1500, warnAt: 10, critAt: 5,
+      drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 10, countdownStepMs: 1000, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
       operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, giftScenes: false, autoApplause: true,
     },
@@ -1602,7 +1602,7 @@ function upgradeRules(s, def) {
   // Untouched default teams of an older file (12 × "দল N") become the eight teams A / 1 … H / 8.
   const plain = (t) => isObj(t) && GENERIC_TEAM_NAME.test(str(t.name).trim()) && !t.captain && !t.photo && !t.captainPhoto && !arr(t.players).some(Boolean) && !arr(t.playerPhotos).some(Boolean);
   if (arr(s.teams).length > 8 && arr(s.teams).every(plain) && !arr(s.ledger).length) s.teams = s.teams.slice(0, 8);
-  if (isObj(s.settings)) { s.settings.showLifelines = false; s.settings.countdownStepMs = Math.max(num(s.settings.countdownStepMs, 1500), 1500); }
+  if (isObj(s.settings)) { s.settings.showLifelines = false; s.settings.countdownStepMs = 1000; s.settings.countdownFrom = 10; } // 13 Oct: 10, 9 … 1, 0, GO! — one second per number
   if (isObj(s.audio)) {
     s.audio.master = 1;
     Object.values(isObj(s.audio.cues) ? s.audio.cues : {}).forEach((c) => { if (isObj(c)) { c.vol = 1; c.mute = false; } });
@@ -3074,11 +3074,11 @@ const Sfx = (() => {
   return { attach, playBuffer, render, decode(ab) { return ensure() ? ctx.decodeAudioData(ab) : Promise.reject(new Error('audio unavailable')); }, testTone, play(n, a) { try { const f = LIB[n]; boost = LEVEL[n] || 1; f && f(a); } catch (_) {} finally { boost = 1; } }, setVolume(v) { vol = Math.max(0, Math.min(1, v)); if (master) master.gain.value = vol; }, setMuted(m) { muted = !!m; }, get muted() { return muted; }, get ctx() { return ctx; }, names: () => Object.keys(LIB) };
 })();
 
-/* the countdown voice: a female English voice counts "ten ... one, go" (an Indian English voice is preferred when installed) */
+/* the countdown voice: a female English voice counts "ten ... one, zero, go" (an Indian English voice is preferred when installed) */
 const CountVoice = (() => {
-  let v = null; const WORDS = ['Go!', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+  let v = null; const WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
   function pick() { try { const vs = speechSynthesis.getVoices().filter((x) => /^en/i.test(x.lang || '')); for (const r of [/neerja/i, /heera/i, /aria/i, /jenny/i, /zira/i, /sonia/i, /libby/i, /female/i, /samantha/i, /hazel/i, /susan/i]) { const f = vs.find((x) => r.test(x.name || '')); if (f) return f; } return vs.find((x) => /en-IN/i.test(x.lang)) || vs[0] || null; } catch (_) { return null; } }
-  function say(n) { try { if (typeof speechSynthesis === 'undefined' || n < 0 || n > 10) return; if (!v) v = pick(); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(WORDS[n]); u.lang = v ? v.lang : 'en-US'; if (v) u.voice = v; u.rate = n === 0 ? 0.95 : 1.05; u.pitch = 1.15; u.volume = 1; speechSynthesis.speak(u); } catch (_) {} }
+  function say(n) { try { if (typeof speechSynthesis === 'undefined' || n < -1 || n > 10) return; if (!v) v = pick(); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(n === -1 ? 'Go!' : WORDS[n]); u.lang = v ? v.lang : 'en-US'; if (v) u.voice = v; u.rate = n === -1 ? 0.95 : 1.05; u.pitch = 1.15; u.volume = 1; speechSynthesis.speak(u); } catch (_) {} }
   try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.addEventListener('voiceschanged', () => { v = null; }); } catch (_) {}
   return { say, voiceName: () => { const x = v || pick(); return x ? x.name : 'none'; } };
 })();
@@ -4303,12 +4303,13 @@ class StageView {
     const elapsed = now() - s.show.startedAt;
     const step = Math.floor(elapsed / stepMs);
     const prog = $('.cd-prog', el);
-    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / (from * stepMs)) * 1000)));
+    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / ((from + 1) * stepMs)) * 1000)));
     if (step === this.cdStep) return;
     this.cdStep = step;
     const d = $('.cd-digit, .cd-final', el);
-    if (step < from) { d.className = 'cd-digit pop'; d.textContent = bn(from - step); void d.offsetWidth; }
-    else { d.className = 'cd-final'; d.textContent = s.show.scene === 'PRELIM_COUNTDOWN' ? 'বাছাই পর্ব শুরু!' : 'QUIZ BEGINS'; if (this.fx && step === from) this.fx.burst(false); }
+    // 10, 9 … 1, 0 — then GO!
+    if (step <= from) { d.className = 'cd-digit pop'; d.textContent = bn(from - step); void d.offsetWidth; }
+    else { d.className = 'cd-final'; d.textContent = 'GO!'; if (this.fx && step === from + 1) this.fx.burst(false); }
   }
 }
 
@@ -7018,7 +7019,7 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
-      T('Countdown: a bit slower (1.5 s per number)', () => s().settings.countdownStepMs >= 1400);
+      T('Countdown: 10, 9 … 1, 0 then GO! (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000);
 
       // ---- text fitting with long Bengali ----
       T('Text fit: long Bengali question stays inside the box', () => {
@@ -7073,9 +7074,9 @@ const Authority = {
       if (key !== this.cdKey) { this.cdKey = key; this.cdStep = -1; }
       const from = s.settings.countdownFrom;
       const step = Math.floor((now() - s.show.startedAt) / s.settings.countdownStepMs);
-      if (step !== this.cdStep && step <= from && step >= 0) {
+      if (step !== this.cdStep && step <= from + 1 && step >= 0) {
         this.cdStep = step;
-        if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(0); }
+        if (step <= from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(-1); } // -1 = "Go!"
       }
     }
   },

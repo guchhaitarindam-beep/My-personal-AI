@@ -630,11 +630,12 @@ class StageView {
     const elapsed = now() - s.show.startedAt;
     const step = Math.floor(elapsed / stepMs);
     const prog = $('.cd-prog', el);
-    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / (from * stepMs)) * 1000)));
+    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / ((from + 1) * stepMs)) * 1000)));
     if (step === this.cdStep) return;
     this.cdStep = step;
     const d = $('.cd-digit, .cd-final', el);
-    if (step < from) { d.className = 'cd-digit pop'; d.textContent = bn(from - step); void d.offsetWidth; }
-    else { d.className = 'cd-final'; d.textContent = s.show.scene === 'PRELIM_COUNTDOWN' ? 'বাছাই পর্ব শুরু!' : 'QUIZ BEGINS'; if (this.fx && step === from) this.fx.burst(false); }
+    // 10, 9 … 1, 0 — then GO!
+    if (step <= from) { d.className = 'cd-digit pop'; d.textContent = bn(from - step); void d.offsetWidth; }
+    else { d.className = 'cd-final'; d.textContent = 'GO!'; if (this.fx && step === from + 1) this.fx.burst(false); }
   }
 }

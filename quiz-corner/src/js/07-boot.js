@@ -484,7 +484,7 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
-      T('Countdown: a bit slower (1.5 s per number)', () => s().settings.countdownStepMs >= 1400);
+      T('Countdown: 10, 9 … 1, 0 then GO! (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000);
 
       // ---- text fitting with long Bengali ----
       T('Text fit: long Bengali question stays inside the box', () => {
@@ -539,9 +539,9 @@ const Authority = {
       if (key !== this.cdKey) { this.cdKey = key; this.cdStep = -1; }
       const from = s.settings.countdownFrom;
       const step = Math.floor((now() - s.show.startedAt) / s.settings.countdownStepMs);
-      if (step !== this.cdStep && step <= from && step >= 0) {
+      if (step !== this.cdStep && step <= from + 1 && step >= 0) {
         this.cdStep = step;
-        if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(0); }
+        if (step <= from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(-1); } // -1 = "Go!"
       }
     }
   },
