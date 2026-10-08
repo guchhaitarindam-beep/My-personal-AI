@@ -215,7 +215,7 @@ const UI = {
     const b = (act, label, cls = '', arg = '', key = '', dis = false) => '<button class="btn ' + cls + '" data-act="' + act + '"' + (arg !== '' ? ' data-arg="' + esc(arg) + '"' : '') + (dis ? ' disabled' : '') + '>' + label + (key ? ' <kbd>' + key + '</kbd>' : '') + '</button>';
     // a black TV must never be a mystery to the operator
     let out = s.show.blackout ? '<div class="card blackout-alert"><b>⚠ The TV screen is black now (Blackout)</b><span>The audience sees nothing.</span>' + b('blackout', '▶ Show on TV again', 'lg good', '', 'B') + '</div>' : '';
-    out += '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">Step ' + (i + 1) + ' / ' + rd.length + (nxt ? ' • Next: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
+    out += '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENE_LABELS[s.show.scene] || SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">Step ' + (i + 1) + ' / ' + rd.length + (nxt ? ' • Next: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
     out += '<div class="deck" style="margin-top:.6rem">' + b('prev', '◀ Previous', 'lg', '', '←') + b('next', 'Next ▶', 'lg primary', '', '→') + b('timerToggle', '▶ Start', 'lg', '', '') + b('replay', '↻ Replay scene', '') + b('scoreboard', '📊 Scoreboard', '', '', 'S') + '</div></div>';
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);

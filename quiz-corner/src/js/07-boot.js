@@ -51,20 +51,20 @@ const Host = {
   },
   render() {
     const s = Store.state;
-    let h = '<div class="row"><span class="status-pill ok">' + esc(SCENES[s.show.scene] || s.show.scene) + '</span><span class="grow"></span><span class="bigtime" id="hostTime" style="font-family:var(--font-timer);font-size:3rem"></span></div>';
+    let h = '<div class="row"><span class="status-pill ok">' + esc(SCENE_LABELS[s.show.scene] || SCENES[s.show.scene] || s.show.scene) + '</span><span class="grow"></span><span class="bigtime" id="hostTime" style="font-family:var(--font-timer);font-size:3rem"></span></div>';
     if (s.show.scene === 'QUESTION') {
       const q = Sel.liveQuestion(); const t = Sel.team(Sel.answeringTeam());
-      if (q) h += '<div class="card"><div class="muted">' + esc((Sel.round(q.roundId) || {}).name || '') + ' • প্রশ্ন ' + bn(q.number) + (t ? ' • ' + esc(t.name) + ' (' + Game.flowName(s.live.flow) + ')' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + (q.options.filter(Boolean).length ? '<div class="hq" style="font-size:1.4rem">' + q.options.map((o, i) => (o ? OPT_LABELS[i] + ') ' + esc(o) : '')).filter(Boolean).join(' &nbsp; ') + '</div>' : '') + this.ans(q.answerText || q.options[q.answer] || '') + (q.explanation && this.visible() ? '<div class="muted">' + esc(q.explanation) + '</div>' : '') + '</div>';
+      if (q) h += '<div class="card"><div class="muted">' + esc((Sel.round(q.roundId) || {}).name || '') + ' • Question ' + q.number + (t ? ' • ' + esc(t.name) + ' (' + Game.flowName(s.live.flow) + ')' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + (q.options.filter(Boolean).length ? '<div class="hq" style="font-size:1.4rem">' + q.options.map((o, i) => (o ? OPT_LABELS[i] + ') ' + esc(o) : '')).filter(Boolean).join(' &nbsp; ') + '</div>' : '') + this.ans(q.answerText || q.options[q.answer] || '') + (q.explanation && this.visible() ? '<div class="muted">' + esc(q.explanation) + '</div>' : '') + '</div>';
     } else if (s.show.scene === 'PRELIM_Q') {
       const q = Sel.prelimQuestions()[s.prelimLive.idx];
-      if (q) h += '<div class="card"><div class="muted">বাছাই প্রশ্ন ' + bn(s.prelimLive.idx + 1) + (q.star ? ' ★' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + this.ans(q.answer) + '</div>';
+      if (q) h += '<div class="card"><div class="muted">Prelim question ' + (s.prelimLive.idx + 1) + (q.star ? ' ★' : '') + '</div><div class="hq">' + esc(q.text) + '</div>' + this.ans(q.answer) + '</div>';
     }
-    h += '<div class="card"><h3>স্কোর</h3><div class="team-chips">' + Sel.standings().map((r) => '<span class="chip" style="--team:' + esc(r.team.color) + '">' + bn(r.rank) + '. ' + esc(r.team.name) + ' <span class="pts">' + bn(r.score) + '</span></span>').join('') + '</div></div>';
+    h += '<div class="card"><h3>Scores</h3><div class="team-chips">' + Sel.standings().map((r) => '<span class="chip" style="--team:' + esc(r.team.color) + '">' + bn(r.rank) + '. ' + esc(r.team.name) + ' <span class="pts">' + bn(r.score) + '</span></span>').join('') + '</div></div>';
     $('#host').innerHTML = h;
     this.clock();
   },
   visible() { return Store.state.settings.hostAnswer === 'always' || this.show; },
-  ans(text) { return this.visible() ? '<div class="ha">উত্তর: ' + esc(text) + '</div>' : '<button id="hostShowAns" class="btn gold lg">👁 উত্তর দেখাও (শুধু এখানে)</button>'; },
+  ans(text) { return this.visible() ? '<div class="ha">Answer: ' + esc(text) + '</div>' : '<button id="hostShowAns" class="btn gold lg">👁 Show answer (here only)</button>'; },
   clock() { const el = $('#hostTime'); if (el) el.textContent = fmtTime(Sel.timerRemaining(Store.state.timer)); },
 };
 
@@ -393,7 +393,7 @@ const SelfTest = {
           T('Recording: 4-option recording not played after cutting to 2 options', () => played.length === 0 && said.length === 1 && !said[0].includes(Sel.question(q1.id).options[0]));
           played.length = 0; Store.state.speech.rec = false; Speech.readQuestion(false); Speech.readQuestion(true);
           T('Recording: with "auto play" off, plays only when the button is pressed', () => played.join() === 'm_q');
-          T('Recording: control has "🎙 play question" and "stop reading" buttons', () => { const h = UI.liveHtml(); return h.includes('🎙 প্রশ্ন শোনাও') && h.includes('🎙 উত্তর শোনাও') && h.includes('পড়া থামাও'); });
+          T('Recording: control has "🎙 play question" and "stop reading" buttons', () => { const h = UI.liveHtml(); return h.includes('🎙 Play question') && h.includes('🎙 Play answer') && h.includes('Stop reading'); });
           T('Recording list: file names and script text', () => voiceScript(Sel.question(q1.id), 'voiceOpt').startsWith(OPT_LABELS[0] + ') ') && voiceScript(Sel.question(q1.id), 'voiceAns').startsWith('সঠিক উত্তর: '));
         } finally { VoicePlayer.play = realPlay; Speech.say = realSay; }
       }
@@ -437,7 +437,7 @@ const SelfTest = {
         const h3 = Scenes.QUESTION(s(), s().show.params).html;
         T('Answer: in a round without options (round 3) no (A/B/C/D) label before the answer', () => h3.includes(q3.options[q3.answer]) && !h3.includes('(' + OPT_LABELS[q3.answer] + ')'));
       }
-      T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
+      T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });
       {
         const ids = Sel.finalistIds();
         Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
