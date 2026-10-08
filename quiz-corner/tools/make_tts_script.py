@@ -1,7 +1,7 @@
 """Writes launcher/make_quiz_voices.py: a self-contained script for Google Cloud Shell that turns
 every main-round question (and round 1's options, and every answer) into Bengali MP3 files named the
 way the quiz's "all at once" upload understands (R1-5.mp3, R1-5-opt.mp3, R1-5-ans.mp3).
-Usage: python3 -I tools/make_tts_script.py"""
+Usage: python3 -I tools/make_tts_script.py  [--with-options-answers]"""
 import json, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 qs = json.load(open(os.path.join(ROOT, 'assets', 'questions.json'), encoding='utf-8'))
@@ -9,6 +9,8 @@ qs = qs if isinstance(qs, list) else qs['questions']
 show = json.load(open(os.path.join(ROOT, 'assets', 'show.json'), encoding='utf-8'))
 rounds = [r for r in show['rounds'] if not r.get('skip')][:3]
 LET = ['ক', 'খ', 'গ', 'ঘ']
+import sys
+WITH_EXTRAS = '--with-options-answers' in sys.argv
 items = []
 for r in rounds:
     rid = r['id']
@@ -16,6 +18,7 @@ for r in rounds:
     for q in sorted([x for x in qs if x.get('roundId') == rid], key=lambda x: x.get('number', 0)):
         n = q['number']; opts = [o for o in q.get('options', [])]
         items.append([f'{rid}-{n}.mp3', q.get('speech') or q['text']])
+        if not WITH_EXTRAS: continue  # only the 30 question readings for now (options / answers another day)
         if has_opts and sum(1 for o in opts if o) >= 2:
             items.append([f'{rid}-{n}-opt.mp3', '। '.join(f'বিকল্প {LET[i]}: {o}' for i, o in enumerate(opts) if o) + '।'])
         ans = q.get('answerText') or (opts[q.get('answer', 0)] if opts else '')
@@ -24,7 +27,7 @@ body = r'''#!/usr/bin/env python3
 # ============================================================================
 #  Quiz Corner — Bengali readings for the 3 main rounds (Google Cloud Text-to-Speech)
 #  Run in Google Cloud Shell:   python3 make_quiz_voices.py
-#  It makes quiz_voices.zip with the MP3s named R1-5.mp3 / R1-5-opt.mp3 / R1-5-ans.mp3.
+#  It makes quiz_voices.zip with one MP3 per question, named R1-5.mp3 (round 1, question 5).
 # ============================================================================
 import base64, json, os, subprocess, sys, time, urllib.error, urllib.request, zipfile
 
