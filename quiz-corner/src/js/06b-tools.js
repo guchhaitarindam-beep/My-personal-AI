@@ -545,7 +545,7 @@ const Legacy = {
   isV100(j) { return isObj(j) && (j.format === 'QC60-BACKUP' || (j.schema === 60 && Array.isArray(j.teams))); },
   async convert(j) {
     const st = j.format === 'QC60-BACKUP' ? j.state : j;
-    if (j.format === 'QC60-BACKUP' && j.checksum && typeof cyrb53 === 'function' && j.checksum !== cyrb53(JSON.stringify(j.state))) throw new Error('ব্যাকআপ ফাইলের checksum মেলেনি — ফাইলটি ক্ষতিগ্রস্ত বা সম্পাদিত');
+    if (j.format === 'QC60-BACKUP' && j.checksum && typeof cyrb53 === 'function' && j.checksum !== cyrb53(JSON.stringify(j.state))) throw new Error('Backup file checksum does not match — the file is damaged or was edited');
     const photos = isObj(j.photos) ? j.photos : {};
     const put = async (data, name) => { if (typeof data !== 'string' || !/^data:image\//.test(data)) return ''; const id = uid('m'); try { await Media.putDataURL(id, name, 'image', data); return id; } catch (e) { return ''; } };
     const base = defaultState();
@@ -596,8 +596,8 @@ function cyrb53(str, seed = 0) {
 function auditHtml(q) {
   const f = safe('audit', () => NLP.auditQuestion(auditShape(q)), []);
   const textIss = safe('audit', () => NLP.audit(q.text).issues.filter((i) => i.fix !== null && i.rule !== 'mixed-encoding'), []);
-  if (!f.length) return '<p class="pass" style="color:var(--correct)">✔ বানান ও গঠন ঠিক আছে</p>';
-  return '<div class="list">' + f.map((x) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (x.sev === 'error' ? 'var(--wrong)' : x.sev === 'warn' ? 'var(--warn)' : 'var(--muted)') + '">' + (x.sev === 'error' ? '✘' : x.sev === 'warn' ? '⚠' : 'ℹ') + '</span><div class="t">' + esc(x.msg) + '</div></div>').join('') + '</div>' + (textIss.length ? '<div class="row" style="margin-top:.4rem">' + textIss.slice(0, 8).map((i, k) => F.btn('auditFix', 'ঠিক করুন: ' + esc(i.msg.slice(0, 40)), 'sm', q.id + '|' + k)).join('') + F.btn('auditFixAll', '✔ সব ঠিক করুন (FIX ALL)', 'sm good', q.id) + '</div>' : '');
+  if (!f.length) return '<p class="pass" style="color:var(--correct)">✔ Spelling and structure are fine</p>';
+  return '<div class="list">' + f.map((x) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (x.sev === 'error' ? 'var(--wrong)' : x.sev === 'warn' ? 'var(--warn)' : 'var(--muted)') + '">' + (x.sev === 'error' ? '✘' : x.sev === 'warn' ? '⚠' : 'ℹ') + '</span><div class="t">' + esc(x.msg) + '</div></div>').join('') + '</div>' + (textIss.length ? '<div class="row" style="margin-top:.4rem">' + textIss.slice(0, 8).map((i, k) => F.btn('auditFix', 'Fix: ' + esc(i.msg.slice(0, 40)), 'sm', q.id + '|' + k)).join('') + F.btn('auditFixAll', '✔ Fix all', 'sm good', q.id) + '</div>' : '');
 }
 
 /** Import preview modal: file, drop zone or pasted text → validated questions. */
@@ -605,10 +605,10 @@ const ImportUI = {
   pending: null,
   open() {
     const s = Store.state;
-    UI.modal('প্রশ্ন আমদানি — CSV / Excel / JSON / AI-র লেখা', '<p class="big-hint">CSV, TSV, Excel (.xlsx), JSON (AI বা পুরনো রপ্তানি) বা নম্বর দেওয়া সাধারণ লেখা ("1. প্রশ্ন … ক) … উত্তর: খ") — সব চলে। বাংলা কলাম-নাম (প্রশ্ন, উত্তর, বিকল্প ক …) ও উত্তর (ক–ঘ, ১–৪, A–D বা বিকল্পের লেখা) বোঝে। কিছুই বদলাবে না যতক্ষণ না "যোগ করুন" চাপছেন।</p>' +
-      '<div id="dropZone" class="drop" tabindex="0">📂 ফাইল এখানে টেনে আনুন বা <button class="btn sm primary" data-act="importChoose">ফাইল বেছে নিন</button></div>' +
-      '<label class="field"><span>অথবা লেখা পেস্ট করুন</span><textarea id="importText" rows="6" placeholder="1. বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্য কোনটি?&#10;ক) সুন্দরবন&#10;খ) আমাজন&#10;উত্তর: ক"></textarea></label>' +
-      '<div class="row"><label class="field"><span>রাউন্ড না থাকলে যে রাউন্ডে যাবে</span><select id="importRound">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select></label>' + F.btn('importPreview', '👁 প্রিভিউ', 'primary') + F.btn('csvTemplate', '⇩ CSV টেমপ্লেট') + '</div><div id="importOut"></div>');
+    UI.modal('Import questions — CSV / Excel / JSON / AI text', '<p class="big-hint">Accepts CSV, TSV, Excel (.xlsx), JSON (from AI or an older export) or plain numbered text ("1. প্রশ্ন … ক) … উত্তর: খ"). Understands Bengali column names (প্রশ্ন, উত্তর, বিকল্প ক …) and answers given as ক–ঘ, ১–৪, A–D or the option text. Nothing changes until you press "Add".</p>' +
+      '<div id="dropZone" class="drop" tabindex="0">📂 Drag a file here or <button class="btn sm primary" data-act="importChoose">Choose file</button></div>' +
+      '<label class="field"><span>Or paste text</span><textarea id="importText" rows="6" placeholder="1. বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্য কোনটি?&#10;ক) সুন্দরবন&#10;খ) আমাজন&#10;উত্তর: ক"></textarea></label>' +
+      '<div class="row"><label class="field"><span>Round to use when none is given</span><select id="importRound">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select></label>' + F.btn('importPreview', '👁 Preview', 'primary') + F.btn('csvTemplate', '⇩ CSV template') + '</div><div id="importOut"></div>');
     const dz = $('#dropZone');
     dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('over'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('over'));
@@ -621,10 +621,10 @@ const ImportUI = {
     try {
       const rounds = Store.state.rounds.map((r) => ({ id: r.id, name: r.name, label: r.label }));
       // V66 / V100 JSON files are handled by the full importer, not as a question list.
-      const legacy = (t) => { try { const j = JSON.parse(t); if (isObj(j) && (j.qc66 || Legacy.isV100(j))) throw new Error('এটি পূর্ণ ইভেন্ট/ব্যাকআপ ফাইল — "সংরক্ষণ ও ব্যাকআপ ▸ আমদানি / পুনরুদ্ধার" ব্যবহার করুন'); if (Array.isArray(j) && j.length && isObj(j[0]) && ('roundId' in j[0])) return j.map((q, i) => questionFromSeed(Object.assign({}, q, { id: uid('Q') }), i)); } catch (e) { if (/ব্যাকআপ/.test(e.message)) throw e; } return []; };
+      const legacy = (t) => { try { const j = JSON.parse(t); if (isObj(j) && (j.qc66 || Legacy.isV100(j))) throw new Error('This is a full event/backup file — use "Save & Backup ▸ Import / Restore" instead'); if (Array.isArray(j) && j.length && isObj(j[0]) && ('roundId' in j[0])) return j.map((q, i) => questionFromSeed(Object.assign({}, q, { id: uid('Q') }), i)); } catch (e) { if (/backup file/i.test(e.message)) throw e; } return []; };
       const r = await NexusImport.preview({ file, text, defaultRound: round, rounds, legacy });
       this.pending = r.list.map((q) => Object.assign(q, { id: uid('Q') }));
-      out.innerHTML = '<p class="ok">' + esc(r.note || (r.list.length + 'টি প্রশ্ন পড়া হয়েছে।')) + '</p><div class="list" style="max-height:40vh;overflow:auto">' + this.pending.slice(0, 60).map((q) => '<div class="li"><span class="n">' + esc(q.roundId) + '</span><div class="t">' + esc(q.text.slice(0, 120)) + '<small>উত্তর: ' + esc(q.options[q.answer] || '') + '</small></div><span></span></div>').join('') + '</div><div class="row" style="margin-top:.5rem">' + F.btn('importAdd', '✔ ' + bn(this.pending.length) + 'টি প্রশ্ন যোগ করুন', 'good') + F.btn('importReplace', '⟳ পুরনো সব প্রশ্ন মুছে এগুলো বসাও', 'warn') + '</div>';
+      out.innerHTML = '<p class="ok">' + esc(r.note || (r.list.length + ' question(s) read.')) + '</p><div class="list" style="max-height:40vh;overflow:auto">' + this.pending.slice(0, 60).map((q) => '<div class="li"><span class="n">' + esc(q.roundId) + '</span><div class="t">' + esc(q.text.slice(0, 120)) + '<small>Answer: ' + esc(q.options[q.answer] || '') + '</small></div><span></span></div>').join('') + '</div><div class="row" style="margin-top:.5rem">' + F.btn('importAdd', '✔ Add ' + String(this.pending.length) + ' question(s)', 'good') + F.btn('importReplace', '⟳ Delete all old questions and use these', 'warn') + '</div>';
     } catch (e) { this.pending = null; out.innerHTML = '<p class="badge-warn">✘ ' + esc(e.message || String(e)) + '</p>'; }
   },
 };
@@ -637,14 +637,14 @@ TabRender.ai = function aiPage(s) {
   const c = AI.cfg; const P = AI.PROVIDERS; const p = c.provider;
   const prov = Object.entries(P).map(([k, v]) => [k, v.label]);
   const st = AI.status;
-  const drafts = AIStudio.drafts.map((d, i) => '<div class="li" style="grid-template-columns:1fr auto"><div class="t"><b>' + esc(d.q.text) + '</b><small>' + d.q.options.filter(Boolean).map((o, k) => OPT_LABELS[k] + ') ' + esc(o)).join(' • ') + ' — উত্তর: ' + esc(d.q.options[d.q.answer]) + '</small>' + (d.audit.length ? '<span class="badge-warn">' + esc(d.audit.map((a) => a.msg).join(' • ').slice(0, 200)) + '</span>' : '') + '</div><div class="acts">' + F.btn('aiAddDraft', '✔ যোগ', 'sm good', String(i)) + F.btn('aiDiscard', '✕', 'sm bad', String(i)) + '</div></div>').join('');
+  const drafts = AIStudio.drafts.map((d, i) => '<div class="li" style="grid-template-columns:1fr auto"><div class="t"><b>' + esc(d.q.text) + '</b><small>' + d.q.options.filter(Boolean).map((o, k) => OPT_LABELS[k] + ') ' + esc(o)).join(' • ') + ' — Answer: ' + esc(d.q.options[d.q.answer]) + '</small>' + (d.audit.length ? '<span class="badge-warn">' + esc(d.audit.map((a) => a.msg).join(' • ').slice(0, 200)) + '</span>' : '') + '</div><div class="acts">' + F.btn('aiAddDraft', '✔ Add', 'sm good', String(i)) + F.btn('aiDiscard', '✕', 'sm bad', String(i)) + '</div></div>').join('');
   const ver = AIStudio.verify.map((v) => '<div class="li" style="grid-template-columns:1fr"><div class="t">' + esc(v.label) + '<small style="color:' + (v.ok && v.agrees && !v.ambiguous ? 'var(--correct)' : 'var(--warn)') + '">' + esc(v.msg) + '</small></div></div>').join('');
-  return F.card('AI সংযোগ', '<p class="big-hint">ডিফল্টে <b>Air-gapped</b>: শুধু এই কম্পিউটারের লোকাল AI (Ollama / LM Studio) চলে, ইন্টারনেটে কিছু যায় না। API key শুধু এই ব্রাউজারে থাকে — ব্যাকআপে বা স্টেজে যায় না। AI-র উত্তর সবসময় খসড়া; আপনি "যোগ" না চাপলে কিছু বদলায় না। Ollama-র জন্য OLLAMA_ORIGINS দিয়ে file পেজ অনুমতি দিন; LM Studio-তে CORS চালু করুন।</p>' +
-      '<div class="g3"><label class="field"><span>প্রোভাইডার</span><select id="aiProvider">' + prov.map(([k, l]) => '<option value="' + k + '"' + (k === p ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></label><label class="field"><span>মডেল</span><input id="aiModel" type="text" value="' + esc(AI.modelOf(p)) + '"></label><label class="field"><span>সার্ভারের ঠিকানা</span><input id="aiBase" type="text" value="' + esc(AI.baseOf(p)) + '"></label><label class="field"><span>API key (অনলাইন হলে)</span><input id="aiKey" type="password" value="' + esc(c.keys[p] || '') + '" autocomplete="off"></label><label class="field"><span>বিকল্প প্রোভাইডার</span><select id="aiFallback"><option value="none">নেই</option>' + prov.map(([k, l]) => '<option value="' + k + '"' + (k === c.fallback ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></label><label class="field"><span>সময়সীমা (সেকেন্ড)</span><input id="aiTimeout" type="number" min="5" max="180" value="' + c.timeoutSec + '"></label></div>' +
-      '<div class="row"><label class="check"><input id="aiAir" type="checkbox"' + (c.airGapped ? ' checked' : '') + '> Air-gapped: শুধু লোকাল সার্ভার</label><label class="check"><input id="aiAuto" type="checkbox"' + (c.autoCommentary ? ' checked' : '') + '> স্কোর বদলালে AI ধারাভাষ্য</label></div>' +
-      '<div class="row">' + F.btn('aiSave', '💾 AI সেটিংস সংরক্ষণ', 'primary') + F.btn('aiTest', '🔌 সংযোগ পরীক্ষা') + '<span class="status-pill ' + (st.state === 'ok' ? 'ok' : st.state === 'error' ? 'bad' : '') + '">AI: ' + esc(st.msg) + '</span></div>') +
-    F.card('AI দিয়ে প্রশ্ন তৈরি (খসড়া)', '<div class="g3"><label class="field"><span>বিষয়</span><input id="aiTopic" type="text" placeholder="যেমন: সুন্দরবন, সৌরজগৎ"></label><label class="field"><span>সংখ্যা (১–১০)</span><input id="aiCount" type="number" min="1" max="10" value="5"></label><label class="field"><span>ভাষা</span><select id="aiLang"><option value="bn">বাংলা</option><option value="mixed">বাংলা + ইংরেজি শব্দ</option><option value="en">English</option></select></label><label class="field"><span>কাঠিন্য</span><select id="aiDiff"><option value="easy">সহজ</option><option value="medium" selected>মাঝারি</option><option value="hard">কঠিন</option></select></label><label class="field"><span>যে রাউন্ডে যোগ হবে</span><select id="aiRound">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select></label></div><label class="field"><span>উৎস-নোট (ঐচ্ছিক — AI এর বাইরে কিছু বানাবে না)</span><textarea id="aiNotes" rows="3"></textarea></label><div class="row">' + F.btn('aiGenerate', AIStudio.busy ? '⏳ চলছে…' : '✨ খসড়া তৈরি করুন', 'primary') + '</div><div class="list" style="margin-top:.5rem">' + (drafts || '<p class="muted">এখনও কোনো খসড়া নেই</p>') + '</div>') +
-    F.card('AI দিয়ে উত্তর যাচাই ও ধারাভাষ্য', '<div class="row"><select id="aiVerifyRound" style="width:auto">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select>' + F.btn('aiVerifyRound', '🔎 এই রাউন্ডের উত্তর যাচাই') + F.btn('aiHostLine', '🎙 AI হোস্ট লাইন') + '</div><div class="list" style="margin-top:.5rem">' + ver + '</div>');
+  return F.card('AI connection', '<p class="big-hint"><b>Air-gapped</b> by default: only a local AI on this computer (Ollama / LM Studio) is used, nothing goes to the internet. The API key stays only in this browser — it never goes into backups or to the Stage window. AI output is always a draft; nothing changes until you press "Add". For Ollama, allow the file page with OLLAMA_ORIGINS; in LM Studio, turn on CORS.</p>' +
+      '<div class="g3"><label class="field"><span>Provider</span><select id="aiProvider">' + prov.map(([k, l]) => '<option value="' + k + '"' + (k === p ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></label><label class="field"><span>Model</span><input id="aiModel" type="text" value="' + esc(AI.modelOf(p)) + '"></label><label class="field"><span>Server address</span><input id="aiBase" type="text" value="' + esc(AI.baseOf(p)) + '"></label><label class="field"><span>API key (for online providers)</span><input id="aiKey" type="password" value="' + esc(c.keys[p] || '') + '" autocomplete="off"></label><label class="field"><span>Fallback provider</span><select id="aiFallback"><option value="none">None</option>' + prov.map(([k, l]) => '<option value="' + k + '"' + (k === c.fallback ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></label><label class="field"><span>Timeout (seconds)</span><input id="aiTimeout" type="number" min="5" max="180" value="' + c.timeoutSec + '"></label></div>' +
+      '<div class="row"><label class="check"><input id="aiAir" type="checkbox"' + (c.airGapped ? ' checked' : '') + '> Air-gapped: local server only</label><label class="check"><input id="aiAuto" type="checkbox"' + (c.autoCommentary ? ' checked' : '') + '> AI commentary when the score changes</label></div>' +
+      '<div class="row">' + F.btn('aiSave', '💾 Save AI settings', 'primary') + F.btn('aiTest', '🔌 Test connection') + '<span class="status-pill ' + (st.state === 'ok' ? 'ok' : st.state === 'error' ? 'bad' : '') + '">AI: ' + esc(st.msg) + '</span></div>') +
+    F.card('Create questions with AI (drafts)', '<div class="g3"><label class="field"><span>Topic</span><input id="aiTopic" type="text" placeholder="e.g. Sundarbans, Solar System"></label><label class="field"><span>How many (1–10)</span><input id="aiCount" type="number" min="1" max="10" value="5"></label><label class="field"><span>Language</span><select id="aiLang"><option value="bn">Bengali</option><option value="mixed">Bengali + English terms</option><option value="en">English</option></select></label><label class="field"><span>Difficulty</span><select id="aiDiff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label><label class="field"><span>Add to round</span><select id="aiRound">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select></label></div><label class="field"><span>Source notes (optional — AI will not invent anything beyond them)</span><textarea id="aiNotes" rows="3"></textarea></label><div class="row">' + F.btn('aiGenerate', AIStudio.busy ? '⏳ Working…' : '✨ Create drafts', 'primary') + '</div><div class="list" style="margin-top:.5rem">' + (drafts || '<p class="muted">No drafts yet</p>') + '</div>') +
+    F.card('AI answer check and commentary', '<div class="row"><select id="aiVerifyRound" style="width:auto">' + s.rounds.map((r) => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('') + '</select>' + F.btn('aiVerifyRound', '🔎 Check answers in this round') + F.btn('aiHostLine', '🎙 AI host line') + '</div><div class="list" style="margin-top:.5rem">' + ver + '</div>');
 };
 
 Object.assign(Actions, {
@@ -658,14 +658,14 @@ Object.assign(Actions, {
   importAdd() {
     const list = ImportUI.pending; if (!list || !list.length) return;
     Store.commit('import-csv', (s) => { s.questions = s.questions.concat(list); });
-    ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + 'টি প্রশ্ন যোগ হয়েছে', 'ok');
+    ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + ' question(s) added', 'ok');
   },
   /** For another event: the imported list becomes the whole question bank (undo brings the old one back). */
   importReplace() {
     const list = ImportUI.pending; if (!list || !list.length) return;
-    if (!confirm('পুরনো সব প্রশ্ন মুছে এই ' + list.length + 'টি প্রশ্ন বসবে। (ভুল হলে Ctrl+Z দিয়ে ফেরানো যায়) — নিশ্চিত?')) return;
+    if (!confirm('All old questions will be deleted and replaced by these ' + list.length + ' question(s). (Ctrl+Z can undo a mistake) — are you sure?')) return;
     Store.commit('import-replace', (s) => { s.questions = list; s.board.played = {}; s.live = emptyLive(); });
-    ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + 'টি নতুন প্রশ্ন বসেছে', 'ok');
+    ImportUI.pending = null; UI.closeModal(); UI.toast(list.length + ' new question(s) in place', 'ok');
   },
   csvTemplate() { download('QuizCorner_template.csv', csvBlob([['round', 'number', 'text', 'a', 'b', 'c', 'd', 'answer', 'time', 'hint', 'explain', 'difficulty'], ['R1', '1', 'বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্য কোনটি?', 'সুন্দরবন', 'আমাজন', 'কঙ্গো', 'বোর্নিও', 'A', '60', '', '', 'easy']])); },
   exportScoresCsv() { download('QuizCorner_scores.csv', csvBlob([['rank', 'team', 'school', 'score']].concat(Sel.standings().map((r) => [r.rank, r.team.name, r.team.school, r.score])))); },
@@ -673,15 +673,15 @@ Object.assign(Actions, {
   exportQuestionsCsv() { const s = Store.state; download('QuizCorner_questions.csv', csvBlob([['round', 'number', 'text', 'a', 'b', 'c', 'd', 'answer', 'time', 'hint', 'explain', 'difficulty']].concat(s.questions.map((q) => [q.roundId, q.number, q.text, q.options[0], q.options[1], q.options[2], q.options[3], 'ABCD'[q.answer], q.timer || '', q.hint || '', q.explanation, q.difficulty || 'medium'])))); },
   async certificate(id) {
     const row = Sel.standings(Store.state.teams.map((t) => t.id)).find((r) => r.team.id === id); if (!row) return;
-    try { download('Quiz_Corner_Certificate_' + safeName(row.team.name) + '.png', await renderCertificate(row.team, row.rank)); UI.toast('সার্টিফিকেট ডাউনলোড হয়েছে', 'ok'); } catch (e) { UI.toast('সার্টিফিকেট তৈরি হয়নি: ' + e.message, 'err'); }
+    try { download('Quiz_Corner_Certificate_' + safeName(row.team.name) + '.png', await renderCertificate(row.team, row.rank)); UI.toast('Certificate downloaded', 'ok'); } catch (e) { UI.toast('Could not create the certificate: ' + e.message, 'err'); }
   },
   async certificatesAll() {
     try {
-      UI.toast('সার্টিফিকেট তৈরি হচ্ছে…');
+      UI.toast('Creating certificates…');
       const files = []; const used = new Set();
       for (const r of Sel.standings()) { const blob = await renderCertificate(r.team, r.rank); let base = r.rank + '_' + safeName(r.team.name); while (used.has(base)) base += '_'; used.add(base); files.push({ name: 'Quiz_Corner_Certificate_' + base + '.png', data: new Uint8Array(await blob.arrayBuffer()) }); }
-      download('Quiz_Corner_Certificates.zip', zipStore(files)); UI.toast(files.length + 'টি সার্টিফিকেট একটি ZIP-এ', 'ok');
-    } catch (e) { UI.toast('সার্টিফিকেট তৈরি হয়নি: ' + e.message, 'err'); }
+      download('Quiz_Corner_Certificates.zip', zipStore(files)); UI.toast(files.length + ' certificate(s) in one ZIP', 'ok');
+    } catch (e) { UI.toast('Could not create the certificate: ' + e.message, 'err'); }
   },
   auditFix(arg) {
     const [id, k] = String(arg).split('|'); const q = Sel.question(id); if (!q) return;
@@ -689,26 +689,26 @@ Object.assign(Actions, {
     if (!iss) return;
     Store.commit('audit-fix', (s) => { const x = s.questions.find((y) => y.id === id); x.text = NLP.applyFix(NLP.audit(x.text).text, iss); });
   },
-  auditFixAll(id) { Store.commit('audit-fix-all', (s) => { const x = s.questions.find((y) => y.id === id); if (!x) return false; x.text = NLP.fixAll(x.text); x.options = x.options.map((o) => (o ? NLP.fixAll(o) : o)); }); UI.toast('স্বয়ংক্রিয় সংশোধন প্রয়োগ হয়েছে', 'ok'); },
+  auditFixAll(id) { Store.commit('audit-fix-all', (s) => { const x = s.questions.find((y) => y.id === id); if (!x) return false; x.text = NLP.fixAll(x.text); x.options = x.options.map((o) => (o ? NLP.fixAll(o) : o)); }); UI.toast('Automatic fixes applied', 'ok'); },
   bankAudit() {
     const s = Store.state; const f = UI.qFilter;
     const qs = s.questions.filter((q) => !f || q.roundId === f);
     const r = NLP.auditBank(qs.map(auditShape));
     const rows = r.rows.filter((x) => x.findings.some((y) => y.sev !== 'info'));
-    UI.modal('প্রশ্ন-ব্যাংক পরীক্ষা (' + qs.length + ')', (r.bank.length ? '<div class="list">' + r.bank.map((b) => '<p class="badge-warn">' + esc(b.msg) + '</p>').join('') + '</div>' : '<p class="pass" style="color:var(--correct)">উত্তরের অবস্থান ও ডুপ্লিকেট ঠিক আছে (A=' + r.dist[0] + ', B=' + r.dist[1] + ', C=' + r.dist[2] + ', D=' + r.dist[3] + ')</p>') + '<div class="list">' + (rows.map((x) => '<div class="li" style="grid-template-columns:auto 1fr auto"><span class="n">' + esc(x.round) + '·' + bn(x.num) + '</span><div class="t">' + x.findings.filter((y) => y.sev !== 'info').map((y) => esc(y.msg)).join('<br>') + '</div>' + F.btn('qEditClose', '✎', 'sm', x.id) + '</div>').join('') || '<p class="muted">কোনো ত্রুটি নেই</p>') + '</div>');
+    UI.modal('Question bank check (' + qs.length + ')', (r.bank.length ? '<div class="list">' + r.bank.map((b) => '<p class="badge-warn">' + esc(b.msg) + '</p>').join('') + '</div>' : '<p class="pass" style="color:var(--correct)">Answer positions and duplicates are fine (A=' + r.dist[0] + ', B=' + r.dist[1] + ', C=' + r.dist[2] + ', D=' + r.dist[3] + ')</p>') + '<div class="list">' + (rows.map((x) => '<div class="li" style="grid-template-columns:auto 1fr auto"><span class="n">' + esc(x.round) + '·' + String(x.num) + '</span><div class="t">' + x.findings.filter((y) => y.sev !== 'info').map((y) => esc(y.msg)).join('<br>') + '</div>' + F.btn('qEditClose', '✎', 'sm', x.id) + '</div>').join('') || '<p class="muted">No errors</p>') + '</div>');
   },
   qEditClose(id) { UI.closeModal(); Actions.qEdit(id); },
   prelimBulk() {
     const t = ($('#prelimBulk') || {}).value || ''; const items = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const [q, a] = l.split('|'); return { id: uid('P'), text: cleanStr(q, 800), answer: cleanStr(a || '', 300), star: false, image: '', source: 'bulk' }; }).filter((x) => x.text);
-    if (!items.length) { UI.toast('প্রতি লাইনে "প্রশ্ন|উত্তর" লিখুন', 'err'); return; }
-    const replace = confirm('ঠিক আছে = বর্তমান বাছাই প্রশ্ন প্রতিস্থাপন\nবাতিল = শেষে যোগ');
+    if (!items.length) { UI.toast('Write one "question|answer" per line', 'err'); return; }
+    const replace = confirm('OK = replace the current prelim questions\nCancel = add at the end');
     Store.commit('prelim-bulk', (s) => { s.prelim.questions = replace ? items : s.prelim.questions.concat(items); s.prelim.questions.forEach((q, i) => { if (q.source === 'bulk') q.star = (i + 1) % 3 === 0; }); s.prelim.count = Math.max(1, Math.min(100, s.prelim.questions.length)); });
-    UI.toast(items.length + 'টি বাছাই প্রশ্ন', 'ok');
+    UI.toast(items.length + ' prelim question(s)', 'ok');
   },
   aiSave() {
     const p = ($('#aiProvider') || {}).value;
     AI.setCfg({ provider: p, airGapped: $('#aiAir').checked, autoCommentary: $('#aiAuto').checked, fallback: $('#aiFallback').value, timeoutSec: $('#aiTimeout').value, models: { [p]: $('#aiModel').value }, bases: { [p]: $('#aiBase').value }, keys: { [p]: $('#aiKey').value } });
-    UI.toast('AI সেটিংস সংরক্ষিত (শুধু এই ব্রাউজারে)', 'ok'); UI.renderTab(true);
+    UI.toast('AI settings saved (in this browser only)', 'ok'); UI.renderTab(true);
   },
   async aiTest() { Actions.aiSave(); await AI.test(); UI.renderTab(true); },
   async aiGenerate() {
@@ -716,7 +716,7 @@ Object.assign(Actions, {
     const round = $('#aiRound') ? $('#aiRound').value : 'R1';
     const r = await AI.generateQuestions({ topic: ($('#aiTopic') || {}).value || '', count: ($('#aiCount') || {}).value, lang: ($('#aiLang') || {}).value, difficulty: ($('#aiDiff') || {}).value, notes: ($('#aiNotes') || {}).value });
     AIStudio.busy = false;
-    if (r.ok) { AIStudio.drafts = r.drafts.map((d) => ({ q: Object.assign(d.q, { roundId: round, id: uid('Q') }), audit: d.audit })); UI.toast(r.drafts.length + 'টি খসড়া', 'ok'); } else UI.toast(r.error, 'err');
+    if (r.ok) { AIStudio.drafts = r.drafts.map((d) => ({ q: Object.assign(d.q, { roundId: round, id: uid('Q') }), audit: d.audit })); UI.toast(r.drafts.length + ' draft(s)', 'ok'); } else UI.toast(r.error, 'err');
     UI.renderTab(true);
   },
   aiAddDraft(i) { const d = AIStudio.drafts[int(i)]; if (!d) return; Store.commit('ai-add', (s) => { d.q.number = Sel.roundQuestions(d.q.roundId).length + 1; s.questions.push(d.q); }); AIStudio.drafts.splice(int(i), 1); UI.renderTab(true); },
@@ -726,12 +726,12 @@ Object.assign(Actions, {
     for (const q of Sel.roundQuestions(rid)) {
       if (q.options.filter(Boolean).length < 2) continue;
       const v = await AI.verifyQuestion(auditShape(q));
-      AIStudio.verify.push({ label: 'প্রশ্ন ' + bn(q.number) + ': ' + q.text.slice(0, 70), ok: v.ok, agrees: v.agrees, ambiguous: v.ambiguous, msg: v.ok ? (v.agrees ? 'AI একমত' : 'AI ভিন্নমত (বেছেছে ' + 'ABCD'[v.answerIndex] + ', উত্তর ' + 'ABCD'[q.answer] + ')') + (v.ambiguous ? ' • অস্পষ্ট' : '') + ' — ' + v.reason : v.error });
+      AIStudio.verify.push({ label: 'Question ' + String(q.number) + ': ' + q.text.slice(0, 70), ok: v.ok, agrees: v.agrees, ambiguous: v.ambiguous, msg: v.ok ? (v.agrees ? 'AI agrees' : 'AI disagrees (picked ' + 'ABCD'[v.answerIndex] + ', answer is ' + 'ABCD'[q.answer] + ')') + (v.ambiguous ? ' • ambiguous' : '') + ' — ' + v.reason : v.error });
       UI.renderTab(true);
       if (!v.ok) break;
     }
   },
-  async aiHostLine() { const r = await AI.hostLineAI('score', { lead: (Sel.standings()[0] || { team: {} }).team.name }, 'bn'); if (r.ok) { UI.hostLine = r.text; UI.hostOpen = true; UI.liveSig = ''; UI.renderLive(); UI.toast('হোস্ট লাইন তৈরি', 'ok'); } else UI.toast(r.error, 'err'); },
+  async aiHostLine() { const r = await AI.hostLineAI('score', { lead: (Sel.standings()[0] || { team: {} }).team.name }, 'bn'); if (r.ok) { UI.hostLine = r.text; UI.hostOpen = true; UI.liveSig = ''; UI.renderLive(); UI.toast('Host line ready', 'ok'); } else UI.toast(r.error, 'err'); },
 });
 
 /* ---------------- Pre-show check (V100 list, adapted) ---------------- */
@@ -741,32 +741,32 @@ const PreShow = {
     const out = [];
     const add = (ok, msg, warnOnly) => out.push([ok ? 'pass' : warnOnly ? 'warn' : 'fail', msg]);
     const ua = navigator.userAgent;
-    add(/Chrome|Edg/.test(ua), 'ব্রাউজার: ' + (/Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : 'অন্য (Chrome বা Edge প্রস্তাবিত)'), true);
-    add(screen.width >= 1280, 'স্ক্রিন: ' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1), true);
-    add(Store.storageOk, Store.storageOk ? 'স্বয়ংক্রিয় সংরক্ষণ কাজ করছে' : 'ব্রাউজারে সংরক্ষণ ব্যর্থ — ব্যাকআপ নিন');
-    add(!!(AudioDirector.unlocked && AudioDirector.ctx && AudioDirector.ctx.state === 'running'), AudioDirector.unlocked ? 'অডিও চালু' : 'অডিও এখনও চালু হয়নি — যেকোনো বোতামে একবার ক্লিক করুন', true);
-    add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'থিম সং: ' + Media.label(s.audio.music.theme.media) : 'থিম সং নেই', true);
+    add(/Chrome|Edg/.test(ua), 'Browser: ' + (/Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : 'Other (Chrome or Edge recommended)'), true);
+    add(screen.width >= 1280, 'Screen: ' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1), true);
+    add(Store.storageOk, Store.storageOk ? 'Autosave is working' : 'Saving in the browser failed — take a Backup');
+    add(!!(AudioDirector.unlocked && AudioDirector.ctx && AudioDirector.ctx.state === 'running'), AudioDirector.unlocked ? 'Audio is on' : 'Audio is not on yet — click any button once', true);
+    add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'Theme song: ' + Media.label(s.audio.music.theme.media) : 'No theme song', true);
     const bnVoice = Speech.voices.some((v) => /^bn/i.test(v.lang));
-    add(bnVoice, bnVoice ? 'বাংলা ভয়েস ইনস্টল আছে' : 'বাংলা ভয়েস নেই (Windows Settings ▸ Speech)', true);
-    add(Sync.connected(), Sync.connected() ? 'স্টেজ উইন্ডো সংযুক্ত' : 'স্টেজ উইন্ডো খোলা নেই (O)', true);
-    add(KeepAwake.state === 'on', 'স্ক্রিন জাগিয়ে রাখা: ' + KeepAwake.state, true);
+    add(bnVoice, bnVoice ? 'Bengali voice installed' : 'No Bengali voice (Windows Settings ▸ Speech)', true);
+    add(Sync.connected(), Sync.connected() ? 'Stage window connected' : 'Stage window is not open (O)', true);
+    add(KeepAwake.state === 'on', 'Keep screen awake: ' + KeepAwake.state, true);
     const calOk = s.display.calib === 'off' && !s.display.testCard;
-    add(calOk, calOk ? 'ক্যালিব্রেশন / টেস্ট কার্ড বন্ধ' : 'ক্যালিব্রেশন বা টেস্ট কার্ড চালু — অনুষ্ঠানের আগে বন্ধ করুন');
+    add(calOk, calOk ? 'Calibration / test card off' : 'Calibration or test card is on — turn it off before the show');
     const fin = Sel.finalists();
-    add(fin.length >= s.prelim.finalistCount, 'চূড়ান্ত দল: ' + fin.length + ' / ' + s.prelim.finalistCount);
+    add(fin.length >= s.prelim.finalistCount, 'Final teams: ' + fin.length + ' / ' + s.prelim.finalistCount);
     const generic = fin.some((t) => /^দল [০-৯]+$/.test(t.name));
-    add(!generic, generic ? 'কিছু দলের নাম এখনও "দল ১…" — আসল নাম দিন' : 'সব চূড়ান্ত দলের নাম দেওয়া', true);
-    const photos = fin.filter((t) => t.photo).length; add(photos === fin.length, 'দলের ছবি: ' + photos + ' / ' + fin.length, true);
+    add(!generic, generic ? 'Some teams are still named "দল ১…" — enter the real names' : 'All final teams have names', true);
+    const photos = fin.filter((t) => t.photo).length; add(photos === fin.length, 'Team photos: ' + photos + ' / ' + fin.length, true);
     const played = s.rounds.filter((r) => r.enabled);
-    played.forEach((r) => { const n = Sel.roundQuestions(r.id).length; add(n > 0 && !!r.rules, r.name + ': ' + n + 'টি প্রশ্ন' + (r.rules ? '' : ' • নিয়ম লেখা নেই'), n > 0); });
-    add(!!s.prelim.rules, s.prelim.rules ? 'বাছাই পর্বের নিয়ম লেখা আছে' : 'বাছাই পর্বের নিয়ম লেখা নেই', true);
-    const emptyP = Sel.prelimQuestions().filter((q) => !q.text || !q.answer).length; add(!emptyP, emptyP ? emptyP + 'টি বাছাই প্রশ্ন/উত্তর খালি' : 'সব বাছাই প্রশ্নে উত্তর আছে');
+    played.forEach((r) => { const n = Sel.roundQuestions(r.id).length; add(n > 0 && !!r.rules, r.name + ': ' + n + ' question(s)' + (r.rules ? '' : ' • no rules written'), n > 0); });
+    add(!!s.prelim.rules, s.prelim.rules ? 'Prelim round rules are written' : 'Prelim round rules are missing', true);
+    const emptyP = Sel.prelimQuestions().filter((q) => !q.text || !q.answer).length; add(!emptyP, emptyP ? emptyP + ' prelim question(s)/answer(s) empty' : 'Every prelim question has an answer');
     const bank = safe('bank', () => NLP.auditBank(s.questions.filter((q) => played.some((r) => r.id === q.roundId)).map(auditShape)), { rows: [], bank: [] });
-    const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + 'টি প্রশ্নে ত্রুটি (প্রশ্ন ▸ বানান পরীক্ষা)' : 'প্রশ্ন-ব্যাংকে গুরুতর ত্রুটি নেই', true);
+    const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + ' question(s) with errors (Questions ▸ Spell check)' : 'No serious errors in the question bank', true);
     bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
-    add(this.backupDone, this.backupDone ? 'এই সেশনে ব্যাকআপ নেওয়া হয়েছে' : 'এই সেশনে এখনও ব্যাকআপ নেওয়া হয়নি', true);
-    add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'রবীন্দ্র ইন্সট্রুমেন্টাল: ' + SoundDirector.tagoreStatus, true);
-    out.push(['pass', 'টাইমার: সরাসরি ' + (played[0] ? played[0].timers.direct : 60) + 's • পাস ' + (played[0] ? played[0].timers.pass : 45) + 's • সতর্কতা ' + s.settings.warnAt + 's']);
+    add(this.backupDone, this.backupDone ? 'Backup taken this session' : 'No Backup taken yet this session', true);
+    add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
+    out.push(['pass', 'Timer: Direct ' + (played[0] ? played[0].timers.direct : 60) + 's • Pass ' + (played[0] ? played[0].timers.pass : 45) + 's • Warning ' + s.settings.warnAt + 's']);
     return out;
   },
 };

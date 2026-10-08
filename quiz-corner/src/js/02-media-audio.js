@@ -36,9 +36,9 @@ const Media = {
   builtin(name) { const el = document.getElementById('asset-' + name); return el ? el.textContent.trim() : ''; },
   label(id) {
     if (!id) return '—';
-    if (id.startsWith('asset:')) return 'অন্তর্নির্মিত: ' + id.slice(6);
+    if (id.startsWith('asset:')) return 'Built-in: ' + id.slice(6);
     const m = this.index.find((x) => x.id === id);
-    return m ? m.name : 'অনুপস্থিত ফাইল';
+    return m ? m.name : 'Missing file';
   },
   kindOf(file) {
     const t = (file.type || '').toLowerCase();
@@ -77,11 +77,11 @@ const Media = {
   },
   async add(file, kindHint) {
     const kind = kindHint || this.kindOf(file);
-    if (kind === 'image' && !/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(file.type) && !/\.(jpe?g|png|webp|gif|svg)$/i.test(file.name)) throw new Error('অসমর্থিত ছবি: ' + file.name);
+    if (kind === 'image' && !/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(file.type) && !/\.(jpe?g|png|webp|gif|svg)$/i.test(file.name)) throw new Error('Unsupported image: ' + file.name);
     const id = uid('m');
     let display = null; let w = 0; let h = 0;
     if (kind === 'image' && file.type !== 'image/svg+xml') {
-      try { ({ display, w, h } = await this.makeDisplay(file)); } catch (e) { throw new Error('ছবিটি খোলা যাচ্ছে না: ' + file.name); }
+      try { ({ display, w, h } = await this.makeDisplay(file)); } catch (e) { throw new Error('Cannot open the image: ' + file.name); }
     }
     const rec = { id, name: file.name || id, kind, type: file.type || '', size: file.size || 0, w, h, created: Date.now(), blob: file, display };
     await this.ready;
@@ -183,7 +183,7 @@ function pickMedia(accept = 'image/*', kind) {
     inp.onchange = async () => {
       const f = inp.files && inp.files[0];
       if (!f) { resolve(''); return; }
-      try { const id = await Media.add(f, kind); UI.toast('যুক্ত হয়েছে: ' + f.name, 'ok'); resolve(id); } catch (e) { UI.toast(e.message || 'ফাইল যোগ করা যায়নি', 'err'); Log.err('pick', e); resolve(''); }
+      try { const id = await Media.add(f, kind); UI.toast('Added: ' + f.name, 'ok'); resolve(id); } catch (e) { UI.toast(e.message || 'Could not add the file', 'err'); Log.err('pick', e); resolve(''); }
     };
     inp.click();
   });
@@ -325,7 +325,7 @@ const AudioDirector = {
     const id = mediaOverride || cfg.media;
     if (!id) { if (slot === 'winner') this.playCue('fanfare'); return; }
     const u = await Media.url(id);
-    if (!u) { UI.toast('সংগীত ফাইল পাওয়া যায়নি — অন্তর্নির্মিত সাউন্ড ব্যবহার করা হচ্ছে', 'err'); this.playCue(slot === 'winner' ? 'fanfare' : 'transition'); return; }
+    if (!u) { UI.toast('Music file not found — using the built-in sound instead', 'err'); this.playCue(slot === 'winner' ? 'fanfare' : 'transition'); return; }
     ['theme', 'welcome', 'winner'].forEach((s) => { if (s !== slot && slot !== 'background') this.fadeOutMusic(s, 1); });
     this.stopNow(slot);
     const el = new Audio(u);
@@ -336,7 +336,7 @@ const AudioDirector = {
     const target = clamp(cfg.vol * Store.state.audio.master, 0, 1);
     const begin = () => {
       if (this.musicEls[slot] !== el) return;
-      el.play().then(() => this.fade(el, 0, target, cfg.fadeIn)).catch((e) => { Log.err('music', e); UI.toast('সংগীত চালানো যায়নি — একবার পেজে ক্লিক করুন', 'err'); });
+      el.play().then(() => this.fade(el, 0, target, cfg.fadeIn)).catch((e) => { Log.err('music', e); UI.toast('Could not play music — click once anywhere on the page', 'err'); });
     };
     if (cfg.delay > 0) setTimeout(begin, cfg.delay * 1000); else begin();
     el.onended = () => { if (this.musicEls[slot] === el) { delete this.musicEls[slot]; Bus.emit('music', { slot, playing: false }); } };
@@ -563,22 +563,22 @@ const Sync = {
       if (!('getScreenDetails' in window)) throw new Error('unsupported');
       const det = await window.getScreenDetails();
       const other = det.screens.find((sc) => sc !== det.currentScreen) || det.screens.find((sc) => !sc.isPrimary);
-      if (!other) { UI.toast('দ্বিতীয় স্ক্রিন পাওয়া যায়নি — টিভি HDMI-তে যুক্ত করে Win+P ▸ Extend বেছে নিন', 'err'); return; }
+      if (!other) { UI.toast('Second screen not found — connect the TV by HDMI and choose Win+P ▸ Extend', 'err'); return; }
       const url = location.href.split('#')[0].split('?')[0] + '#stage';
       this.stageWin = window.open(url, 'qc66-stage', 'popup=yes,left=' + other.availLeft + ',top=' + other.availTop + ',width=' + other.availWidth + ',height=' + other.availHeight);
-      if (!this.stageWin) { UI.toast('পপ-আপ ব্লক হয়েছে — অনুমতি দিন', 'err'); return; }
+      if (!this.stageWin) { UI.toast('Pop-up blocked — please allow it', 'err'); return; }
       setTimeout(() => this.queueState(), 600);
-      UI.toast('স্টেজ দ্বিতীয় স্ক্রিনে খোলা হয়েছে — সেখানে F চাপুন', 'ok');
+      UI.toast('Stage window opened on the second screen — press F there', 'ok');
     } catch (e) {
       this.openStage();
-      UI.toast('এই ব্রাউজারে স্বয়ংক্রিয় স্থাপন হয়নি — উইন্ডোটি টিভিতে টেনে নিন অথবা Win+Shift+→ চাপুন, তারপর F', 'err');
+      UI.toast('This browser could not place the window automatically — drag it to the TV or press Win+Shift+→, then F', 'err');
     }
   },
   openStage() {
     const url = location.href.split('#')[0].split('?')[0] + '#stage';
     try {
       this.stageWin = window.open(url, 'qc66-stage', 'popup=yes,width=1280,height=720');
-      if (!this.stageWin) { UI.toast('পপ-আপ ব্লক হয়েছে — ব্রাউজারে পপ-আপ অনুমতি দিন', 'err'); return; }
+      if (!this.stageWin) { UI.toast('Pop-up blocked — allow pop-ups in the browser', 'err'); return; }
       setTimeout(() => this.queueState(), 600);
     } catch (e) { Log.err('open-stage', e); }
   },

@@ -10,6 +10,15 @@ const SCENES = {
   MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
   FINAL: 'চূড়ান্ত স্কোরবোর্ড', TOP3: 'বিজয়ী মঞ্চ (২-১-৩)', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
 };
+/** English scene names for the operator's rundown list on the control window.
+    SCENES (above) stays Bengali: it is also spoken aloud (status read-out, coach). */
+const SCENE_LABELS = {
+  ORGANIZER: 'Organizer banner', LOGO: 'Quiz Corner logo', PROGRAMME: 'Programme intro', THEME: 'Theme song', IDENTITY: 'About us', CREW: 'Our team',
+  TEAMS_ALL: 'Participating teams', TEAM_INTRO: 'Team intro', OVERVIEW: "Today's programme", PRELIM_RULES: 'Prelim rules', PRELIM_COUNTDOWN: 'Prelim countdown', PRELIM_Q: 'Prelim question',
+  PRELIM_RESULT: 'Prelim results', FINALISTS: 'Final 8', FINALIST_INTRO: 'Call to stage', WELCOME: 'Welcome music', DRAW: 'Podium lottery', GIFT: 'Special presentation', PODIUM: 'Podium',
+  MAIN_COUNTDOWN: 'Main rounds countdown', ROUND_INTRO: 'Round intro', ROUND_RULES: 'Round rules', GRID: 'Question board', QUESTION: 'Question', SCOREBOARD: 'Scoreboard',
+  FINAL: 'Final results', TOP3: 'Top 3 (2-1-3)', WINNER: 'Winner', END: 'Closing logo', GRAPHIC: 'Graphic',
+};
 
 const Show = {
   _rd: null,
@@ -19,32 +28,32 @@ const Show = {
     const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
-    const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENES[scene] });
+    const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENE_LABELS[scene] || SCENES[scene] });
     add('ORGANIZER'); add('LOGO'); add('PROGRAMME'); add('THEME');
     add('OVERVIEW'); add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
-    Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'বাছাই প্রশ্ন ' + bn(i + 1) + (q.star ? ' ★' : '')));
+    Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'Prelim question ' + String(i + 1) + (q.star ? ' ★' : '')));
     add('PRELIM_RESULT'); add('FINALISTS');
     // calling the finalists to the stage: team number, school and preliminary score
-    Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'মঞ্চে আহ্বান • ' + Sel.label(Sel.team(id))));
+    Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'Call to stage • ' + Sel.label(Sel.team(id))));
     add('WELCOME');
     // first thing after the welcome: each finalist draws its podium (and with it its code A / 1 … H / 8)
-    if (s.draw.on) add('DRAW', {}, (s.draw.title || SCENES.DRAW) + ' • ' + ((DRAW_THEMES[s.draw.theme] || {}).name || ''));
+    if (s.draw.on) add('DRAW', {}, SCENE_LABELS.DRAW + ' • ' + ((DRAW_THEMES[s.draw.theme] || {}).name || ''));
     if (s.event.credits || s.groupPhoto) add('IDENTITY');
     if (Sel.crew().length) add('CREW');
     add('TEAMS_ALL');
     // meet the finalists: the team, then its two members one by one (photos)
     const fin = Sel.finalistIds();
-    fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'দল পরিচিতি • ' + Sel.label(t)); });
+    fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'Team intro • ' + Sel.label(t)); });
     // the old "special presentation" cards (one per team) are off by default: the podium lottery replaced them
-    if (s.settings.giftScenes) Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'বিশেষ উপস্থাপনা • ' + ((Sel.team(id) || {}).name || '')));
+    if (s.settings.giftScenes) Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'Special presentation • ' + ((Sel.team(id) || {}).name || '')));
     add('PODIUM'); add('MAIN_COUNTDOWN');
     s.rounds.forEach((r, ri) => {
       if (!r.enabled) return;
-      add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'রাউন্ড ' + bn(ri + 1) + ' • ' + r.name);
-      if (r.rules) add('ROUND_RULES', { key: r.id, roundId: r.id }, 'নিয়ম • ' + r.name);
-      add('GRID', { key: r.id, roundId: r.id }, 'প্রশ্ন বোর্ড • ' + r.name);
-      Sel.roundQuestions(r.id).forEach((q) => add('QUESTION', { key: q.id, roundId: r.id, qid: q.id }, r.name + ' • প্রশ্ন ' + bn(q.number)));
-      add('SCOREBOARD', { key: r.id, roundId: r.id }, 'স্কোরবোর্ড • ' + r.name);
+      add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'Round ' + String(ri + 1) + ' • ' + r.name);
+      if (r.rules) add('ROUND_RULES', { key: r.id, roundId: r.id }, 'Rules • ' + r.name);
+      add('GRID', { key: r.id, roundId: r.id }, 'Question board • ' + r.name);
+      Sel.roundQuestions(r.id).forEach((q) => add('QUESTION', { key: q.id, roundId: r.id, qid: q.id }, r.name + ' • Question ' + String(q.number)));
+      add('SCOREBOARD', { key: r.id, roundId: r.id }, 'Scoreboard • ' + r.name);
     });
     add('FINAL'); add('TOP3'); add('WINNER'); add('END');
     this._rd = out; this._rdSig = sig;
@@ -96,7 +105,7 @@ const Show = {
       case 'FINAL': {
         play('drumroll');
         const ties = Sel.ties();
-        if (ties.length) UI.toast('⚠ টাই: ' + ties.join(' • ') + ' — প্রকাশের আগে টাই-ব্রেকার ঠিক করুন', 'err');
+        if (ties.length) UI.toast('⚠ Tie: ' + ties.join(' • ') + ' — settle the tie-breaker before revealing', 'err');
         break;
       }
       case 'TOP3': play('fanfare'); break;
@@ -137,7 +146,7 @@ const Show = {
   prev() { if (this.sub(-1)) return true; const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.max(0, i - 1)] || rd[0], 'end'); },
   jump(scene, params = {}) {
     const key = scene + (params.key ? ':' + params.key : '');
-    const step = this.rundown().find((x) => x.key === key) || { key, scene, params, label: SCENES[scene] };
+    const step = this.rundown().find((x) => x.key === key) || { key, scene, params, label: SCENE_LABELS[scene] || SCENES[scene] };
     return this.go(step);
   },
   /** Scoreboard for the current round (or overall) from anywhere. */

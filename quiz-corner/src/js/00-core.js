@@ -105,18 +105,18 @@ const FONT_MAP = Object.fromEntries(FONT_CHOICES);
 const ANIMS = ['fade', 'slide', 'zoom', 'flip', 'spin', 'cube', 'door', 'push', 'orbit', 'none'];
 const ROUND_ANIMS = ['flip', 'cube', 'zoom', 'spin', 'slide', 'door', 'sweep', 'burst', 'push', 'orbit', 'glass', 'digital'];
 const THEMES = {
-  broadcast: { label: 'ব্রডকাস্ট ভায়োলেট (ডিফল্ট)', bg: '#05030f', bg2: '#140a3a', text: '#ffffff', muted: '#c7cbef', accent: '#38e8ff', accent2: '#8b5cf6', gold: '#ffd166', neon: '#38e8ff', panel: '#0d0a26', correct: '#2ef2a0', wrong: '#ff4d6d', timer: '#38e8ff', warn: '#ffb020', crit: '#ff3b5c', glow: 1 },
-  daylight: { label: 'দিনের আলো — সর্বোচ্চ কনট্রাস্ট', bg: '#000000', bg2: '#0a0a1a', text: '#ffffff', muted: '#f2f2f2', accent: '#00f0ff', accent2: '#6a5cff', gold: '#ffe14d', neon: '#ffffff', panel: '#000000', correct: '#00ff8c', wrong: '#ff2a4a', timer: '#00f0ff', warn: '#ffc400', crit: '#ff1f3d', glow: .6 },
-  led: { label: 'স্টেজ LED নিয়ন', bg: '#02010a', bg2: '#1d0640', text: '#ffffff', muted: '#d7d0ff', accent: '#ff3df2', accent2: '#3d7bff', gold: '#ffe066', neon: '#ff3df2', panel: '#0c0424', correct: '#3dff9e', wrong: '#ff3d6e', timer: '#3dd9ff', warn: '#ffb020', crit: '#ff2050', glow: 1.4 },
-  royal: { label: 'রাজকীয় সোনালি', bg: '#07040a', bg2: '#2a1606', text: '#fffaf0', muted: '#ead9b8', accent: '#ffcf5a', accent2: '#b5651d', gold: '#ffd700', neon: '#ffcf5a', panel: '#140b04', correct: '#4dffa6', wrong: '#ff5a5a', timer: '#ffcf5a', warn: '#ff9f1c', crit: '#ff3b3b', glow: 1 },
+  broadcast: { label: 'Broadcast Violet (default)', bg: '#05030f', bg2: '#140a3a', text: '#ffffff', muted: '#c7cbef', accent: '#38e8ff', accent2: '#8b5cf6', gold: '#ffd166', neon: '#38e8ff', panel: '#0d0a26', correct: '#2ef2a0', wrong: '#ff4d6d', timer: '#38e8ff', warn: '#ffb020', crit: '#ff3b5c', glow: 1 },
+  daylight: { label: 'Daylight — maximum contrast', bg: '#000000', bg2: '#0a0a1a', text: '#ffffff', muted: '#f2f2f2', accent: '#00f0ff', accent2: '#6a5cff', gold: '#ffe14d', neon: '#ffffff', panel: '#000000', correct: '#00ff8c', wrong: '#ff2a4a', timer: '#00f0ff', warn: '#ffc400', crit: '#ff1f3d', glow: .6 },
+  led: { label: 'Stage LED Neon', bg: '#02010a', bg2: '#1d0640', text: '#ffffff', muted: '#d7d0ff', accent: '#ff3df2', accent2: '#3d7bff', gold: '#ffe066', neon: '#ff3df2', panel: '#0c0424', correct: '#3dff9e', wrong: '#ff3d6e', timer: '#3dd9ff', warn: '#ffb020', crit: '#ff2050', glow: 1.4 },
+  royal: { label: 'Royal Gold', bg: '#07040a', bg2: '#2a1606', text: '#fffaf0', muted: '#ead9b8', accent: '#ffcf5a', accent2: '#b5651d', gold: '#ffd700', neon: '#ffcf5a', panel: '#140b04', correct: '#4dffa6', wrong: '#ff5a5a', timer: '#ffcf5a', warn: '#ff9f1c', crit: '#ff3b3b', glow: 1 },
 };
 const AUDIO_CUES = {
-  question: 'প্রশ্ন খোলা (rising bells)', option: 'বিকল্প আসা (pop)', score: 'নম্বর যোগ (coin)', laser: 'প্রশ্ন-নম্বর বাছা (laser)', buzzer: 'সময় শেষ (siren + buzzer)', drumroll: 'ড্রামরোল', applause: 'হাততালি', suspense: 'সাসপেন্স', gong: 'গং', ding: 'ডিং', siren: 'সাইরেন', heartbeat: 'হার্টবিট', click: 'ক্লিক', round: 'রাউন্ড স্টিংগার',
-  transition: 'দৃশ্য পরিবর্তন', delivery: 'প্রশ্ন আগমন', drone: 'ড্রোন', countdown: 'কাউন্টডাউন বিপ', impact: 'কাউন্টডাউন শেষ (ইমপ্যাক্ট)',
-  tick: 'টিক (শেষ ১০ সেকেন্ড)', warning: 'সতর্কতা (১০/৫ সেকেন্ড)', timeout: 'সময় শেষ', correct: 'সঠিক', wrong: 'ভুল', reveal: 'উত্তর প্রকাশ',
-  pass: 'পাস', challenge: 'চ্যালেঞ্জ', lifeline: 'লাইফলাইন', scoreboard: 'স্কোরবোর্ড', fanfare: 'বিজয়ী ফ্যানফেয়ার', teamintro: 'দল পরিচিতি', roundintro: 'রাউন্ড শুরু',
+  question: 'Question opens (rising bells)', option: 'Options appear (pop)', score: 'Points added (coin)', laser: 'Question number pick (laser)', buzzer: 'Time up (siren + buzzer)', drumroll: 'Drumroll', applause: 'Applause', suspense: 'Suspense', gong: 'Gong', ding: 'Ding', siren: 'Siren', heartbeat: 'Heartbeat', click: 'Click', round: 'Round stinger',
+  transition: 'Scene change', delivery: 'Question arrives', drone: 'Drone', countdown: 'Countdown beep', impact: 'Countdown end (impact)',
+  tick: 'Tick (last 10 seconds)', warning: 'Warning (10/5 seconds)', timeout: 'Time up', correct: 'Correct', wrong: 'Wrong', reveal: 'Answer reveal',
+  pass: 'Pass', challenge: 'Challenge', lifeline: 'Lifeline', scoreboard: 'Scoreboard', fanfare: 'Winner fanfare', teamintro: 'Team intro', roundintro: 'Round start',
 };
-const MUSIC_SLOTS = { theme: 'থিম সং', welcome: 'স্বাগত সংগীত', winner: 'বিজয়ী সংগীত', background: 'পটভূমি সংগীত' };
+const MUSIC_SLOTS = { theme: 'Theme song', welcome: 'Welcome music', winner: 'Winner music', background: 'Background music' };
 
 /** Podium lottery: eight things children love, all of one kind. Each card hides a podium (A / 1 … H / 8). */
 const DRAW_THEMES = {

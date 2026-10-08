@@ -54,7 +54,7 @@ const Store = {
     } catch (e) {
       Log.err('commit:' + label, e);
       if (before) this.state = before; // roll back a half-applied mutation
-      UI.toast('ত্রুটি: ' + (e.message || e), 'err');
+      UI.toast('Error: ' + (e.message || e), 'err');
       return undefined;
     }
     if (result === false) { return false; } // mutation declined, nothing changed
@@ -407,10 +407,10 @@ const Draw = {
   /** First click on a card: the team has chosen it (it glows). Second click on the same card: it opens with a podium. */
   pick(card) {
     card = int(card, -1);
-    if (!this.ensure()) { UI.toast('আগে চূড়ান্ত দল ঠিক করুন', 'err'); return false; }
+    if (!this.ensure()) { UI.toast('Set the final teams first', 'err'); return false; }
     const d = Store.state.draw; const n = d.queue.length;
     if (card < 0 || card >= Math.min(n, d.items.length)) return false;
-    if (d.picks.some((p) => p.card === card)) { UI.toast('এই ছবিটা আগেই নেওয়া হয়েছে — অন্য একটা বেছে নাও', 'err'); return false; }
+    if (d.picks.some((p) => p.card === card)) { UI.toast('This card is already taken — pick another one', 'err'); return false; }
     const team = this.next();
     if (!team) return false;
     if (d.pending !== card) { Store.commit('draw-choose', (st) => { st.draw.pending = card; }); Cue.play('option'); return true; }
@@ -436,13 +436,13 @@ const Draw = {
     [from, podium].forEach((i) => { const t = st.teams[i]; if (GENERIC_TEAM_NAME.test(str(t.name).trim())) t.name = teamCode(i); });
   },
   reset() {
-    if (Store.state.draw.picks.length && !Store.sandbox && !confirm('লটারি আবার প্রথম থেকে করবেন? (Ctrl+Z দিয়ে ফেরানো যায়)')) return false;
+    if (Store.state.draw.picks.length && !Store.sandbox && !confirm('Restart the podium lottery from the beginning? (Ctrl+Z can undo this)')) return false;
     Store.commit('draw-reset', (st) => { st.draw.picks = []; st.draw.pending = -1; st.draw.queue = (st.finalists.length ? st.finalists : Sel.finalistIds()).slice(); });
     return true;
   },
   theme(key) {
     if (!DRAW_THEMES[key]) return false;
-    if (Store.state.draw.picks.length) { UI.toast('লটারি শুরু হয়ে গেছে — বিষয় বদলাতে আগে "আবার প্রথম থেকে"', 'err'); return false; }
+    if (Store.state.draw.picks.length) { UI.toast('The lottery has already started — restart it from the beginning first to change the theme', 'err'); return false; }
     Store.commit('draw-theme', (st) => { st.draw.theme = key; st.draw.items = drawItems(key); st.draw.pending = -1; });
     return true;
   },
@@ -475,19 +475,19 @@ const Game = {
     return base * mult;
   },
   /** A locked question refuses scoring changes until the operator unlocks it. */
-  guard() { if (Store.state.live.locked) { UI.toast('প্রশ্ন লক করা আছে — আগে আনলক করুন (L)', 'err'); return false; } return true; },
+  guard() { if (Store.state.live.locked) { UI.toast('Question is locked — unlock it first (L)', 'err'); return false; } return true; },
   toggleLock() { if (!Store.state.live.qid) return false; Store.commit('lock', (s) => { s.live.locked = !s.live.locked; }); return true; },
   judge(kind) {
     if (!this.guard()) return false;
     const s = Store.state;
     const team = Sel.answeringTeam();
-    if (!s.live.qid) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
-    if (!team) { UI.toast('উত্তরদাতা দল বেছে নিন', 'err'); return false; }
-    if (s.live.closed) { UI.toast('এই প্রশ্ন শেষ — উত্তর দেখে পরের প্রশ্নে যান', 'err'); return false; }
+    if (!s.live.qid) { UI.toast('No question is active', 'err'); return false; }
+    if (!team) { UI.toast('Choose the answering team', 'err'); return false; }
+    if (s.live.closed) { UI.toast('This question is finished — show the answer and go to the next question', 'err'); return false; }
     const r0 = Sel.round(s.live.roundId);
-    if (kind === 'correct' && s.ledger.some((e) => e.q === s.live.qid && e.kind === 'correct' && e.round === s.live.roundId)) { UI.toast('এই প্রশ্নে আগেই সঠিক নম্বর দেওয়া হয়েছে', 'err'); return false; }
+    if (kind === 'correct' && s.ledger.some((e) => e.q === s.live.qid && e.kind === 'correct' && e.round === s.live.roundId)) { UI.toast('Points for a correct answer were already given on this question', 'err'); return false; }
     const pts = kind === 'noscore' ? 0 : this.pointsFor(kind);
-    const label = { correct: 'সঠিক', wrong: 'ভুল', noscore: 'নো স্কোর' }[kind];
+    const label = { correct: 'Correct', wrong: 'Wrong', noscore: 'No score' }[kind];
     Timer.stop();
     Store.commit('judge-' + kind, (st) => {
       this.addEntry(st, team, pts, label + ' • ' + this.flowName(st.live.flow), { kind, flow: st.live.flow });
@@ -511,11 +511,11 @@ const Game = {
     if (!this.guard()) return false;
     const s = Store.state; const l = s.live; const r = Sel.round(l.roundId);
     if (!l.qid || !Sel.team(teamId)) return false;
-    if (r && !r.features.challenge) { UI.toast('এই রাউন্ডে হাত তোলা / চ্যালেঞ্জ নেই', 'err'); return false; }
-    if (teamId === l.active) { UI.toast('উত্তরদাতা দল নিজে হাত তুলতে পারে না', 'err'); return false; }
-    if (l.handsJudged[teamId]) { UI.toast('এই দলের হাত তোলার রায় হয়ে গেছে', 'err'); return false; }
+    if (r && !r.features.challenge) { UI.toast('No hand-raise / Challenge in this round', 'err'); return false; }
+    if (teamId === l.active) { UI.toast('The answering team cannot raise its own hand', 'err'); return false; }
+    if (l.handsJudged[teamId]) { UI.toast("This team's raised hand has already been judged", 'err'); return false; }
     const on = l.hands.includes(teamId);
-    if (!on && r && r.features.singleChallenger && l.hands.length) { UI.toast('এই রাউন্ডে কেবল প্রথম বাজার-চাপা দলই চ্যালেঞ্জ করতে পারে', 'err'); return false; }
+    if (!on && r && r.features.singleChallenger && l.hands.length) { UI.toast('In this round only the first team to buzz can challenge', 'err'); return false; }
     Store.commit('raise-hand', (st) => { st.live.hands = on ? st.live.hands.filter((x) => x !== teamId) : st.live.hands.concat([teamId]); });
     if (!on) Cue.play('challenge', { soft: true });
     return true;
@@ -526,7 +526,7 @@ const Game = {
     if (!l.hands.includes(teamId) || l.handsJudged[teamId] || !r) return false;
     const pts = right ? r.scoring.challengeRight : r.scoring.challengeWrong;
     Store.commit('hand-' + (right ? 'right' : 'wrong'), (st) => {
-      this.addEntry(st, teamId, pts, (right ? 'হাত তোলা সঠিক' : 'হাত তোলা ভুল'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
+      this.addEntry(st, teamId, pts, (right ? 'Hand-raise correct' : 'Hand-raise wrong'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
       st.live.handsJudged = Object.assign({}, st.live.handsJudged, { [teamId]: right ? 'right' : 'wrong' });
       st.live.lastPoints = pts; st.live.resultAt = now(); st.live.result = right ? 'correct' : 'wrong'; st.live.resultTeam = teamId;
       if (right && st.settings.autoRevealOnCorrect) st.live.revealed = true; // a correct challenge settles the question
@@ -546,13 +546,13 @@ const Game = {
     if (!this.guard()) return false;
     const s = Store.state; const l = s.live; const r = Sel.round(l.roundId); const team = Sel.answeringTeam();
     if (!l.qid || !team || !r) return false;
-    if (r.type !== 'standard') { UI.toast('এই রাউন্ডে আলাদা বোনাস নেই', 'err'); return false; }
-    if (l.bonusGiven) { UI.toast('এই প্রশ্নে বোনাস আগেই দেওয়া হয়েছে', 'err'); return false; }
-    Store.commit('bonus', (st) => { this.addEntry(st, team, r.scoring.manualBonus, 'বোনাস', { kind: 'bonus' }); st.live.bonusGiven = true; st.live.lastPoints = r.scoring.manualBonus; st.live.resultAt = now(); });
+    if (r.type !== 'standard') { UI.toast('No separate bonus in this round', 'err'); return false; }
+    if (l.bonusGiven) { UI.toast('Bonus already given on this question', 'err'); return false; }
+    Store.commit('bonus', (st) => { this.addEntry(st, team, r.scoring.manualBonus, 'Bonus', { kind: 'bonus' }); st.live.bonusGiven = true; st.live.lastPoints = r.scoring.manualBonus; st.live.resultAt = now(); });
     Cue.play('score');
     return true;
   },
-  flowName(f) { return { direct: 'সরাসরি', pass: 'পাস', bonus: 'বোনাস', challenge: 'চ্যালেঞ্জ' }[f] || f; },
+  flowName(f) { return { direct: 'Direct', pass: 'Pass', bonus: 'Bonus', challenge: 'Challenge' }[f] || f; },
 
   /** Next team in finalist order that has not yet tried this question. */
   nextPassTeam() {
@@ -568,10 +568,10 @@ const Game = {
     const s = Store.state;
     const r = Sel.round(s.live.roundId);
     if (!s.live.qid) return false;
-    if (r && !r.features.pass) { UI.toast('এই রাউন্ডে পাস নেই', 'err'); return false; }
-    if (r && s.live.optionsShown && !r.features.passAfterOptions && r.type !== 'bonus') { UI.toast('বিকল্প নেওয়ার পর পাস নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
+    if (r && !r.features.pass) { UI.toast('No Pass in this round', 'err'); return false; }
+    if (r && s.live.optionsShown && !r.features.passAfterOptions && r.type !== 'bonus') { UI.toast('No Pass after Options are shown (round rule)', 'err'); return false; }
     const target = toTeam || this.nextPassTeam();
-    if (!target) { UI.toast('পাস দেওয়ার মতো আর কোনো দল নেই', 'err'); return false; }
+    if (!target) { UI.toast('No team left to pass to', 'err'); return false; }
     const flow = r && r.type === 'bonus' ? 'bonus' : 'pass';
     Store.commit('pass', (st) => {
       st.live.passChain.push(st.live.active);
@@ -588,9 +588,9 @@ const Game = {
     const s = Store.state;
     const r = Sel.round(s.live.roundId);
     if (!s.live.qid) return false;
-    if (!teamId || teamId === s.live.active) { UI.toast('চ্যালেঞ্জার দল আলাদা হতে হবে', 'err'); return false; }
-    if (r && !r.features.challenge) { UI.toast('এই রাউন্ডে চ্যালেঞ্জ নেই', 'err'); return false; }
-    if (r && r.features.singleChallenger && s.live.flow === 'challenge' && s.live.challenger && s.live.challenger !== teamId) { UI.toast('একটি প্রশ্নে কেবল একটি দল চ্যালেঞ্জ করতে পারে', 'err'); return false; }
+    if (!teamId || teamId === s.live.active) { UI.toast('The challenging team must be a different team', 'err'); return false; }
+    if (r && !r.features.challenge) { UI.toast('No Challenge in this round', 'err'); return false; }
+    if (r && r.features.singleChallenger && s.live.flow === 'challenge' && s.live.challenger && s.live.challenger !== teamId) { UI.toast('Only one team can challenge a question', 'err'); return false; }
     Store.commit('challenge', (st) => { st.live.flow = 'challenge'; st.live.challenger = teamId; st.live.result = ''; });
     Cue.play('challenge');
     if (Store.state.speech.announceTeam) Speech.say('চ্যালেঞ্জ। ' + (Sel.team(teamId) || {}).name, 'team');
@@ -609,10 +609,10 @@ const Game = {
   twoOptions() {
     if (!this.guard()) return false;
     const s = Store.state; const q = Sel.liveQuestion(); const r = Sel.round(s.live.roundId);
-    if (!q) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
-    if (r && !r.features.options) { UI.toast('এই রাউন্ডে বিকল্প নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
+    if (!q) { UI.toast('No question is active', 'err'); return false; }
+    if (r && !r.features.options) { UI.toast('No Options in this round (round rule)', 'err'); return false; }
     const wrong = this.wrongIndexes(q);
-    if (wrong.length < 2) { UI.toast('দুই বিকল্পের জন্য চারটি বিকল্প প্রয়োজন', 'err'); return false; }
+    if (wrong.length < 2) { UI.toast('Two-option mode needs four Options', 'err'); return false; }
     if (s.live.eliminated.length >= 2) return false;
     Store.commit('two-options', (st) => { st.live.optionsShown = true; st.live.eliminated = wrong.slice(0, 2); st.live.picked = -1; });
     Cue.play('option');
@@ -620,9 +620,9 @@ const Game = {
   },
   showOptions() {
     const q = Sel.liveQuestion();
-    if (!q || q.options.filter(Boolean).length < 2) { UI.toast('এই প্রশ্নে বিকল্প নেই', 'err'); return false; }
+    if (!q || q.options.filter(Boolean).length < 2) { UI.toast('This question has no Options', 'err'); return false; }
     const r = Sel.round(Store.state.live.roundId);
-    if (r && !r.features.options && !Store.state.live.optionsShown) { UI.toast('এই রাউন্ডে বিকল্প নেই (রাউন্ডের নিয়ম)', 'err'); return false; }
+    if (r && !r.features.options && !Store.state.live.optionsShown) { UI.toast('No Options in this round (round rule)', 'err'); return false; }
     Store.commit('options', (s) => { s.live.optionsShown = !s.live.optionsShown; });
     if (Store.state.live.optionsShown) { Cue.play('option'); if (Store.state.speech.rec && q.voiceOpt) setTimeout(() => Speech.readOptions(false), 500); }
     return true;
@@ -637,17 +637,17 @@ const Game = {
     const s = Store.state;
     const q = Sel.liveQuestion();
     const team = s.live.active;
-    if (!q) { UI.toast('কোনো প্রশ্ন চালু নেই', 'err'); return false; }
-    if (team && Sel.lifelineUsed(team, kind)) { UI.toast('এই দল আগেই এই লাইফলাইন ব্যবহার করেছে', 'err'); return false; }
+    if (!q) { UI.toast('No question is active', 'err'); return false; }
+    if (team && Sel.lifelineUsed(team, kind)) { UI.toast('This team has already used this lifeline', 'err'); return false; }
     if (kind === 'fifty') {
       const wrong = this.wrongIndexes(q);
-      if (wrong.length < 2) { UI.toast('৫০:৫০ এর জন্য চারটি বিকল্প প্রয়োজন', 'err'); return false; }
+      if (wrong.length < 2) { UI.toast('50:50 needs four Options', 'err'); return false; }
       Store.commit('lifeline-5050', (st) => { st.live.optionsShown = true; st.live.eliminated = wrong.slice(0, 2); this.markLifeline(st, team, kind); });
     } else if (kind === 'poll') {
       Store.commit('lifeline-poll', (st) => { st.live.optionsShown = true; st.live.poll = this.makePoll(q, st.live.eliminated); this.markLifeline(st, team, kind); });
     } else if (kind === 'flip') {
       const next = this.flipCandidate();
-      if (!next) { UI.toast('ফ্লিপের জন্য সংরক্ষিত প্রশ্ন নেই (রাউন্ড ' + s.flipPool + ')', 'err'); return false; }
+      if (!next) { UI.toast('No reserve question left for Flip (round ' + s.flipPool + ')', 'err'); return false; }
       Store.commit('lifeline-flip', (st) => {
         const old = st.live.qid;
         delete st.board.played[old];
@@ -719,7 +719,7 @@ const Game = {
   },
   adjust(teamId, delta, reason) {
     if (!Sel.team(teamId) || !delta) return false;
-    Store.commit('adjust', (s) => this.addEntry(s, teamId, delta, reason || 'ম্যানুয়াল সমন্বয়', { kind: 'adjust' }));
+    Store.commit('adjust', (s) => this.addEntry(s, teamId, delta, reason || 'Manual adjustment', { kind: 'adjust' }));
     Cue.play(delta > 0 ? 'score' : 'wrong', { soft: delta < 0 });
     return true;
   },
