@@ -530,6 +530,7 @@ const SelfTest = {
         [st.show.scene, st.show.params] = keep; return ok;
       });
       T('Round 1 question 1: India\'s first LNG train — answer আহমেদাবাদ', () => { const q = Sel.roundQuestions('R1').find((x) => x.number === 1); return q && /LNG/.test(q.text) && q.options[q.answer] === 'আহমেদাবাদ' && !/জটায়ু/.test(q.options.join()); });
+      T('Podium lottery: default is প্রিয় পশুপাখি with a picture on all 8 cards; 6 themes', () => { const d = defaultState().draw; return d.theme === 'animals' && d.items.length === 8 && d.items.every((x) => /^asset:draw_/.test(x.image)) && Object.keys(DRAW_THEMES).length === 6; });
       T('Theme: default is Midnight Royal Blue · Warm White · Champagne Gold', () => { const c = defaultState().design.colors; return defaultState().design.theme === 'midnight' && c.bg === '#071a3d' && c.bg2 === '#102d63' && c.text === '#fff9e8' && c.head === '#ffffff' && c.gold === '#f4d27a'; });
       T('Theme: five calm themes with their exact colours', () => THEMES.violetGold.bg === '#170d38' && THEMES.violetGold.gold === '#e8b7c8' && THEMES.tealIvory.bg2 === '#07545a' && THEMES.navyCyan.accent === '#70cfff' && THEMES.royalYellow.accent === '#d9c2ff' && THEMES.royalYellow.gold === '#f2d27d');
       T('Theme: a round (or the finale) can have its own theme; default = show theme', () => {

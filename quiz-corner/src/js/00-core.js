@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 13;
+const RULES_VERSION = 14;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -126,14 +126,15 @@ const MUSIC_SLOTS = { theme: 'Theme song', welcome: 'Welcome music', winner: 'Wi
 
 /** Podium lottery: eight things children love, all of one kind. Each card hides a podium (A / 1 … H / 8). */
 const DRAW_THEMES = {
-  animals: { name: 'প্রিয় পশুপাখি', items: [['বাঘ', '🐯'], ['হাতি', '🐘'], ['ময়ূর', '🦚'], ['প্রজাপতি', '🦋'], ['খরগোশ', '🐰'], ['ডলফিন', '🐬'], ['পান্ডা', '🐼'], ['জিরাফ', '🦒']] },
+  // default theme: real 3D pictures on every card (Microsoft Fluent UI Emoji, MIT); the other themes show a large emoji or the first letter
+  animals: { name: 'প্রিয় পশুপাখি', items: [['বাঘ', '🐯', 'asset:draw_tiger.png'], ['হাতি', '🐘', 'asset:draw_elephant.png'], ['ময়ূর', '🦚', 'asset:draw_peacock.png'], ['প্রজাপতি', '🦋', 'asset:draw_butterfly.png'], ['খরগোশ', '🐰', 'asset:draw_rabbit.png'], ['ডলফিন', '🐬', 'asset:draw_dolphin.png'], ['পান্ডা', '🐼', 'asset:draw_panda.png'], ['জিরাফ', '🦒', 'asset:draw_giraffe.png']] },
   sports: { name: 'প্রিয় খেলা', items: [['ফুটবল', '⚽'], ['ক্রিকেট', '🏏'], ['ব্যাডমিন্টন', '🏸'], ['হকি', '🏑'], ['দাবা', '♟️'], ['বাস্কেটবল', '🏀'], ['টেনিস', '🎾'], ['ভলিবল', '🏐']] },
   fruits: { name: 'প্রিয় ফল', items: [['আম', '🥭'], ['কলা', '🍌'], ['আপেল', '🍎'], ['আঙুর', '🍇'], ['তরমুজ', '🍉'], ['আনারস', '🍍'], ['কমলালেবু', '🍊'], ['স্ট্রবেরি', '🍓']] },
   food: { name: 'প্রিয় খাবার', items: [['আইসক্রিম', '🍦'], ['কেক', '🎂'], ['চকোলেট', '🍫'], ['মোমো', '🥟'], ['পিৎজা', '🍕'], ['নুডলস', '🍜'], ['পপকর্ন', '🍿'], ['ডোনাট', '🍩']] },
   greats: { name: 'মনীষী', items: [['রবীন্দ্রনাথ ঠাকুর', ''], ['স্বামী বিবেকানন্দ', ''], ['নেতাজি সুভাষচন্দ্র বসু', ''], ['ঈশ্বরচন্দ্র বিদ্যাসাগর', ''], ['কাজী নজরুল ইসলাম', ''], ['এ. পি. জে. আবদুল কালাম', ''], ['জগদীশচন্দ্র বসু', ''], ['সত্যজিৎ রায়', '']] },
   cartoons: { name: 'প্রিয় কার্টুন', items: [['ছোটা ভীম', ''], ['গোপাল ভাঁড়', ''], ['মোটু পাতলু', ''], ['ডোরেমন', ''], ['টম ও জেরি', ''], ['নন্টে ফন্টে', ''], ['হাঁদা ভোঁদা', ''], ['বাঁটুল দি গ্রেট', '']] },
 };
-function drawItems(theme) { return (DRAW_THEMES[theme] || DRAW_THEMES.animals).items.map(([label, emoji]) => ({ label, emoji, image: '' })); }
+function drawItems(theme) { return (DRAW_THEMES[theme] || DRAW_THEMES.animals).items.map(([label, emoji, image]) => ({ label, emoji, image: image || '' })); }
 
 const DEFAULT_GIFTS = [
   ['ফল', 'আম'], ['কবি', 'রবীন্দ্রনাথ ঠাকুর'], ['ফুল', 'গোলাপ'], ['বিজ্ঞানী', 'সত্যেন্দ্রনাথ বসু'],
@@ -335,6 +336,8 @@ function upgradeRules(s, def, from = 0) {
     s.crew = def.crew.map((c, i) => Object.assign(clone(c), { photo: (i < 2 && oldPhotos[i]) || c.photo || '' }));
   }
   if (isObj(s.draw)) arr(s.draw.items).forEach((it) => { if (isObj(it) && it.label === 'এ পি জে আব্দুল কালাম') it.label = 'এ. পি. জে. আবদুল কালাম'; });
+  // the default animal cards got pictures — only where the operator had not put a picture of their own
+  if (isObj(s.draw) && s.draw.theme === 'animals') arr(s.draw.items).forEach((it) => { const d = isObj(it) && !it.image && DRAW_THEMES.animals.items.find((x) => x[0] === it.label); if (d) it.image = d[2]; });
   if (isObj(s.event) && OLD_CREDITS(str(s.event.credits))) s.event.credits = def.event.credits;
   s.rounds = arr(s.rounds).map((r) => {
     const d = def.rounds.find((x) => isObj(r) && x.id === r.id);
