@@ -224,7 +224,9 @@ const SelfTest = {
       const bad = [];
       rd.forEach((step) => { Store.state.show.scene = step.scene; Store.state.show.params = step.params; if (step.scene === 'QUESTION') Store.state.live.qid = step.params.qid; try { const out = (Scenes[step.scene])(Store.state, step.params); if (!out || typeof out.html !== 'string' || !out.key) bad.push(step.key); } catch (e) { bad.push(step.key + ': ' + e.message); } });
       T('Render: every rundown scene (' + rd.length + ')', () => (bad.length ? bad.slice(0, 3).join('; ') && false : true));
-      T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
+      T('Rundown: prelim questions skipped on the day (results only)', () => !rd.some((x) => /^PRELIM_(RULES|COUNTDOWN|Q)$/.test(x.scene)) && rd.some((x) => x.scene === 'PRELIM_RESULT'));
+      T('Rundown: prelim questions return when switched on', () => { Store.state.prelim.onStage = true; const ok = ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q'].every((k) => Show.rundown().some((x) => x.scene === k)); Store.state.prelim.onStage = false; return ok && !Show.rundown().some((x) => x.scene === 'PRELIM_Q'); });
+      T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
       T('Rundown: the 3 main rounds for 13 October', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3');
 
       // ---- the latest rules (DOC-20261004-WA0002) for the 13 October main stage ----
@@ -351,11 +353,11 @@ const SelfTest = {
       T('Old save: changed questions get new text, operator’s own text kept', () => {
         const old = defaultState(); delete old.rulesVersion;
         const seedOld = arr(SEED.questions).find((q) => arr(q.prevText).length);
-        const a = old.questions.find((q) => q.id === seedOld.id); a.text = seedOld.prevText[0]; a.options = ['১', '২', '৩', '৪'];
-        const mine = old.questions.find((q) => q.id === 'Q07'); mine.text = 'আমার নিজের প্রশ্ন';
+        const a = old.questions.find((q) => q.id === seedOld.id); a.text = seedOld.prevText[0]; a.options = ['১', '২', '৩', '৪']; a.voiceQ = 'm_oldvoice';
+        const mine = old.questions.find((q) => !arr((arr(SEED.questions).find((x) => x.id === q.id) || {}).prevText).length); mine.text = 'আমার নিজের প্রশ্ন';
         const n = normalizeState(old); const d = defaultState();
         const na = n.questions.find((q) => q.id === seedOld.id);
-        return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && n.questions.find((q) => q.id === 'Q07').text === 'আমার নিজের প্রশ্ন';
+        return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && !na.voiceQ && n.questions.find((q) => q.id === mine.id).text === 'আমার নিজের প্রশ্ন';
       });
       T('Questions: every question in rounds 1–3 has a "good to know" fact', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.explanation && q.explanation.length > 10)));
       T('Old save: new questions added and changed prelim questions get new text', () => {
@@ -519,7 +521,7 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
-      T('Countdown: 10, 9 … 1, 0 then GO! (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000);
+      T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
       // ---- text fitting with long Bengali ----
       T('Text fit: long Bengali question stays inside the box', () => {
@@ -574,9 +576,9 @@ const Authority = {
       if (key !== this.cdKey) { this.cdKey = key; this.cdStep = -1; }
       const from = s.settings.countdownFrom;
       const step = Math.floor((now() - s.show.startedAt) / s.settings.countdownStepMs);
-      if (step !== this.cdStep && step <= from + 1 && step >= 0) {
+      if (step !== this.cdStep && step <= from && step >= 0) {
         this.cdStep = step;
-        if (step <= from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); if (s.audio.countVoice) Cue.voice(-1); } // -1 = "Go!"
+        if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); Cue.play('fanfare'); setTimeout(() => Cue.play('applause'), 600); if (s.audio.countVoice) Cue.voice(-1); } // GO!: impact + fanfare + applause, voice "Go!"
       }
     }
   },

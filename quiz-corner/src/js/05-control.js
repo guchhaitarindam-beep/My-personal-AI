@@ -60,6 +60,7 @@ const UI = {
   <nav class="mainnav" aria-label="Main">
     <button class="mn" data-act="navHome">🏠 Home</button>
     <button class="mn" data-act="navShow">🎬 Show</button>
+    <button class="mn go" data-act="skipToMain" title="Jump straight to the main-round countdown">⏭ Skip to Main Round</button>
     <button class="mn" data-act="navTeams">👥 Teams</button>
     <button class="mn" data-act="navQuestions">❓ Questions</button>
     <button class="mn reh-btn" data-act="rehearsalToggle" id="btnReh">🎭 Start Rehearsal</button>
@@ -407,6 +408,7 @@ const Actions = {
   openStage() { Sync.openStage(); },
   navHome() { Actions.tab(''); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   navShow() { Actions.tab('show'); },
+  skipToMain() { Show.jump('MAIN_COUNTDOWN'); UI.toast('Main round countdown — press → after GO! for round 1', 'ok'); },
   navTeams() { Actions.tab('teams'); },
   navQuestions() { Actions.tab('questions'); },
   /** Rehearsal: play freely on a copy; ending it puts the real event back exactly as it was. */

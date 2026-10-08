@@ -170,15 +170,15 @@ const Scenes = {
     return {
       key: 'OVERVIEW', anim: 'flip',
       html: H.head(s, '<span class="round-tag">আজকের অনুষ্ঠান</span>', '<span class="qnum">TONIGHT</span>') +
-        H.part('body', '<div class="ov-stats"><div class="glass"><b>' + bn(Sel.prelimQuestions().length) + '</b><small>বাছাই প্রশ্ন</small></div><div class="glass"><b>' + bn(s.teams.length) + '</b><small>অংশগ্রহণকারী দল</small></div><div class="glass"><b>' + bn(s.prelim.finalistCount) + '</b><small>দল মূল পর্বে</small></div><div class="glass"><b>' + bn(played.length) + '</b><small>মূল রাউন্ড</small></div></div><div class="ov-rounds">' + played.map((r, i) => '<span style="' + H.roundVars(r) + '">' + bn(i + 1) + '. ' + esc(r.name) + '</span>').join('') + '</div>' + (s.event.welcomeNote ? '<div class="s-sub" style="text-align:center">' + esc(s.event.welcomeNote) + '</div>' : ''), 'center-col'),
+        H.part('body', '<div class="ov-stats"><div class="glass">' + (s.prelim.onStage ? '<b>' + bn(Sel.prelimQuestions().length) + '</b><small>বাছাই প্রশ্ন</small>' : '<b>' + bn(played.reduce((n, r) => n + Sel.roundQuestions(r.id).length, 0)) + '</b><small>মূল পর্বের প্রশ্ন</small>') + '</div><div class="glass"><b>' + bn(s.teams.length) + '</b><small>অংশগ্রহণকারী দল</small></div><div class="glass"><b>' + bn(s.prelim.finalistCount) + '</b><small>দল মূল পর্বে</small></div><div class="glass"><b>' + bn(played.length) + '</b><small>মূল রাউন্ড</small></div></div><div class="ov-rounds">' + played.map((r, i) => '<span style="' + H.roundVars(r) + '">' + bn(i + 1) + '. ' + esc(r.name) + '</span>').join('') + '</div>' + (s.event.welcomeNote ? '<div class="s-sub" style="text-align:center">' + esc(s.event.welcomeNote) + '</div>' : ''), 'center-col'),
     };
   },
   PRELIM_RULES(s) { return Scenes.rulesScene(s, 'বাছাই পর্ব', s.prelim.rules, 'PRULES'); },
   countdown(s, title) {
-    return { key: 'CD:' + s.show.startedAt, anim: 'zoom', html: H.head(s, '<span class="round-tag">' + esc(title) + '</span>') + H.part('cd', '<div class="cd-ring" data-countdown><svg viewBox="0 0 100 100"><circle class="cd-track" cx="50" cy="50" r="46"/><circle class="cd-prog" cx="50" cy="50" r="46" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="0"/></svg><div class="cd-digit">' + bn(s.settings.countdownFrom) + '</div></div>', 'countdown') };
+    return { key: 'CD:' + s.show.startedAt, anim: 'zoom', html: H.head(s, '<span class="round-tag">' + esc(title) + '</span>') + H.part('cd', '<div class="cd-ring" data-countdown><svg viewBox="0 0 100 100"><circle class="cd-track" cx="50" cy="50" r="46"/><circle class="cd-prog" cx="50" cy="50" r="46" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="0"/></svg><div class="cd-digit">' + String(s.settings.countdownFrom) + '</div></div>', 'countdown') };
   },
-  PRELIM_COUNTDOWN(s) { return Scenes.countdown(s, 'বাছাই পর্ব শুরু হচ্ছে'); },
-  MAIN_COUNTDOWN(s) { return Scenes.countdown(s, 'মূল পর্ব শুরু হচ্ছে'); },
+  PRELIM_COUNTDOWN(s) { return Scenes.countdown(s, 'PRELIM ROUND STARTS IN'); },
+  MAIN_COUNTDOWN(s) { return Scenes.countdown(s, 'MAIN ROUND STARTS IN'); },
   drone(deliverAt, enabled) {
     const ms = Show.droneMs();
     if (!enabled || !(now() - deliverAt < ms)) return { html: '', style: '--drone-ms:0' };
@@ -202,8 +202,10 @@ const Scenes = {
   },
   PRELIM_RESULT(s) {
     const rows = Sel.prelimRanking();
+    // the school name is the big line; the team name / code goes underneath when it says something different
+    const resName = (t) => { const top = Sel.codeHidden(t) ? Sel.preName(t) : (str(t.school).trim() || t.name); const sub = Sel.codeHidden(t) ? '' : [t.name, Sel.code(t)].map((x) => str(x).trim()).find((x) => x && x !== top) || ''; return '<b><span class="nm1">' + esc(top) + '</span>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</b>'; };
     const half = Math.ceil(rows.length / 2);
-    const body = '<div class="res-table" style="grid-template-rows:repeat(' + half + ',1fr)">' + rows.map((r, i) => '<div class="res-row' + (r.qualified ? ' q' : '') + '" style="--i:' + i + '"><span class="rk">' + bn(r.rank) + '</span><b>' + (Sel.codeHidden(r.team) ? esc(Sel.preName(r.team)) : esc(r.team.name) + (r.team.school ? ' <small class="muted" style="font-weight:500">' + esc(r.team.school) + '</small>' : '') )+ '</b><span class="sc">' + bn(r.score) + '</span><span class="st">★' + bn(r.stars) + '</span></div>').join('') + '</div>';
+    const body = '<div class="res-table" style="grid-template-rows:repeat(' + half + ',1fr)">' + rows.map((r, i) => '<div class="res-row' + (r.qualified ? ' q' : '') + '" style="--i:' + i + '"><span class="rk">' + bn(r.rank) + '</span>' + resName(r.team) + '<span class="sc">' + bn(r.score) + '</span><span class="st">★' + bn(r.stars) + '</span></div>').join('') + '</div>';
     return { key: 'PRES', anim: 'slide', html: H.head(s, '<span class="round-tag">বাছাই পর্বের ফলাফল</span>', '<span class="qnum">শীর্ষ ' + bn(s.prelim.finalistCount) + ' দল মূল পর্বে</span>') + H.part('table', body, '', 'flex:1;display:flex;flex-direction:column;min-height:0') };
   },
   FINALISTS(s) {
@@ -631,12 +633,12 @@ class StageView {
     const elapsed = now() - s.show.startedAt;
     const step = Math.floor(elapsed / stepMs);
     const prog = $('.cd-prog', el);
-    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / ((from + 1) * stepMs)) * 1000)));
+    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / (from * stepMs)) * 1000)));
     if (step === this.cdStep) return;
     this.cdStep = step;
     const d = $('.cd-digit, .cd-final', el);
-    // 10, 9 … 1, 0 — then GO!
-    if (step <= from) { d.className = 'cd-digit pop'; d.textContent = bn(from - step); void d.offsetWidth; }
-    else { d.className = 'cd-final'; d.textContent = 'GO!'; if (this.fx && step === from + 1) this.fx.burst(false); }
+    // 10, 9 … 1 — then GO! (English digits, no zero)
+    if (step < from) { d.className = 'cd-digit pop'; d.textContent = String(from - step); void d.offsetWidth; }
+    else { d.className = 'cd-final go'; d.textContent = 'GO!'; if (this.fx && step === from) this.fx.burst(false); }
   }
 }

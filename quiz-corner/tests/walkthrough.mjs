@@ -57,8 +57,8 @@ sc = await next(1500); sc = await next(1500); await shot('06-team-intro-members'
 const mem = await stage.evaluate(() => ({ cards: document.querySelectorAll('.layer:not(.exiting) .mem-card:not(.hidden)').length, imgs: Array.from(document.querySelectorAll('.layer:not(.exiting) .mem-card img')).filter((i) => i.complete && i.naturalWidth).length }));
 step(mem.cards === 2 && mem.imgs === 2, 'দল A / 1: সদস্য ১ ও ২ ছবিসহ একে একে', JSON.stringify(mem));
 while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) sc = await next(450);
-step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); await cues(); await stage.waitForTimeout(1600); await shot('07-countdown'); await stage.waitForTimeout(11500); // 10, 9 … 0, then GO!
-const cdc = await cues(); step(cdc.filter((c) => c === 'countdown').length >= 10 && cdc.includes('impact'), 'Countdown sounds: 10 … 0 beeps, then GO! (impact)', cdc.join(','));
+step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); const cd0 = (await cues()).filter((c) => c === 'countdown'); await stage.waitForTimeout(1600); await shot('07-countdown'); await stage.waitForTimeout(11500); // 10, 9 … 1, then GO! (no zero)
+const cdc = cd0.concat(await cues()); step(cdc.filter((c) => c === 'countdown').length === 10 && cdc.includes('impact'), 'Countdown sounds: 10 … 1 beeps, then GO! (impact)', cdc.join(','));
 // 4. round 1
 sc = await next(2600); step(sc === 'ROUND_INTRO', 'রাউন্ড ১ শুরু', sc); await shot('08-round-intro');
 sc = await next(4500); step(sc === 'ROUND_RULES', 'রাউন্ড ১-এর নিয়ম', sc); await shot('09-rules');

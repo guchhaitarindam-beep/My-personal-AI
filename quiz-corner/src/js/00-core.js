@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 11;
+const RULES_VERSION = 12;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -105,7 +105,13 @@ const FONT_MAP = Object.fromEntries(FONT_CHOICES);
 const ANIMS = ['fade', 'slide', 'zoom', 'flip', 'spin', 'cube', 'door', 'push', 'orbit', 'none'];
 const ROUND_ANIMS = ['flip', 'cube', 'zoom', 'spin', 'slide', 'door', 'sweep', 'burst', 'push', 'orbit', 'glass', 'digital'];
 const THEMES = {
-  broadcast: { label: 'Broadcast Violet (default)', bg: '#05030f', bg2: '#140a3a', text: '#ffffff', muted: '#c7cbef', accent: '#38e8ff', accent2: '#8b5cf6', gold: '#ffd166', neon: '#38e8ff', panel: '#0d0a26', correct: '#2ef2a0', wrong: '#ff4d6d', timer: '#38e8ff', warn: '#ffb020', crit: '#ff3b5c', glow: 1 },
+  // 55-inch TV, read from far away: very dark calm background, warm light text, soft gold highlights (no neon behind the words)
+  midnight: { label: 'Midnight Blue · Ivory · Soft Gold (recommended)', bg: '#050f29', bg2: '#0c2a66', text: '#fff8e7', muted: '#dfe5f2', accent: '#e9c46a', accent2: '#1f4fa3', gold: '#e9c46a', neon: '#f2d488', panel: '#0a1a40', correct: '#3ddc97', wrong: '#ff5d73', timer: '#f2d488', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
+  violetGold: { label: 'Deep Violet · White · Champagne Gold (festive)', bg: '#120828', bg2: '#2c1462', text: '#ffffff', muted: '#e6defc', accent: '#f1d38a', accent2: '#6d3fd6', gold: '#f1d38a', neon: '#f1d38a', panel: '#1a0e3d', correct: '#3ddc97', wrong: '#ff5d73', timer: '#f1d38a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
+  tealIvory: { label: 'Deep Teal · Ivory · Gold (fresh)', bg: '#031c1c', bg2: '#0a4744', text: '#fffaf0', muted: '#d4ece6', accent: '#e6c35c', accent2: '#13807a', gold: '#e6c35c', neon: '#e6c35c', panel: '#062b29', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#e6c35c', warn: '#ffb347', crit: '#ff4d5e', glow: 0.55 },
+  navyCyan: { label: 'Navy · Light Cyan · Gold (modern broadcast)', bg: '#040b1c', bg2: '#0d2246', text: '#eafaff', muted: '#bfe1ef', accent: '#8fe3ff', accent2: '#2b6cb0', gold: '#f2c94c', neon: '#8fe3ff', panel: '#09162e', correct: '#3ddc97', wrong: '#ff5d73', timer: '#8fe3ff', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
+  royalYellow: { label: 'Royal Blue · White · Soft Yellow (cheerful)', bg: '#081a4d', bg2: '#1a46ad', text: '#ffffff', muted: '#e2eaff', accent: '#ffe27a', accent2: '#3b82f6', gold: '#ffe27a', neon: '#ffe27a', panel: '#0c2366', correct: '#4be3a0', wrong: '#ff6b7a', timer: '#ffe27a', warn: '#ffb347', crit: '#ff4d5e', glow: 0.6 },
+  broadcast: { label: 'Broadcast Violet (neon)', bg: '#05030f', bg2: '#140a3a', text: '#ffffff', muted: '#c7cbef', accent: '#38e8ff', accent2: '#8b5cf6', gold: '#ffd166', neon: '#38e8ff', panel: '#0d0a26', correct: '#2ef2a0', wrong: '#ff4d6d', timer: '#38e8ff', warn: '#ffb020', crit: '#ff3b5c', glow: 1 },
   daylight: { label: 'Daylight — maximum contrast', bg: '#000000', bg2: '#0a0a1a', text: '#ffffff', muted: '#f2f2f2', accent: '#00f0ff', accent2: '#6a5cff', gold: '#ffe14d', neon: '#ffffff', panel: '#000000', correct: '#00ff8c', wrong: '#ff2a4a', timer: '#00f0ff', warn: '#ffc400', crit: '#ff1f3d', glow: .6 },
   led: { label: 'Stage LED Neon', bg: '#02010a', bg2: '#1d0640', text: '#ffffff', muted: '#d7d0ff', accent: '#ff3df2', accent2: '#3d7bff', gold: '#ffe066', neon: '#ff3df2', panel: '#0c0424', correct: '#3dff9e', wrong: '#ff3d6e', timer: '#3dd9ff', warn: '#ffb020', crit: '#ff2050', glow: 1.4 },
   royal: { label: 'Royal Gold', bg: '#07040a', bg2: '#2a1606', text: '#fffaf0', muted: '#ead9b8', accent: '#ffcf5a', accent2: '#b5651d', gold: '#ffd700', neon: '#ffcf5a', panel: '#140b04', correct: '#4dffa6', wrong: '#ff5a5a', timer: '#ffcf5a', warn: '#ff9f1c', crit: '#ff3b3b', glow: 1 },
@@ -169,7 +175,7 @@ function defaultScoring() { return Object.assign({}, ROUND_TYPE_DEFAULTS.standar
 function roundFromSeed(r, i) {
   const p = isObj(r.profile) ? r.profile : {};
   const type = r.type === 'audio' ? 'bonus' : r.type === 'rapid' ? 'rapid' : 'standard';
-  const palette = [['#7c3aed', '#38e8ff', '#ffd166'], ['#2563eb', '#22d3ee', '#ffd166'], ['#db2777', '#f472b6', '#ffe066'], ['#059669', '#34d399', '#ffd166'], ['#ea580c', '#fbbf24', '#fff1a8'], ['#0891b2', '#67e8f9', '#ffd166'], ['#4f46e5', '#a5b4fc', '#ffd166']][i % 7];
+  const palette = [['#1f4fa3', '#b8913f', '#f2d488'], ['#155e75', '#b8913f', '#f2d488'], ['#3f3a9e', '#b8913f', '#f2d488'], ['#059669', '#34d399', '#ffd166'], ['#ea580c', '#fbbf24', '#fff1a8'], ['#0891b2', '#67e8f9', '#ffd166'], ['#4f46e5', '#a5b4fc', '#ffd166']][i % 7];
   return {
     id: str(r.id || 'R' + (i + 1), 12), name: str(r.name || 'রাউন্ড ' + bn(i + 1), 120), label: str(r.label, 160), rules: str(r.rules, 4000),
     description: '', type, enabled: !r.skip, // WA0002: rounds marked skip stay in the file but are left out of the show
@@ -248,6 +254,8 @@ function defaultState() {
     prelim: {
       count: 15, points: 5, finalistCount: 8, rules: str(show.prelimRules), questions: defaultPrelim(),
       useMatrix: true, drone: true,
+      // 13 Oct: the prelim was held earlier by another teacher — the show starts from its results (school names, scores)
+      onStage: false,
     },
     finalists: [], finalistsLocked: false,
     // podium lottery after the welcome: queue = finalists in the order they choose, picks = { card, team, podium }
@@ -259,7 +267,7 @@ function defaultState() {
     giftCategories: GIFT_CATEGORIES.slice(),
     sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
-      theme: 'broadcast', colors: Object.assign({}, THEMES.broadcast),
+      theme: 'midnight', colors: Object.assign({}, THEMES.midnight),
       fonts: { bn: 'Hind Siliguri', en: 'Hind Siliguri', timer: 'Mina' },
       text: defaultTextStyles(),
       box: { show: true, width: 0.28, radius: 2.2, opacity: 0.88 },
@@ -313,6 +321,10 @@ function mergeDefaults(def, src) {
 
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
 function upgradeRules(s, def) {
+  // the calm TV look (Midnight Blue · Ivory · Soft Gold) replaces the old neon default — only where the operator had not chosen colours
+  if (isObj(s.design) && (!s.design.theme || s.design.theme === 'broadcast')) { s.design.theme = 'midnight'; s.design.colors = Object.assign({}, THEMES.midnight); }
+  const OLD_PRIMARY = ['#7c3aed', '#2563eb', '#db2777'];
+  arr(s.rounds).forEach((r, i) => { if (isObj(r) && isObj(r.design) && r.design.primary === OLD_PRIMARY[i] && def.rounds[i]) Object.assign(r.design, { primary: def.rounds[i].design.primary, secondary: def.rounds[i].design.secondary, accent: def.rounds[i].design.accent }); });
   if (OLD_CREW_NAMES.includes(arr(s.crew).map((c) => isObj(c) && str(c.name).trim()).join('|'))) {
     const oldPhotos = arr(s.crew).map((c) => c.photo);
     s.crew = def.crew.map((c, i) => Object.assign(clone(c), { photo: (i < 2 && oldPhotos[i]) || c.photo || '' }));
@@ -332,7 +344,7 @@ function upgradeRules(s, def) {
     const d = isObj(q) && seedQ.get(q.id);
     if (!d) return q;
     const out = Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {});
-    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, explanation: d.explanation });
+    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image || out.image, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
     if ((prevExp.get(q.id) || []).includes(str(out.explanation))) out.explanation = d.explanation; // a corrected explanation the operator had not changed
     return out;

@@ -25,13 +25,15 @@ const Show = {
   _rdSig: '',
   rundown() {
     const s = Store.state;
-    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes].join('|');
+    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes, s.prelim.onStage].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENE_LABELS[scene] || SCENES[scene] });
     add('ORGANIZER'); add('LOGO'); add('PROGRAMME'); add('THEME');
-    add('OVERVIEW'); add('PRELIM_RULES'); add('PRELIM_COUNTDOWN');
-    Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'Prelim question ' + String(i + 1) + (q.star ? ' ★' : '')));
+    add('OVERVIEW');
+    if (s.prelim.onStage) add('PRELIM_RULES');
+    if (s.prelim.onStage) add('PRELIM_COUNTDOWN');
+    if (s.prelim.onStage) Sel.prelimQuestions().forEach((q, i) => add('PRELIM_Q', { key: 'P' + (i + 1), idx: i }, 'Prelim question ' + String(i + 1) + (q.star ? ' ★' : '')));
     add('PRELIM_RESULT'); add('FINALISTS');
     // calling the finalists to the stage: team number, school and preliminary score
     Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'Call to stage • ' + Sel.label(Sel.team(id))));
