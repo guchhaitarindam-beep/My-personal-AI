@@ -1001,3 +1001,4 @@ body.role-host .preview-box { max-width: 900px; }
 .school-list { display: flex; flex-direction: column; gap: .35rem; }
 .school-row { display: grid; grid-template-columns: 5.5rem 1fr 5.5rem; gap: .4rem; align-items: center; }
 .school-row .sr-tag { font-weight: 700; padding: .3rem .4rem; border-radius: 8px; text-align: center; background: color-mix(in srgb, var(--team, #888) 35%, transparent); border: 1px solid var(--team, #888); white-space: nowrap; }
+.crew-card2.spacer { visibility: hidden; }

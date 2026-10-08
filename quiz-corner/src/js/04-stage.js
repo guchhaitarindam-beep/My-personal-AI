@@ -113,12 +113,13 @@ const Scenes = {
       const vis = j < shown;
       const side = j === 0 ? 'from-top' : j % 2 ? 'from-left' : 'from-right';
       return '<div data-part="c' + j + '" class="crew-card2 ' + side + (vis ? '' : ' hidden') + (j === 0 ? ' captain' : '') + '">' + (vis ? H.photo(m.photo, m.name, 'crew-face') + '<b class="mem-name">' + esc(m.name) + '</b>' + (m.role || j === 0 ? '<small class="mem-role">' + esc(m.role || 'অধিনায়ক') + '</small>' : '') : '') + '</div>';
-    }).join('');
+    }).join('') + (left.length > right.length ? '<div data-part="sp" class="crew-card2 spacer" aria-hidden="true"></div>' : ''); // an even team: an empty place on the right keeps the captain in the very middle
+    const slots = n + (left.length > right.length ? 1 : 0);
     const cur = crew[shown - 1];
     return {
       key: 'CREW', anim: 'slide',
       html: H.head(s, '<span class="round-tag">QUIZ CORNER • আমাদের টিম</span>', '<span class="qnum">' + bn(shown) + ' / ' + bn(n) + '</span>') +
-        '<div data-part="crew" data-morph class="crew-row2" style="--n:' + n + '">' + cards + '</div>' +
+        '<div data-part="crew" data-morph class="crew-row2" style="--n:' + slots + '">' + cards + '</div>' +
         H.part('about', cur && cur.about ? '<div class="crew-about2" data-fit="3.2">' + esc(cur.about) + '</div>' : '', 'crew-about-box'),
     };
   },
