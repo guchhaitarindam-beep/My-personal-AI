@@ -88,6 +88,9 @@ const UI = {
   },
 
   bindEvents() {
+    // opened by the one-click launcher the browser allows sound at once; otherwise the first click or key starts it
+    if (AudioDirector.isOutput()) AudioDirector.unlock();
+    document.addEventListener('keydown', () => AudioDirector.unlock(), true);
     document.addEventListener('click', (e) => {
       AudioDirector.unlock();
       const el = e.target.closest('[data-act]');

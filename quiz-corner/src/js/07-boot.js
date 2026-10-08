@@ -20,10 +20,12 @@ const Stage = {
     });
     let idle = 0;
     document.addEventListener('mousemove', () => { document.body.style.cursor = ''; clearTimeout(idle); idle = setTimeout(() => { document.body.style.cursor = 'none'; }, 2500); });
+    // opened by the one-click launcher the browser allows sound at once: start it now, so nobody has to click the TV
+    if (AudioDirector.isOutput()) { AudioDirector.unlock(); if (AudioDirector.ctx) AudioDirector.ctx.addEventListener('statechange', () => this.audioGate()); setTimeout(() => this.audioGate(), 400); }
     this.audioGate();
   },
   audioGate() {
-    const need = AudioDirector.isOutput() && !AudioDirector.unlocked;
+    const need = AudioDirector.isOutput() && (!AudioDirector.unlocked || !AudioDirector.ctx || AudioDirector.ctx.state !== 'running');
     let g = $('.stage-audio-gate');
     if (need && !g) { g = document.createElement('button'); g.className = 'stage-audio-gate'; g.textContent = '🔊 সাউন্ড চালু করতে একবার ক্লিক করুন'; document.body.appendChild(g); }
     if (!need && g) g.remove();
