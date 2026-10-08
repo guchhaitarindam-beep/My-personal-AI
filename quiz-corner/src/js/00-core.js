@@ -7,7 +7,10 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 6;
+const RULES_VERSION = 7;
+/** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
+const OLD_CREW_NAMES = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি';
+const OLD_CREDITS_START = 'প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত';
 const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
   : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
 const LS_KEY = 'qc66.state';
@@ -219,7 +222,7 @@ function defaultState() {
   const bannerLines = str(ev.banner).split('\n');
   const rounds = arr(show.rounds).length ? arr(show.rounds).map(roundFromSeed) : Array.from({ length: 7 }, (_, i) => roundFromSeed({}, i));
   while (rounds.length < 7) rounds.push(roundFromSeed({ id: 'R' + (rounds.length + 1) }, rounds.length));
-  const crewPhotos = { 0: 'asset:crew0', 1: 'asset:crew1' };
+  const crewPhotos = { 0: 'asset:crew0', 1: 'asset:crew1', 2: 'asset:crew2', 3: 'asset:crew3' };
   return {
     schema: SCHEMA, rulesVersion: RULES_VERSION, rev: 0, updatedAt: 0,
     event: {
@@ -308,6 +311,11 @@ function mergeDefaults(def, src) {
 
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
 function upgradeRules(s, def) {
+  if (arr(s.crew).map((c) => isObj(c) && str(c.name).trim()).join('|') === OLD_CREW_NAMES) {
+    const oldPhotos = arr(s.crew).map((c) => c.photo);
+    s.crew = def.crew.map((c, i) => Object.assign(clone(c), { photo: (i < 2 && oldPhotos[i]) || c.photo }));
+  }
+  if (isObj(s.event) && str(s.event.credits).startsWith(OLD_CREDITS_START)) s.event.credits = def.event.credits;
   s.rounds = arr(s.rounds).map((r) => {
     const d = def.rounds.find((x) => isObj(r) && x.id === r.id);
     if (!d) return r;

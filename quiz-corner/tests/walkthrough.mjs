@@ -41,7 +41,7 @@ const dr = await ctl.evaluate(() => { const { Store, Sel } = window.QC; return {
 step(dr.n === 8 && dr.ok && dr.school === 'উত্তর কলমদান প্রাথমিক বিদ্যালয়', 'লটারি: বাছাইয়ে প্রথম দল প্রথমে বাছে, ৮ দল ৮ পোডিয়ামে, কোড = পোডিয়াম', JSON.stringify(dr));
 sc = await next(1500); step(sc === 'IDENTITY', 'আমাদের পরিচয়', sc); await shot('04-identity');
 sc = await next(1500); step(sc === 'CREW', 'আমাদের টিম', sc);
-await stage.waitForTimeout(2800 * 7); const crewSub = await ctl.evaluate(() => window.QC.Store.state.show.params.sub); step(crewSub >= 7, 'আমাদের টিমের কার্ড নিজে নিজে একে একে আসে', 'দেখা গেল ' + crewSub + 'টি'); await shot('05-crew');
+await stage.waitForTimeout(2800 * 5); const crewSub = await ctl.evaluate(() => window.QC.Store.state.show.params.sub); step(crewSub >= await ctl.evaluate(() => window.QC.Sel.crew().length), 'আমাদের টিমের কার্ড নিজে নিজে একে একে আসে', 'দেখা গেল ' + crewSub + 'টি'); await shot('05-crew');
 sc = await next(1200); step(sc === 'TEAMS_ALL', 'সব দল', sc);
 sc = await next(1500); step(sc === 'TEAM_INTRO', 'দল পরিচিতি শুরু', sc);
 // 3. add the two member photos of team A / 1 from the live panel (click → file), as at the venue

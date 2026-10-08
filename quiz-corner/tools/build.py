@@ -27,6 +27,7 @@ seed = {
 seed_json = json.dumps(seed, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
 
 assets = [('logo', 'logo.jpg', 'image/jpeg'), ('crew0', 'photo_crew0.jpg', 'image/jpeg'), ('crew1', 'photo_crew1.jpg', 'image/jpeg'),
+          ('crew2', 'photo_crew2.jpg', 'image/jpeg'), ('crew3', 'photo_crew3.jpg', 'image/jpeg'),
           ('group', 'photo_group.jpg', 'image/jpeg'), ('Q01_bankim.jpg', 'qmedia_Q01_bankim.jpg', 'image/jpeg'),
           ('Q04_mega_kitchen.jpg', 'qmedia_Q04_mega_kitchen.jpg', 'image/jpeg')]
 # answer-safe illustrations for the main-stage questions (they never show the answer)

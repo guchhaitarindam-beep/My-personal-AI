@@ -425,6 +425,8 @@ const SelfTest = {
 
         Store.state = normalizeState(defaultState()); Show._rd = null; // the tests below start from the stock order T1 … T8
       }
+      T('আমাদের টিম: অধিনায়ক অরিন্দম গুছাইত মাঝখানে, তারপর সুব্রত, প্রদীপ, চন্দন, সঞ্জয়', () => { const c = defaultState().crew; return c.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল' && c[0].role.startsWith('অধিনায়ক') && c.slice(0, 4).every((x) => /^asset:crew[0-3]$/.test(x.photo)) && c[4].photo === ''; });
+      T('আমাদের টিম: পুরনো সেভের পুরনো তালিকা নতুন টিমে বদলায়, নিজের বদল থাকে', () => { const old = defaultState(); delete old.rulesVersion; old.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); old.event.credits = 'প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত\nপুরনো'; const n = normalizeState(old); const mine = defaultState(); delete mine.rulesVersion; mine.crew = [{ name: 'আমার লোক', role: '', about: '', photo: '' }]; return n.crew.length === 5 && n.crew[2].photo === 'asset:crew2' && n.event.credits.includes('সঞ্জয় মণ্ডল') && n.event.credits.includes('টিকাশী গুচ্ছ সম্পদ কেন্দ্র') && normalizeState(mine).crew[0].name === 'আমার লোক'; });
       T('ব্ল্যাকআউট হলে কন্ট্রোলে লাল সতর্কতা ও ফেরানোর বোতাম', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
       {
         const ids = Sel.finalistIds();
