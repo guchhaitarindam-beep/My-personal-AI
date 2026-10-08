@@ -243,6 +243,10 @@ const UI = {
     } else if (sc === 'GRID') {
       const r = Sel.round(s.show.params.roundId);
       h += '<div class="card"><h3>প্রশ্ন বোর্ড — ' + esc(r ? r.name : '') + ' <span class="hint">দল যে নম্বর বেছে নেবে সেটিতে ক্লিক করুন</span></h3><div class="deck">' + (r ? Sel.roundQuestions(r.id).map((q) => b('loadQ', bn(q.number), s.board.played[q.id] ? 'ghost' : 'primary', q.id)).join('') : '') + '</div></div>';
+    } else if (sc === 'DRAW') {
+      const d = s.draw; const turn = Sel.team(Draw.next());
+      const cards = Draw.cards().map((it, i) => { const pk = d.picks.find((p) => p.card === i); const t = pk && Sel.team(pk.team); return pk ? b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + ' → ' + esc(t ? Sel.code(t) : '') + ' ' + esc(t ? Sel.preName(t) : ''), 'ghost', String(i), '', true) : b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + (d.pending === i ? ' — আবার চাপলে খুলবে' : ''), d.pending === i ? 'gold' : 'primary', String(i), bn(i + 1)); }).join('');
+      h += '<div class="card"><h3>🎲 পোডিয়াম লটারি <span class="hint">' + (!d.queue.length ? 'চূড়ান্ত দল ঠিক হলে শুরু হবে' : turn ? 'এবার: ' + esc(Sel.preName(turn)) + ' (বাছাইয়ে ' + bn(d.queue.indexOf(turn.id) + 1) + ') — দল যে ছবি বলবে তাতে একবার চাপুন (জ্বলে উঠবে), আবার চাপলে পোডিয়াম খুলবে। টিভির পর্দায় ক্লিক বা ১–৮ চাপলেও হয়।' : '✔ সবাই পোডিয়াম পেয়েছে — দলের কোড ঠিক হয়ে গেছে') + '</span></h3><div class="deck">' + cards + '</div><div class="deck" style="margin-top:.5rem">' + b('drawReset', '↺ আবার প্রথম থেকে', 'warn') + b('undo', '↶ শেষ চাল ফেরাও', '', '', 'U') + b('tab', 'বিষয় / ছবি বদলাও', '', 'event') + '</div></div>';
     } else if (sc === 'FINAL') {
       h += '<div class="card"><h3>চূড়ান্ত ফলাফল প্রকাশ</h3><div class="deck">' + b('finalReveal', '▲ পরের স্থান প্রকাশ', 'lg gold span2', '', 'R') + b('finalAll', 'সব প্রকাশ') + b('jump', '🏆 বিজয়ী', 'good', 'WINNER', 'W') + '</div></div>';
     } else if (sc === 'WINNER') {
@@ -469,6 +473,9 @@ const Actions = {
     Actions.loadQ(q.id); return true;
   },
   lifeline(k) { Game.useLifeline(k); },
+  drawPick(i) { AudioDirector.unlock(); Draw.pick(i); },
+  drawReset() { Draw.reset(); },
+  drawTheme(k) { Draw.theme(k); },
   speak(what) { AudioDirector.unlock(); ({ question: () => Speech.readQuestion(true), options: () => Speech.readOptions(true), answer: () => Speech.readAnswer(true), team: () => Speech.readTeam(true), round: () => Speech.readRound(true), stop: () => Speech.stop() }[what] || (() => {}))(); },
   qStep(d) {
     const s = Store.state; const r = Sel.round(s.live.roundId); if (!r) return;
@@ -571,6 +578,7 @@ const Keys = {
     // the team names an option: Shift + A/B/C/D (or ক/খ/গ/ঘ on the board) marks it — judged at once in round 1
     if (m.shift && /^[a-d]$/.test(k) && s.show.scene === 'QUESTION' && s.live.qid) { Actions.pick('abcd'.indexOf(k)); return true; }
     if (m.shift && k === 'v' && s.show.scene === 'QUESTION') { Actions.twoOptions(); return true; }
+    if (s.show.scene === 'DRAW' && /^[1-9]$/.test(k)) { Actions.drawPick(int(k) - 1); return true; } // once to choose, again to open
     if (s.show.scene === 'GRID' && /^[0-9]$/.test(k)) return Actions.gridKey(k === '0' ? 10 : int(k));
     if (/^[1-9]$/.test(k)) {
       const id = Sel.teamByKey(int(k));

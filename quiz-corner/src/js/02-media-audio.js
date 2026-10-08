@@ -533,6 +533,7 @@ const Sync = {
       if (m.type === 'hello') { this.lastPong = Date.now(); this.queueState(); Bus.emit('stage-status'); }
       else if (m.type === 'pong') { this.lastPong = Date.now(); Bus.emit('stage-status'); }
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
+      else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
       return;
     }
     if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);

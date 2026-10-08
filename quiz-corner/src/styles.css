@@ -966,3 +966,34 @@ body.role-host .preview-box { max-width: 900px; }
 .round-champ .team-photo.rc-photo { flex: 0 0 auto; width: 14cqh; height: 10.5cqh; border: .5cqh solid #fff; box-shadow: 0 0 2cqh rgba(0, 0, 0, .35); }
 .round-champ .team-photo.rc-photo .initial { font-size: 6.5cqh; }
 .sb.reveal-up .sb-row .nm small { display: none; } /* ranked rows are shorter (the champion banner sits below): the code and name are enough */
+
+/* ---------- Podium lottery ---------- */
+.draw-turn { flex: 0 0 auto; display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: .4cqh 2cqw; margin: .6cqh 0 2cqh; padding: 1.4cqh 3cqw; border-radius: 2cqh; background: linear-gradient(90deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .12), rgba(255, 255, 255, .04)); border: .25cqh solid color-mix(in srgb, var(--gold) 60%, transparent); text-align: center; animation: fadeUp .6s ease both; }
+.draw-turn .dt-k { font-size: 3cqh; color: var(--accent); font-weight: 700; }
+.draw-turn b { font-size: 6cqh; line-height: 1.15; color: #fff; text-shadow: 0 0 3cqh color-mix(in srgb, var(--gold) 60%, transparent); }
+.draw-turn .dt-h { font-size: 3.2cqh; color: var(--gold); font-weight: 700; }
+.draw-turn.done b { color: var(--gold); }
+.draw-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 2.2cqh 1.8cqw; perspective: 160cqh; }
+.dcard { position: relative; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8cqh; padding: 1.4cqh 1cqw; border-radius: 2.4cqh; background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .16), rgba(255, 255, 255, .03) 70%), linear-gradient(160deg, #1d2a5a, #10173a); border: .35cqh solid rgba(255, 255, 255, .25); box-shadow: 0 1.4cqh 4cqh rgba(0, 0, 0, .45); cursor: pointer; overflow: hidden; animation: dIn .8s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: calc(var(--i, 0) * .09s); }
+.dcard .d-n { position: absolute; top: 1cqh; left: 1.2cqh; width: 4.6cqh; height: 4.6cqh; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .14); font-size: 2.8cqh; font-weight: 700; color: #fff; }
+.dcard .d-vis { flex: 1 1 auto; min-height: 0; width: 100%; display: grid; place-items: center; }
+.dcard .d-vis img { max-width: 92%; max-height: 100%; object-fit: contain; border-radius: 1.4cqh; }
+.dcard .d-emo { font-size: 14cqh; line-height: 1; filter: drop-shadow(0 1cqh 1.6cqh rgba(0, 0, 0, .45)); }
+.dcard .d-mono { width: 15cqh; height: 15cqh; display: grid; place-items: center; border-radius: 50%; font-size: 9cqh; font-weight: 800; color: #0A0F1D; background: radial-gradient(circle at 35% 30%, #fff6c8, var(--gold)); box-shadow: 0 0 3cqh color-mix(in srgb, var(--gold) 60%, transparent); }
+.dcard .d-lab { font-size: 3.6cqh; line-height: 1.2; color: #fff; text-align: center; }
+.dcard.pending { border-color: var(--gold); transform: scale(1.06); z-index: 2; animation: dPick 1s ease-in-out infinite alternate; }
+.dcard.open { cursor: default; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--team, #e9c45b) 70%, #fff 10%), color-mix(in srgb, var(--team, #e9c45b) 35%, #000)); border-color: #fff; animation: dFlip 1.2s cubic-bezier(.2, 1.1, .35, 1) both; gap: .2cqh; }
+.dcard.open .d-vis.sm { flex: 0 0 auto; height: 7cqh; }
+.dcard.open .d-vis.sm .d-emo { font-size: 6cqh; }
+.dcard.open .d-vis.sm .d-mono { width: 6.5cqh; height: 6.5cqh; font-size: 3.8cqh; }
+.dcard.open .d-vis.sm img { max-height: 7cqh; }
+.dcard.open .d-lab { font-size: 2.4cqh; opacity: .9; }
+.dcard.open .d-k { font-size: 2.4cqh; letter-spacing: .3em; color: #fff; opacity: .9; margin-top: .6cqh; }
+.dcard.open .d-code { font-family: var(--font-en); font-size: 9cqh; line-height: 1; color: #fff; text-shadow: 0 .5cqh 2cqh rgba(0, 0, 0, .5); }
+.dcard.open .d-team { font-size: 2.8cqh; font-weight: 700; color: #fff; text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes dIn { from { opacity: 0; transform: translateY(6cqh) scale(.7) rotate(-6deg); } }
+@keyframes dPick { from { box-shadow: 0 0 2cqh color-mix(in srgb, var(--gold) 50%, transparent); } to { box-shadow: 0 0 7cqh var(--gold), 0 0 0 .6cqh color-mix(in srgb, var(--gold) 60%, transparent); } }
+@keyframes dFlip { 0% { transform: rotateY(90deg) scale(1.15); filter: brightness(2.5); } 60% { transform: rotateY(-12deg) scale(1.08); } 100% { transform: none; filter: none; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(2cqh); } }
+.dcard.open .d-k { letter-spacing: 0; } /* spaced-out letters break Bengali conjuncts */
+.dcard.open .d-team { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 2.6cqh; }

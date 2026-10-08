@@ -167,6 +167,11 @@ const Sel = {
   /** 'A / 1' … by registration position (V100 team codes). */
   code(t) { const i = t ? Store.state.teams.indexOf(t) : -1; return i < 0 ? '' : teamCode(i); },
   /** The code plus the name, unless the name is just the code. */
+  /** Podium lottery: before a team has drawn its podium its code is not decided, so the screens up to the lottery show its school / name. */
+  drawPicked(id) { return Store.state.draw.picks.some((p) => p.team === id); },
+  drawDone() { const d = Store.state.draw; return d.queue.length > 0 && d.picks.length >= d.queue.length; },
+  codeHidden(t) { const s = Store.state; return !!(t && s.draw.on && !this.drawPicked(t.id) && ['PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW'].includes(s.show.scene)); },
+  preName(t) { if (!t) return ''; const n = str(t.name).trim(); return (n && !GENERIC_TEAM_NAME.test(n) && n) || str(t.school).trim() || this.code(t); },
   label(t) { if (!t) return ''; const c = Sel.code(t); const n = str(t.name).trim(); return !n || n === c ? c : c + ' ' + n; },
   /** The two members shown on stage: member 1 = captain, member 2 = first player (V100 rule). */
   members(t) { return t ? [{ slot: 0, name: str(t.captain).trim(), photo: t.captainPhoto || '' }, { slot: 1, name: str(t.players[0]).trim(), photo: t.playerPhotos[0] || '' }].filter((m) => m.name || m.photo) : []; },
@@ -379,6 +384,70 @@ const Timer = {
    SCORE / GAME ENGINE — question flow, judging, pass, bonus, challenge,
    lifelines. Every point change becomes an auditable ledger entry.
    ===================================================================== */
+/* =====================================================================
+   PODIUM LOTTERY — after the welcome each finalist (in prelim order)
+   chooses one of eight favourite things; the second click opens it and a
+   random free podium comes out. The team moves to that place in the list,
+   so its code (A / 1 … H / 8) is the podium it sits at.
+   ===================================================================== */
+const Draw = {
+  rand(n) { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; } catch (e) { return Math.floor(Math.random() * n); } },
+  /** Opens the lottery: freezes the eight finalists and the choosing order (prelim ranking). */
+  ensure() {
+    const s = Store.state;
+    if (s.draw.queue.length) return true;
+    const ids = Sel.finalistIds();
+    if (!ids.length) return false;
+    Store.commit('draw-start', (st) => { st.finalists = ids.slice(); st.draw.queue = ids.slice(); st.draw.picks = []; st.draw.pending = -1; }, { undo: false });
+    return true;
+  },
+  /** Whose turn it is (empty when every finalist has a podium). */
+  next() { const d = Store.state.draw; const done = new Set(d.picks.map((p) => p.team)); return d.queue.find((id) => !done.has(id)) || ''; },
+  cards() { const d = Store.state.draw; return d.items.slice(0, Math.max(d.queue.length || Sel.finalistIds().length, 1)); },
+  /** First click on a card: the team has chosen it (it glows). Second click on the same card: it opens with a podium. */
+  pick(card) {
+    card = int(card, -1);
+    if (!this.ensure()) { UI.toast('আগে চূড়ান্ত দল ঠিক করুন', 'err'); return false; }
+    const d = Store.state.draw; const n = d.queue.length;
+    if (card < 0 || card >= Math.min(n, d.items.length)) return false;
+    if (d.picks.some((p) => p.card === card)) { UI.toast('এই ছবিটা আগেই নেওয়া হয়েছে — অন্য একটা বেছে নাও', 'err'); return false; }
+    const team = this.next();
+    if (!team) return false;
+    if (d.pending !== card) { Store.commit('draw-choose', (st) => { st.draw.pending = card; }); Cue.play('option'); return true; }
+    const used = new Set(d.picks.map((p) => p.podium));
+    const free = Array.from({ length: n }, (_, i) => i).filter((i) => !used.has(i));
+    const podium = free[this.rand(free.length)];
+    Store.commit('draw-open', (st) => {
+      st.draw.picks.push({ card, team, podium }); st.draw.pending = -1;
+      Draw.seat(st, team, podium);
+      // all seated: the finalists are now listed (and play) in podium order A / 1 … H / 8
+      if (st.draw.picks.length >= st.draw.queue.length) st.finalists = st.draw.queue.slice().sort((a, b) => st.teams.findIndex((t) => t.id === a) - st.teams.findIndex((t) => t.id === b));
+    });
+    Cue.play('reveal'); setTimeout(() => Cue.play('applause'), 900);
+    if (this.next() === '') setTimeout(() => Cue.play('fanfare'), 2200);
+    return true;
+  },
+  /** Moves a team to its podium's place in the team list; the podium colour stays with the podium. */
+  seat(st, teamId, podium) {
+    const from = st.teams.findIndex((t) => t.id === teamId);
+    if (from < 0 || from === podium || podium >= st.teams.length) return;
+    const a = st.teams[from]; const b = st.teams[podium]; const ca = a.color; const cb = b.color;
+    st.teams[podium] = a; st.teams[from] = b; a.color = cb; b.color = ca;
+    [from, podium].forEach((i) => { const t = st.teams[i]; if (GENERIC_TEAM_NAME.test(str(t.name).trim())) t.name = teamCode(i); });
+  },
+  reset() {
+    if (Store.state.draw.picks.length && !Store.sandbox && !confirm('লটারি আবার প্রথম থেকে করবেন? (Ctrl+Z দিয়ে ফেরানো যায়)')) return false;
+    Store.commit('draw-reset', (st) => { st.draw.picks = []; st.draw.pending = -1; st.draw.queue = (st.finalists.length ? st.finalists : Sel.finalistIds()).slice(); });
+    return true;
+  },
+  theme(key) {
+    if (!DRAW_THEMES[key]) return false;
+    if (Store.state.draw.picks.length) { UI.toast('লটারি শুরু হয়ে গেছে — বিষয় বদলাতে আগে "আবার প্রথম থেকে"', 'err'); return false; }
+    Store.commit('draw-theme', (st) => { st.draw.theme = key; st.draw.items = drawItems(key); st.draw.pending = -1; });
+    return true;
+  },
+};
+
 const Game = {
   addEntry(s, team, delta, reason, extra = {}) {
     // before/after make every score change auditable and the running total verifiable.

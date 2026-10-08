@@ -115,6 +115,17 @@ const AUDIO_CUES = {
 };
 const MUSIC_SLOTS = { theme: 'থিম সং', welcome: 'স্বাগত সংগীত', winner: 'বিজয়ী সংগীত', background: 'পটভূমি সংগীত' };
 
+/** Podium lottery: eight things children love, all of one kind. Each card hides a podium (A / 1 … H / 8). */
+const DRAW_THEMES = {
+  animals: { name: 'প্রিয় পশুপাখি', items: [['বাঘ', '🐯'], ['হাতি', '🐘'], ['ময়ূর', '🦚'], ['প্রজাপতি', '🦋'], ['খরগোশ', '🐰'], ['ডলফিন', '🐬'], ['পান্ডা', '🐼'], ['জিরাফ', '🦒']] },
+  sports: { name: 'প্রিয় খেলা', items: [['ফুটবল', '⚽'], ['ক্রিকেট', '🏏'], ['ব্যাডমিন্টন', '🏸'], ['হকি', '🏑'], ['দাবা', '♟️'], ['বাস্কেটবল', '🏀'], ['টেনিস', '🎾'], ['ভলিবল', '🏐']] },
+  fruits: { name: 'প্রিয় ফল', items: [['আম', '🥭'], ['কলা', '🍌'], ['আপেল', '🍎'], ['আঙুর', '🍇'], ['তরমুজ', '🍉'], ['আনারস', '🍍'], ['কমলালেবু', '🍊'], ['স্ট্রবেরি', '🍓']] },
+  food: { name: 'প্রিয় খাবার', items: [['আইসক্রিম', '🍦'], ['কেক', '🎂'], ['চকোলেট', '🍫'], ['মোমো', '🥟'], ['পিৎজা', '🍕'], ['নুডলস', '🍜'], ['পপকর্ন', '🍿'], ['ডোনাট', '🍩']] },
+  greats: { name: 'মনীষী', items: [['রবীন্দ্রনাথ ঠাকুর', ''], ['স্বামী বিবেকানন্দ', ''], ['নেতাজি সুভাষচন্দ্র বসু', ''], ['ঈশ্বরচন্দ্র বিদ্যাসাগর', ''], ['কাজী নজরুল ইসলাম', ''], ['এ পি জে আব্দুল কালাম', ''], ['জগদীশচন্দ্র বসু', ''], ['সত্যজিৎ রায়', '']] },
+  cartoons: { name: 'প্রিয় কার্টুন', items: [['ছোটা ভীম', ''], ['গোপাল ভাঁড়', ''], ['মোটু পাতলু', ''], ['ডোরেমন', ''], ['টম ও জেরি', ''], ['নন্টে ফন্টে', ''], ['হাঁদা ভোঁদা', ''], ['বাঁটুল দি গ্রেট', '']] },
+};
+function drawItems(theme) { return (DRAW_THEMES[theme] || DRAW_THEMES.animals).items.map(([label, emoji]) => ({ label, emoji, image: '' })); }
+
 const DEFAULT_GIFTS = [
   ['ফল', 'আম'], ['কবি', 'রবীন্দ্রনাথ ঠাকুর'], ['ফুল', 'গোলাপ'], ['বিজ্ঞানী', 'সত্যেন্দ্রনাথ বসু'],
   ['স্বাধীনতা সংগ্রামী', 'নেতাজি সুভাষচন্দ্র বসু'], ['খাবার', 'রসগোল্লা'], ['বই', 'পথের পাঁচালী'], ['খেলোয়াড়', 'সৌরভ গঙ্গোপাধ্যায়'],
@@ -234,6 +245,8 @@ function defaultState() {
       useMatrix: true, drone: true,
     },
     finalists: [], finalistsLocked: false,
+    // podium lottery after the welcome: queue = finalists in the order they choose, picks = { card, team, podium }
+    draw: { on: true, theme: 'animals', title: 'পোডিয়াম নির্বাচন', items: drawItems('animals'), queue: [], picks: [], pending: -1 },
     rounds,
     questions: arr(SEED.questions).map(questionFromSeed),
     testQuestions: arr(SEED.testQuestions).map(questionFromSeed),
@@ -358,6 +371,12 @@ function normalizeState(raw) {
   s.ledger = arr(s.ledger).filter((e) => isObj(e) && e.team);
   const ids = new Set(s.teams.map((t) => t.id));
   s.finalists = arr(s.finalists).filter((id) => ids.has(id));
+  const d = s.draw;
+  d.items = arr(d.items).slice(0, 12).map((x) => mergeDefaults({ label: '', emoji: '', image: '' }, x));
+  if (d.items.length < 8) d.items = d.items.concat(drawItems(d.theme).slice(d.items.length));
+  d.queue = arr(d.queue).filter((id) => ids.has(id));
+  d.picks = arr(d.picks).filter((p) => isObj(p) && ids.has(p.team)).map((p) => ({ card: int(p.card, 0, 0, 11), team: str(p.team, 24), podium: int(p.podium, 0, 0, 59) }));
+  d.pending = int(d.pending, -1, -1, 11);
   s.live = mergeDefaults(emptyLive(), s.live);
   s.timer.duration = int(s.timer.duration, 60000, 1000, 3600000);
   s.timer.base = clamp(num(s.timer.base, s.timer.remaining), 0, 3600000);

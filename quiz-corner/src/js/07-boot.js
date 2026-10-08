@@ -12,7 +12,12 @@ const Stage = {
     DesignSystem.apply();
     this.view.render();
     document.addEventListener('dblclick', () => this.toggleFullscreen());
-    document.addEventListener('click', () => { AudioDirector.unlock(); this.audioGate(); });
+    document.addEventListener('click', (e) => {
+      AudioDirector.unlock(); this.audioGate();
+      // podium lottery: a card clicked on the TV is chosen / opened by the control window
+      const c = e.target.closest && e.target.closest('[data-draw]');
+      if (c) Sync.send({ type: 'act', name: 'drawPick', arg: c.getAttribute('data-draw') });
+    });
     let idle = 0;
     document.addEventListener('mousemove', () => { document.body.style.cursor = ''; clearTimeout(idle); idle = setTimeout(() => { document.body.style.cursor = 'none'; }, 2500); });
     this.audioGate();
@@ -390,6 +395,36 @@ const SelfTest = {
           T('রেকর্ডিং তালিকা: ফাইলের নাম ও পড়ার লেখা', () => voiceScript(Sel.question(q1.id), 'voiceOpt').startsWith(OPT_LABELS[0] + ') ') && voiceScript(Sel.question(q1.id), 'voiceAns').startsWith('সঠিক উত্তর: '));
         } finally { VoicePlayer.play = realPlay; Speech.say = realSay; }
       }
+      {
+        Store.state = normalizeState(defaultState());
+        const st = () => Store.state;
+        st().teams.forEach((t, i) => { t.school = 'বিদ্যালয় ' + bn(i + 1); t.prelim.manual = 10 + ((i * 5) % 8); });
+        const before = Sel.finalistIds().slice(); const top = Sel.prelimRanking()[0].team.id; const ids0 = st().teams.map((t) => t.id);
+        Show._rd = null; const rr = Show.rundown(); const at = (sc) => rr.findIndex((x) => x.scene === sc);
+        T('লটারি: স্বাগতের ঠিক পরেই পোডিয়াম লটারি, তারপর পরিচয় ও দল পরিচিতি', () => at('DRAW') === at('WELCOME') + 1 && at('DRAW') < at('IDENTITY') && at('DRAW') < at('TEAM_INTRO'));
+        Show.go(rr.find((x) => x.scene === 'FINALIST_INTRO'));
+        const fi = Scenes.FINALIST_INTRO(st(), st().show.params).html;
+        T('লটারির আগে মঞ্চে আহ্বানে দলের কোড নেই — স্কুলের নাম', () => !fi.includes('tcode') && fi.includes('বিদ্যালয়'));
+        Show.go(rr.find((x) => x.scene === 'DRAW'));
+        T('লটারি: শুরুতে বাছাইয়ের ক্রমে ৮টি দল, প্রথমে বাছাইয়ে প্রথম দল', () => st().draw.queue.length === 8 && st().draw.queue.join() === before.join() && Draw.next() === before[0]);
+        Draw.pick(2);
+        T('লটারি: প্রথম চাপে ছবি বেছে নেওয়া (জ্বলে), পোডিয়াম খোলে না', () => st().draw.pending === 2 && st().draw.picks.length === 0 && Scenes.DRAW(st()).html.includes('dcard pending'));
+        Draw.pick(2);
+        const p0 = st().draw.picks[0];
+        T('লটারি: দ্বিতীয় চাপে পোডিয়াম খোলে, দলের কোড = পোডিয়াম', () => p0 && p0.team === before[0] && Sel.teamIndex(p0.team) === p0.podium && Sel.code(Sel.team(p0.team)) === teamCode(p0.podium) && Scenes.DRAW(st()).html.includes('dcard open'));
+        T('লটারি: নেওয়া ছবি আবার নেওয়া যায় না', () => Draw.pick(2) === false && st().draw.picks.length === 1);
+        [0, 1, 3, 4, 5, 6, 7].forEach((c) => { Draw.pick(c); Draw.pick(c); });
+        const pods = st().draw.picks.map((p) => p.podium);
+        T('লটারি: ৮টি দল ৮টি আলাদা পোডিয়াম', () => st().draw.picks.length === 8 && new Set(pods).size === 8 && pods.every((x) => x >= 0 && x < 8) && Draw.next() === '');
+        T('লটারি: প্রতিটি দল নিজের পোডিয়ামের জায়গায় — কোড A / 1 … H / 8 মিলে যায়', () => st().draw.picks.every((p) => Sel.teamIndex(p.team) === p.podium && st().teams[p.podium].name === teamCode(p.podium)));
+        T('লটারি: এরপর খেলা ও স্কোরবোর্ড পোডিয়াম-ক্রমে (A / 1 আগে)', () => Sel.finalistIds().map((id) => Sel.teamIndex(id)).join() === '0,1,2,3,4,5,6,7');
+        T('লটারি: স্কুল, বাছাইয়ের নম্বর দলের সঙ্গেই যায়; রং পোডিয়ামের', () => Sel.prelimRanking()[0].team.id === top && st().teams.every((t) => t.school === 'বিদ্যালয় ' + bn(ids0.indexOf(t.id) + 1)) && st().teams.every((t, i) => t.color === TEAM_COLORS[i % TEAM_COLORS.length]));
+        T('লটারি: পর্দায় সব কার্ড খোলা, "নিজের পোডিয়ামে গিয়ে বসো"', () => { const h = Scenes.DRAW(st()).html; return (h.match(/dcard open/g) || []).length === 8 && h.includes('নিজের পোডিয়ামে'); });
+        T('লটারি: শেষ হলে দলের কোড আবার সব পর্দায়', () => { Show.go(Show.rundown().find((x) => x.scene === 'TEAM_INTRO')); return Scenes.TEAM_INTRO(st(), st().show.params).html.includes('TEAM A / 1') || Scenes.TEAM_INTRO(st(), st().show.params).html.includes('A / 1'); });
+        T('লটারি: বিষয় বদল (খেলা, মনীষী…) — শুরু হয়ে গেলে বদলায় না', () => Draw.theme('sports') === false && (Draw.reset(), Draw.theme('greats')) && st().draw.items[0].label === 'রবীন্দ্রনাথ ঠাকুর' && firstGrapheme('স্বামী বিবেকানন্দ') === 'স্বা');
+
+        Store.state = normalizeState(defaultState()); Show._rd = null; // the tests below start from the stock order T1 … T8
+      }
       T('ব্ল্যাকআউট হলে কন্ট্রোলে লাল সতর্কতা ও ফেরানোর বোতাম', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('টিভিতে আবার দেখাও') && !UI.liveHtml().includes('blackout-alert'); });
       {
         const ids = Sel.finalistIds();
@@ -544,6 +579,6 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

@@ -3,6 +3,12 @@
    Parts (data-part) are diffed against their source HTML, so a judge or
    reveal only swaps the changed part: no flicker, no re-animated options.
    ===================================================================== */
+/** The first letter of a word as a reader sees it (a Bengali conjunct stays whole). */
+function firstGrapheme(t) {
+  t = str(t).trim();
+  try { if (window.Intl && Intl.Segmenter) { const it = new Intl.Segmenter('bn', { granularity: 'grapheme' }).segment(t)[Symbol.iterator]().next(); if (!it.done) return it.value.segment; } } catch (e) { /* older browser */ }
+  return t.charAt(0);
+}
 const H = {
   photo(mediaId, name, cls = '', color, label) {
     const initial = esc(label || str(name || '?').trim().charAt(0) || '?');
@@ -11,7 +17,7 @@ const H = {
   },
   /** Team photo with the team number as a broadcast-style fallback. */
   tphoto(t, cls = '') {
-    const letter = Sel.code(t).charAt(0) || bn(Sel.teamIndex(t.id) + 1);
+    const letter = Sel.codeHidden(t) ? firstGrapheme(Sel.preName(t)) : Sel.code(t).charAt(0) || bn(Sel.teamIndex(t.id) + 1);
     if (t.photo) return H.photo(t.photo, t.name, cls, '', letter);
     const faces = Sel.members(t).filter((m) => m.photo);
     if (faces.length) return '<div class="team-photo duo n' + faces.length + ' ' + cls + '">' + faces.map((m) => '<img data-media="' + esc(m.photo) + '" alt="" hidden>').join('') + '<span class="initial" data-fallback>' + esc(letter) + '</span></div>';
@@ -20,6 +26,7 @@ const H = {
   /** Team code badge (A / 1 …) followed by the name, unless the name is only the code. */
   tn(t) {
     if (!t) return '';
+    if (Sel.codeHidden(t)) return esc(Sel.preName(t)); // podium (and code) not drawn yet
     const c = Sel.code(t); const n = str(t.name).trim();
     return '<span class="tcode">' + esc(c) + '</span>' + (n && n !== c ? ' ' + esc(n) : '');
   },
@@ -117,7 +124,7 @@ const Scenes = {
   },
   teamGrid(teams, extra) {
     const cols = teams.length <= 8 ? 4 : teams.length <= 12 ? 4 : teams.length <= 18 ? 6 : 8;
-    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + H.tn(t) + '</b>' + (t.school ? '<small>' + esc(t.school) + '</small>' : '') + (Sel.members(t).some((m) => m.name) ? '<small class="tmem">' + esc(Sel.members(t).map((m) => m.name).filter(Boolean).join(' • ')) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
+    return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + H.tn(t) + '</b>' + (t.school && !(Sel.codeHidden(t) && Sel.preName(t) === t.school) ? '<small>' + esc(t.school) + '</small>' : '') + (Sel.members(t).some((m) => m.name) ? '<small class="tmem">' + esc(Sel.members(t).map((m) => m.name).filter(Boolean).join(' • ')) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
   },
   TEAMS_ALL(s) { return { key: 'TEAMS_ALL', anim: 'flip', html: H.head(s, '<span class="round-tag">অংশগ্রহণকারী দলসমূহ</span>', '<span class="qnum">' + bn(s.teams.length) + ' টি দল</span>') + H.part('grid', Scenes.teamGrid(s.teams), '', 'flex:1;display:flex;min-height:0') }; },
   intro(s, p, finalist) {
@@ -125,16 +132,17 @@ const Scenes = {
     if (!t) return { key: 'INTRO:none', html: H.part('body', '<h1 class="s-title">দল পাওয়া যায়নি</h1>', 'center-col') };
     const mem = Sel.members(t);
     const shown = finalist ? mem.length : clamp(int(p.sub, 0), 0, mem.length);
-    const code = Sel.code(t); const nm = str(t.name).trim();
+    const hide = Sel.codeHidden(t);
+    const code = hide ? '' : Sel.code(t); const nm = hide ? Sel.preName(t) : str(t.name).trim();
     const pr = finalist ? Sel.prelimRanking().find((r) => r.team.id === t.id) : null;
     const tag = finalist ? 'FINALIST ' + p.n : (nm && nm !== code ? 'TEAM ' + code + ' • ' : 'TEAM ') + p.n + ' OF ' + (p.of || s.teams.length);
     const extra = t.players.slice(1).map((x) => str(x).trim()).filter(Boolean);
     const cards = mem.map((m, k) => '<div data-part="m' + k + '" class="mem-card ' + (k % 2 ? 'from-right' : 'from-left') + (k < shown ? '' : ' hidden') + '">' + (k < shown ? H.photo(m.photo, m.name || '?', 'mem-face') + '<b class="mem-name">' + esc(m.name || '—') + '</b><small class="mem-role">' + (k === 0 ? 'সদস্য ১ • অধিনায়ক' : 'সদস্য ২') + '</small>' : '') + '</div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
-      html: '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(code.charAt(0)) + '</div>' +
+      html: '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(hide ? bn(p.n || '') : code.charAt(0)) + '</div>' +
         '<div data-part="ph" class="intro-ph">' + H.tphoto(t, 'big-photo') + '</div>' +
-        '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school ? '<div class="school">' + esc(t.school) + '</div>' : '') + (pr ? '<div class="fin-score">বাছাই পর্বে <b>' + bn(pr.score) + '</b> পয়েন্ট • স্থান <b>' + bn(pr.rank) + '</b></div>' : '') + '</div>' +
+        '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (hide ? esc(nm) : nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school && t.school !== nm ? '<div class="school">' + esc(t.school) + '</div>' : '') + (pr ? '<div class="fin-score">বাছাই পর্বে <b>' + bn(pr.score) + '</b> পয়েন্ট • স্থান <b>' + bn(pr.rank) + '</b></div>' : '') + '</div>' +
         '<div data-part="mem" data-morph class="mem-row">' + cards + '</div>' +
         H.part('extra', extra.length ? '<div class="mem-extra">সঙ্গে: ' + esc(extra.join(' • ')) + '</div>' : '') + '</div></div>',
     };
@@ -203,8 +211,36 @@ const Scenes = {
   },
   WELCOME(s) {
     const bars = Array.from({ length: 24 }, (_, i) => '<i style="animation-delay:' + (i * 0.07).toFixed(2) + 's"></i>').join('');
-    const names = Sel.finalists().map((t) => esc(t.name)).join('  ✦  ');
+    const names = Sel.finalists().map((t) => esc(Sel.codeHidden(t) ? Sel.preName(t) : t.name)).join('  ✦  ');
     return { key: 'WELCOME', anim: 'zoom', html: H.part('body', H.logo(s, 'logo-hero') + '<h1 class="s-title gold">স্বাগতম</h1><div class="s-sub" style="max-width:78cqw">' + esc(s.event.welcomeNote) + '</div><div class="eq">' + bars + '</div><div class="s-sub" style="color:var(--accent)">' + names + '</div>', 'center-col') };
+  },
+  /** Podium lottery: eight favourite things; a chosen card glows, an opened card shows the podium (team code) it hid. */
+  DRAW(s) {
+    const d = s.draw;
+    const cards = Draw.cards();
+    const turnId = Draw.next(); const turn = Sel.team(turnId);
+    const rank = d.queue.indexOf(turnId) + 1;
+    const theme = (DRAW_THEMES[d.theme] || {}).name || '';
+    const vis = (it, cls) => '<div class="d-vis ' + cls + '">' + (it.image ? '<img data-media="' + esc(it.image) + '" alt="">' : it.emoji ? '<span class="d-emo">' + esc(it.emoji) + '</span>' : '<span class="d-mono">' + esc(firstGrapheme(it.label)) + '</span>') + '</div>';
+    const pend = d.pending >= 0 && cards[d.pending] ? cards[d.pending] : null;
+    const turnHtml = !d.queue.length ? '<b>চূড়ান্ত দল ঠিক হলে লটারি শুরু হবে</b>'
+      : !turn ? '<span class="dt-k">সবাই পোডিয়াম পেয়েছে</span><b>নিজের পোডিয়ামে গিয়ে বসো!</b>'
+        : '<span class="dt-k">এবার বেছে নেবে • বাছাই পর্বে ' + bn(rank) + ' নম্বর</span><b>' + esc(Sel.preName(turn)) + '</b><span class="dt-h">' + (pend ? 'বেছে নিয়েছে: ' + esc(pend.label) + ' — এবার খুলবে!' : 'তোমার প্রিয় একটা ছবি বেছে নাও') + '</span>';
+    const grid = cards.map((it, i) => {
+      const pk = d.picks.find((p) => p.card === i);
+      if (pk) {
+        const t = Sel.team(pk.team); const code = t ? Sel.code(t) : teamCode(pk.podium);
+        const nm = t ? Sel.preName(t) : '';
+        return H.part('c' + i, vis(it, 'sm') + '<small class="d-lab">' + esc(it.label) + '</small><span class="d-k">পোডিয়াম</span><b class="d-code">' + esc(code) + '</b>' + (nm && nm !== code ? '<span class="d-team">' + esc(nm) + '</span>' : ''), 'dcard open', H.teamVars(t));
+      }
+      return H.part('c' + i, '<span class="d-n">' + bn(i + 1) + '</span>' + vis(it, '') + '<b class="d-lab">' + esc(it.label) + '</b>', 'dcard' + (d.pending === i ? ' pending' : ''), '--i:' + i).replace('<div data-part', '<div data-draw="' + i + '" data-part');
+    }).join('');
+    return {
+      key: 'DRAW', anim: 'zoom',
+      html: H.head(s, '<span class="round-tag">' + esc(d.title || 'পোডিয়াম নির্বাচন') + '</span>', '<span class="qnum">' + esc(theme) + '</span>') +
+        H.part('turn', turnHtml, 'draw-turn' + (turn ? '' : ' done')) +
+        '<div data-part="dgrid" data-morph class="draw-grid">' + grid + '</div>',
+    };
   },
   GIFT(s, p) {
     const t = Sel.team(p.teamId);

@@ -6,7 +6,7 @@
 const SCENES = {
   ORGANIZER: 'আয়োজক ব্যানার', LOGO: 'কুইজ কর্নার লোগো', PROGRAMME: 'অনুষ্ঠান পরিচিতি', THEME: 'থিম সং', IDENTITY: 'আমাদের পরিচয়', CREW: 'আমাদের টিম',
   TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', OVERVIEW: 'আজকের অনুষ্ঠান', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
-  PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
+  PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', DRAW: 'পোডিয়াম লটারি', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
   MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
   FINAL: 'চূড়ান্ত স্কোরবোর্ড', TOP3: 'বিজয়ী মঞ্চ (২-১-৩)', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
 };
@@ -16,7 +16,7 @@ const Show = {
   _rdSig: '',
   rundown() {
     const s = Store.state;
-    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto)].join('|');
+    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENES[scene] });
@@ -27,6 +27,8 @@ const Show = {
     // calling the finalists to the stage: team number, school and preliminary score
     Sel.finalistIds().forEach((id, i) => add('FINALIST_INTRO', { key: id, teamId: id, n: i + 1 }, 'মঞ্চে আহ্বান • ' + Sel.label(Sel.team(id))));
     add('WELCOME');
+    // first thing after the welcome: each finalist draws its podium (and with it its code A / 1 … H / 8)
+    if (s.draw.on) add('DRAW', {}, (s.draw.title || SCENES.DRAW) + ' • ' + ((DRAW_THEMES[s.draw.theme] || {}).name || ''));
     if (s.event.credits || s.groupPhoto) add('IDENTITY');
     if (Sel.crew().length) add('CREW');
     add('TEAMS_ALL');
@@ -78,6 +80,7 @@ const Show = {
     switch (step.scene) {
       case 'THEME': if (override) play(); Cue.music('theme', 'play'); break;
       case 'WELCOME': if (override) play(); Cue.music('welcome', 'play'); break;
+      case 'DRAW': Draw.ensure(); play('transition'); break;
       case 'TEAM_INTRO': case 'FINALIST_INTRO': play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
       case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); break; // the countdown clock emits its own beeps
       case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;

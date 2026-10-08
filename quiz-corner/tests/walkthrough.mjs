@@ -34,7 +34,12 @@ const fin = await stage.evaluate(() => document.querySelector('.layer:not(.exiti
 step(/FINALIST/.test(fin) && /৭০/.test(fin) && /বিদ্যালয়/.test(fin), 'মঞ্চে আহ্বান: দলের নম্বর, স্কুল ও বাছাইয়ের নম্বর', fin.replace(/\s+/g, ' ').slice(0, 120));
 while (sc !== 'WELCOME' && guard++ < 90) sc = await next(500);
 step(sc === 'WELCOME', 'স্বাগত সংগীত'); await stage.waitForTimeout(1200); await shot('03-welcome');
-sc = await next(4500); step(sc === 'IDENTITY', 'আমাদের পরিচয়', sc); await shot('04-identity');
+sc = await next(4500); step(sc === 'DRAW', 'পোডিয়াম লটারি (স্বাগতের পরেই)', sc); await stage.waitForTimeout(1200); await shot('03b-draw');
+for (const k of ['3', '1', '8', '2', '6', '4', '7', '5']) { await ctl.keyboard.press(k); await ctl.waitForTimeout(200); await ctl.keyboard.press(k); await ctl.waitForTimeout(400); }
+await stage.waitForTimeout(2000); await shot('03c-draw-done');
+const dr = await ctl.evaluate(() => { const { Store, Sel } = window.QC; return { n: Store.state.draw.picks.length, ok: Store.state.draw.picks.every((p) => Sel.teamIndex(p.team) === p.podium), first: Sel.code(Sel.team(Store.state.draw.picks[0].team)), school: Sel.team(Store.state.draw.picks[0].team).school }; });
+step(dr.n === 8 && dr.ok && dr.school === 'উত্তর কলমদান প্রাথমিক বিদ্যালয়', 'লটারি: বাছাইয়ে প্রথম দল প্রথমে বাছে, ৮ দল ৮ পোডিয়ামে, কোড = পোডিয়াম', JSON.stringify(dr));
+sc = await next(1500); step(sc === 'IDENTITY', 'আমাদের পরিচয়', sc); await shot('04-identity');
 sc = await next(1500); step(sc === 'CREW', 'আমাদের টিম', sc);
 await stage.waitForTimeout(2800 * 7); const crewSub = await ctl.evaluate(() => window.QC.Store.state.show.params.sub); step(crewSub >= 7, 'আমাদের টিমের কার্ড নিজে নিজে একে একে আসে', 'দেখা গেল ' + crewSub + 'টি'); await shot('05-crew');
 sc = await next(1200); step(sc === 'TEAMS_ALL', 'সব দল', sc);
