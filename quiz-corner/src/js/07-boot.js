@@ -449,7 +449,9 @@ const SelfTest = {
         T('Board: a played number does not open again', () => s().show.scene === 'GRID' && s().live.qid === qn(5).id);
         Show.next();
         T('Board: Next on the board waits for the team to choose', () => s().show.scene === 'GRID');
-        Actions.gridKey(10); Game.judge('wrong');
+        Actions.gridKey(10); Actions.setActive(ids[3]);
+        T('Turn order: another team\'s number cannot take a direct turn (strictly in order)', () => s().live.active === ids[1]);
+        Game.judge('wrong');
         T('Board: 2nd team (B / 2) answers its own choice (question 10)', () => s().show.scene === 'QUESTION' && s().live.qid === qn(10).id && s().live.active === ids[1]);
         Show.next();
         T('Board: then the 3rd team, and so on', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[2]);

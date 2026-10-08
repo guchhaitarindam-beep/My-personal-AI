@@ -606,6 +606,11 @@ const Game = {
   setActive(teamId) {
     if (!Sel.team(teamId)) return false;
     if (Store.state.live.audience) { UI.toast('Audience question — no team plays it and nobody gets points', 'err'); return false; }
+    // direct questions go strictly in turn (A→H / H→A): the team whose turn it is answers; only "Operator chooses" lets you give the turn to another team
+    const l0 = Store.state.live; const r0 = Sel.round(l0.roundId);
+    if (l0.qid && l0.owner && l0.flow === 'direct' && !l0.result && teamId !== l0.owner && r0 && r0.turnOrder !== 'manual' && Store.state.show.scene === 'QUESTION') {
+      UI.toast('Direct question: it is ' + Sel.label(Sel.team(l0.owner)) + '\'s turn — teams answer in order. (Pass / Challenge come after the answer.)', 'err'); return false;
+    }
     Store.commit('active-team', (s) => {
       if (s.live.flow === 'challenge' && s.live.active && teamId !== s.live.active) s.live.challenger = teamId;
       else { s.live.active = teamId; if (!s.live.result && s.live.flow === 'direct') s.live.owner = teamId; } // the operator chose which team takes this turn
