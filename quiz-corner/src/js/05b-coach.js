@@ -54,7 +54,7 @@ const Coach = {
     const name = t ? t.name : 'The team';
     if (!r || !l.qid) return { t: 'No question loaded — go back to the question board and pick a number.', glow: ['gotoGrid'] };
     if (l.locked) return { t: 'The question is locked. Press L to unlock.', glow: ['lock'] };
-    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "▦ Question board" → next team\'s turn, or "Next question".', glow: ['gotoGrid', 'qStep'] };
+    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "Next ▶" (→) → back to the question board; the NEXT team chooses a number (played numbers stay closed).', glow: ['next'] };
     if (l.result && !l.revealed) return { t: 'Points given. To show the answer on TV: "Show answer" (R)' + (r.features.pass && l.result === 'wrong' && Game.nextPassTeam() ? ', or "Pass" (P) to the next team.' : '.'), glow: ['reveal', 'pass'] };
     if (s.timer.expired) return { t: 'Time is up! If ' + name + ' cannot answer, press "Wrong" (X)' + (r.features.pass ? ', then "Pass" (P).' : '.'), glow: ['judge', 'pass'] };
     if (r.type === 'rapid') return { t: 'Press the number (1–8) of the team that buzzed first. Then "Correct" (C) if right, "Wrong" (X) if wrong — a wrong answer ends the question.', glow: ['judge', 'setActive'] };

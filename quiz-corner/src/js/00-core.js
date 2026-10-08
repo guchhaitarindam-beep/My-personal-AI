@@ -293,7 +293,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { turnDone: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */

@@ -277,7 +277,10 @@ const Sel = {
   turnTeam(round) {
     const ids = this.finalistIds();
     if (!ids.length) return '';
-    return ids[(round ? round.turn : 0) % ids.length];
+    // the turn keeps going round across the rounds: round 2 starts with the team after round 1's last chooser, so every team gets a fair share
+    let off = 0;
+    if (round) for (const r of Store.state.rounds) { if (r.id === round.id) break; if (r.enabled) off += this.roundQuestions(r.id).length; }
+    return ids[(off + (round ? round.turn : 0)) % ids.length];
   },
 };
 

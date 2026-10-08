@@ -1546,7 +1546,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { turnDone: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */
@@ -1926,7 +1926,10 @@ const Sel = {
   turnTeam(round) {
     const ids = this.finalistIds();
     if (!ids.length) return '';
-    return ids[(round ? round.turn : 0) % ids.length];
+    // the turn keeps going round across the rounds: round 2 starts with the team after round 1's last chooser, so every team gets a fair share
+    let off = 0;
+    if (round) for (const r of Store.state.rounds) { if (r.id === round.id) break; if (r.enabled) off += this.roundQuestions(r.id).length; }
+    return ids[(off + (round ? round.turn : 0)) % ids.length];
   },
 };
 
@@ -3465,7 +3468,23 @@ const Show = {
     }
     return true;
   },
-  next() { if (this.sub(1)) return true; const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]); },
+  next() {
+    if (this.sub(1)) return true;
+    const s = Store.state; const rd = this.rundown();
+    // main rounds: after a question the board comes back and the NEXT team chooses; numbers already played stay closed;
+    // when every number of the round has been played, Next goes to the round's scoreboard
+    const rid = s.show.scene === 'QUESTION' ? s.live.roundId : s.show.scene === 'GRID' ? s.show.params.roundId : '';
+    if (rid && rd.some((x) => x.scene === 'GRID' && x.params.roundId === rid)) {
+      const left = Sel.roundQuestions(rid).filter((q) => !s.board.played[q.id]).length;
+      if (s.show.scene === 'QUESTION') {
+        if (s.live.qid && !s.live.turnDone) Store.commit('turn-next', (st) => { const r = st.rounds.find((x) => x.id === rid); if (r) r.turn = (r.turn || 0) + 1; st.live.turnDone = true; }, { undo: false });
+        return left ? this.jump('GRID', { key: rid, roundId: rid }) : this.jump('SCOREBOARD', { key: rid, roundId: rid });
+      }
+      if (left) { if (typeof UI !== 'undefined' && UI.toast) UI.toast('The team chooses a number on the board — press 1–9 (0 = 10). ' + left + ' left. (Scoreboard: S)', 'err'); return false; }
+      return this.jump('SCOREBOARD', { key: rid, roundId: rid });
+    }
+    const i = this.index(); return this.go(rd[Math.min(rd.length - 1, i + 1)] || rd[0]);
+  },
   prev() { if (this.sub(-1)) return true; const rd = this.rundown(); const i = this.index(); return this.go(rd[Math.max(0, i - 1)] || rd[0], 'end'); },
   jump(scene, params = {}) {
     const key = scene + (params.key ? ':' + params.key : '');
@@ -4662,7 +4681,7 @@ const UI = {
         '<div class="deck" style="margin-top:.6rem">' + b('prelimAnswer', s.prelimLive.reveal ? '🙈 Hide answer' : '👁 Show answer (ANSWER)', 'lg gold span2', '', 'R') + b('speak', '🔊 Read question', '', 'question', 'E') + b('speak', '🔊 Read answer', '', 'answer', 'A') + timerRow + '</div></div>';
     } else if (sc === 'GRID') {
       const r = Sel.round(s.show.params.roundId);
-      h += '<div class="card"><h3>Question board — ' + esc(r ? r.name : '') + ' <span class="hint">Click the number the team picks</span></h3><div class="deck">' + (r ? Sel.roundQuestions(r.id).map((q) => b('loadQ', String(q.number), s.board.played[q.id] ? 'ghost' : 'primary', q.id)).join('') : '') + '</div></div>';
+      h += '<div class="card"><h3>Question board — ' + esc(r ? r.name : '') + ' <span class="hint">' + (r && Sel.team(Game.turnFor(r.id)) ? 'Turn: ' + esc(Sel.label(Sel.team(Game.turnFor(r.id)))) + ' — ' : '') + 'click the number the team picks (played numbers are closed)</span></h3><div class="deck">' + (r ? Sel.roundQuestions(r.id).map((q) => b('loadQ', String(q.number) + (s.board.played[q.id] ? ' ✓' : ''), s.board.played[q.id] ? 'ghost' : 'primary', q.id, '', !!s.board.played[q.id])).join('') : '') + '</div></div>';
     } else if (sc === 'DRAW') {
       const d = s.draw; const turn = Sel.team(Draw.next());
       const cards = Draw.cards().map((it, i) => { const pk = d.picks.find((p) => p.card === i); const t = pk && Sel.team(pk.team); return pk ? b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + ' → ' + esc(t ? Sel.code(t) : '') + ' ' + esc(t ? Sel.preName(t) : ''), 'ghost', String(i), '', true) : b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + (d.pending === i ? ' — press again to open' : ''), d.pending === i ? 'gold' : 'primary', String(i), String(i + 1)); }).join('');
@@ -4939,7 +4958,7 @@ const Actions = {
     if (nq && nq.id !== s.live.qid) { if (int(d) > 0) Game.advanceTurn(r.id); Show.jump('QUESTION', { key: nq.id, roundId: r.id, qid: nq.id }); }
   },
   gotoGrid() { const r = Sel.currentRound(); if (r) Show.jump('GRID', { key: r.id, roundId: r.id }); },
-  loadQ(qid) { const q = Sel.question(qid); if (!q) return; Cue.play('laser'); if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
+  loadQ(qid) { const q = Sel.question(qid); if (!q) return; Cue.play('laser'); if (Store.state.show.scene === 'GRID' && Store.state.board.played[qid] && Store.state.live.qid !== qid) { UI.toast('Question ' + q.number + ' has already been played', 'err'); return; } if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result && !Store.state.live.turnDone) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
   showQ(qid) { Actions.loadQ(qid); },
   prelimAnswer() { Show.prelimToggleAnswer(); },
   prelimShow(i) { Show.prelimShow(int(i), false); },
@@ -5135,7 +5154,7 @@ const Coach = {
     const name = t ? t.name : 'The team';
     if (!r || !l.qid) return { t: 'No question loaded — go back to the question board and pick a number.', glow: ['gotoGrid'] };
     if (l.locked) return { t: 'The question is locked. Press L to unlock.', glow: ['lock'] };
-    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "▦ Question board" → next team\'s turn, or "Next question".', glow: ['gotoGrid', 'qStep'] };
+    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "Next ▶" (→) → back to the question board; the NEXT team chooses a number (played numbers stay closed).', glow: ['next'] };
     if (l.result && !l.revealed) return { t: 'Points given. To show the answer on TV: "Show answer" (R)' + (r.features.pass && l.result === 'wrong' && Game.nextPassTeam() ? ', or "Pass" (P) to the next team.' : '.'), glow: ['reveal', 'pass'] };
     if (s.timer.expired) return { t: 'Time is up! If ' + name + ' cannot answer, press "Wrong" (X)' + (r.features.pass ? ', then "Pass" (P).' : '.'), glow: ['judge', 'pass'] };
     if (r.type === 'rapid') return { t: 'Press the number (1–8) of the team that buzzed first. Then "Correct" (C) if right, "Wrong" (X) if wrong — a wrong answer ends the question.', glow: ['judge', 'setActive'] };
@@ -6969,6 +6988,29 @@ const SelfTest = {
         Store.state.show.scene = 'QUESTION'; const q3 = Sel.roundQuestions('R3')[0]; Game.load(q3.id, Sel.finalistIds()[0]); Game.reveal();
         const h3 = Scenes.QUESTION(s(), s().show.params).html;
         T('Answer: in a round without options (round 3) no (A/B/C/D) label before the answer', () => h3.includes(q3.options[q3.answer]) && !h3.includes('(' + OPT_LABELS[q3.answer] + ')'));
+      }
+      {
+        Store.state = normalizeState(defaultState()); Show._rd = null;
+        const ids = Sel.finalistIds(); const rid = 'R1'; const qn = (n) => Sel.roundQuestions(rid).find((q) => q.number === n);
+        Show.go(Show.rundown().find((x) => x.scene === 'GRID' && x.params.roundId === rid));
+        Actions.gridKey(5); Game.judge('correct'); Game.reveal();
+        T('Board: team A / 1 chooses first (question 5)', () => s().show.scene === 'QUESTION' && s().live.qid === qn(5).id && s().live.active === ids[0]);
+        Show.next();
+        T('Board: Next after the answer → back to the board, now the 2nd team\'s turn', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[1]);
+        Actions.gridKey(5);
+        T('Board: a played number does not open again', () => s().show.scene === 'GRID' && s().live.qid === qn(5).id);
+        Show.next();
+        T('Board: Next on the board waits for the team to choose', () => s().show.scene === 'GRID');
+        Actions.gridKey(10); Game.judge('wrong');
+        T('Board: 2nd team (B / 2) answers its own choice (question 10)', () => s().show.scene === 'QUESTION' && s().live.qid === qn(10).id && s().live.active === ids[1]);
+        Show.next();
+        T('Board: then the 3rd team, and so on', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[2]);
+        Actions.loadQ(qn(5).id);
+        T('Board: an earlier played number does not open from its button either', () => s().show.scene === 'GRID' && s().live.qid === qn(10).id);
+        Sel.roundQuestions(rid).forEach((q) => { if (!s().board.played[q.id]) { Actions.gridKey(q.number); Show.next(); } });
+        T('Board: when all 10 are played, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
+        T('Board: the turn keeps rotating — round 2 starts with the team after round 1 (C / 3)', () => Game.turnFor('R2') === ids[10 % ids.length]);
+        Store.state = normalizeState(defaultState()); Show._rd = null;
       }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });
       {

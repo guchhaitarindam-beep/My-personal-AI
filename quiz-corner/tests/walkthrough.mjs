@@ -57,8 +57,8 @@ sc = await next(1500); sc = await next(1500); await shot('06-team-intro-members'
 const mem = await stage.evaluate(() => ({ cards: document.querySelectorAll('.layer:not(.exiting) .mem-card:not(.hidden)').length, imgs: Array.from(document.querySelectorAll('.layer:not(.exiting) .mem-card img')).filter((i) => i.complete && i.naturalWidth).length }));
 step(mem.cards === 2 && mem.imgs === 2, 'দল A / 1: সদস্য ১ ও ২ ছবিসহ একে একে', JSON.stringify(mem));
 while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) sc = await next(450);
-step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); await cues(); await stage.waitForTimeout(1600); await shot('07-countdown'); await stage.waitForTimeout(4000);
-const cdc = await cues(); step(cdc.filter((c) => c === 'countdown').length >= 2 && cdc.includes('impact'), 'কাউন্টডাউনের সাউন্ড', cdc.join(','));
+step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); await cues(); await stage.waitForTimeout(1600); await shot('07-countdown'); await stage.waitForTimeout(11500); // 10, 9 … 0, then GO!
+const cdc = await cues(); step(cdc.filter((c) => c === 'countdown').length >= 10 && cdc.includes('impact'), 'Countdown sounds: 10 … 0 beeps, then GO! (impact)', cdc.join(','));
 // 4. round 1
 sc = await next(2600); step(sc === 'ROUND_INTRO', 'রাউন্ড ১ শুরু', sc); await shot('08-round-intro');
 sc = await next(4500); step(sc === 'ROUND_RULES', 'রাউন্ড ১-এর নিয়ম', sc); await shot('09-rules');
@@ -87,7 +87,12 @@ await ctl.keyboard.press('Shift+' + 'abcd'[ans].toUpperCase()); await stage.wait
 st = await ctl.evaluate(() => ({ r: window.QC.Store.state.live.result, sc: window.QC.Sel.score(window.QC.Store.state.live.active), rev: window.QC.Store.state.live.revealed }));
 step(st.r === 'correct' && st.sc === before + 5 && c.includes('correct') && c.includes('applause') && st.rev, 'পাসে সঠিক বিকল্প: +৫, সঠিকের সাউন্ড ও হাততালি, উত্তর প্রকাশ', JSON.stringify(st) + ' ' + c.join(','));
 // next question by the board: B / 2's turn, direct answer
-await ctl.keyboard.press('Escape'); await ctl.evaluate(() => window.QC.Actions.gotoGrid()); await stage.waitForTimeout(1500); await ctl.keyboard.press('0'); await stage.waitForTimeout(2500);
+await ctl.keyboard.press('Escape'); await ctl.keyboard.press('ArrowRight'); await stage.waitForTimeout(1500);
+st = await ctl.evaluate(() => { const s = window.QC.Store.state; return { scene: s.show.scene, turn: window.QC.Sel.code(window.QC.Sel.team(window.QC.Game.turnFor('R1'))) }; });
+step(st.scene === 'GRID' && st.turn === 'B / 2', '→ after the answer: back to the board, B / 2 chooses next', JSON.stringify(st)); await shot('15b-board-next-team');
+await ctl.keyboard.press('5'); await stage.waitForTimeout(800);
+step(await ctl.evaluate(() => window.QC.Store.state.show.scene === 'GRID'), 'Played number 5 does not open again');
+await ctl.keyboard.press('0'); await stage.waitForTimeout(2500);
 st = await ctl.evaluate(() => { const s = window.QC.Store.state; return { n: window.QC.Sel.question(s.live.qid).number, team: window.QC.Sel.code(window.QC.Sel.team(s.live.active)) }; });
 step(st.n === 10, 'বোর্ডে ০ টিপলে প্রশ্ন ১০; পালা পরের দলের', JSON.stringify(st));
 before = await ctl.evaluate(() => window.QC.Sel.score(window.QC.Store.state.live.active));

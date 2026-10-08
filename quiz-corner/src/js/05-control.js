@@ -254,7 +254,7 @@ const UI = {
         '<div class="deck" style="margin-top:.6rem">' + b('prelimAnswer', s.prelimLive.reveal ? '🙈 Hide answer' : '👁 Show answer (ANSWER)', 'lg gold span2', '', 'R') + b('speak', '🔊 Read question', '', 'question', 'E') + b('speak', '🔊 Read answer', '', 'answer', 'A') + timerRow + '</div></div>';
     } else if (sc === 'GRID') {
       const r = Sel.round(s.show.params.roundId);
-      h += '<div class="card"><h3>Question board — ' + esc(r ? r.name : '') + ' <span class="hint">Click the number the team picks</span></h3><div class="deck">' + (r ? Sel.roundQuestions(r.id).map((q) => b('loadQ', String(q.number), s.board.played[q.id] ? 'ghost' : 'primary', q.id)).join('') : '') + '</div></div>';
+      h += '<div class="card"><h3>Question board — ' + esc(r ? r.name : '') + ' <span class="hint">' + (r && Sel.team(Game.turnFor(r.id)) ? 'Turn: ' + esc(Sel.label(Sel.team(Game.turnFor(r.id)))) + ' — ' : '') + 'click the number the team picks (played numbers are closed)</span></h3><div class="deck">' + (r ? Sel.roundQuestions(r.id).map((q) => b('loadQ', String(q.number) + (s.board.played[q.id] ? ' ✓' : ''), s.board.played[q.id] ? 'ghost' : 'primary', q.id, '', !!s.board.played[q.id])).join('') : '') + '</div></div>';
     } else if (sc === 'DRAW') {
       const d = s.draw; const turn = Sel.team(Draw.next());
       const cards = Draw.cards().map((it, i) => { const pk = d.picks.find((p) => p.card === i); const t = pk && Sel.team(pk.team); return pk ? b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + ' → ' + esc(t ? Sel.code(t) : '') + ' ' + esc(t ? Sel.preName(t) : ''), 'ghost', String(i), '', true) : b('drawPick', (it.emoji ? it.emoji + ' ' : '') + esc(it.label) + (d.pending === i ? ' — press again to open' : ''), d.pending === i ? 'gold' : 'primary', String(i), String(i + 1)); }).join('');
@@ -531,7 +531,7 @@ const Actions = {
     if (nq && nq.id !== s.live.qid) { if (int(d) > 0) Game.advanceTurn(r.id); Show.jump('QUESTION', { key: nq.id, roundId: r.id, qid: nq.id }); }
   },
   gotoGrid() { const r = Sel.currentRound(); if (r) Show.jump('GRID', { key: r.id, roundId: r.id }); },
-  loadQ(qid) { const q = Sel.question(qid); if (!q) return; Cue.play('laser'); if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
+  loadQ(qid) { const q = Sel.question(qid); if (!q) return; Cue.play('laser'); if (Store.state.show.scene === 'GRID' && Store.state.board.played[qid] && Store.state.live.qid !== qid) { UI.toast('Question ' + q.number + ' has already been played', 'err'); return; } if (Store.state.show.scene === 'GRID' && Store.state.live.qid && Store.state.live.qid !== qid && Store.state.live.result && !Store.state.live.turnDone) Game.advanceTurn(q.roundId); Show.jump('QUESTION', { key: q.id, roundId: q.roundId, qid: q.id }); },
   showQ(qid) { Actions.loadQ(qid); },
   prelimAnswer() { Show.prelimToggleAnswer(); },
   prelimShow(i) { Show.prelimShow(int(i), false); },

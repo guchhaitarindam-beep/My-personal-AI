@@ -437,6 +437,29 @@ const SelfTest = {
         const h3 = Scenes.QUESTION(s(), s().show.params).html;
         T('Answer: in a round without options (round 3) no (A/B/C/D) label before the answer', () => h3.includes(q3.options[q3.answer]) && !h3.includes('(' + OPT_LABELS[q3.answer] + ')'));
       }
+      {
+        Store.state = normalizeState(defaultState()); Show._rd = null;
+        const ids = Sel.finalistIds(); const rid = 'R1'; const qn = (n) => Sel.roundQuestions(rid).find((q) => q.number === n);
+        Show.go(Show.rundown().find((x) => x.scene === 'GRID' && x.params.roundId === rid));
+        Actions.gridKey(5); Game.judge('correct'); Game.reveal();
+        T('Board: team A / 1 chooses first (question 5)', () => s().show.scene === 'QUESTION' && s().live.qid === qn(5).id && s().live.active === ids[0]);
+        Show.next();
+        T('Board: Next after the answer → back to the board, now the 2nd team\'s turn', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[1]);
+        Actions.gridKey(5);
+        T('Board: a played number does not open again', () => s().show.scene === 'GRID' && s().live.qid === qn(5).id);
+        Show.next();
+        T('Board: Next on the board waits for the team to choose', () => s().show.scene === 'GRID');
+        Actions.gridKey(10); Game.judge('wrong');
+        T('Board: 2nd team (B / 2) answers its own choice (question 10)', () => s().show.scene === 'QUESTION' && s().live.qid === qn(10).id && s().live.active === ids[1]);
+        Show.next();
+        T('Board: then the 3rd team, and so on', () => s().show.scene === 'GRID' && Game.turnFor(rid) === ids[2]);
+        Actions.loadQ(qn(5).id);
+        T('Board: an earlier played number does not open from its button either', () => s().show.scene === 'GRID' && s().live.qid === qn(10).id);
+        Sel.roundQuestions(rid).forEach((q) => { if (!s().board.played[q.id]) { Actions.gridKey(q.number); Show.next(); } });
+        T('Board: when all 10 are played, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
+        T('Board: the turn keeps rotating — round 2 starts with the team after round 1 (C / 3)', () => Game.turnFor('R2') === ids[10 % ids.length]);
+        Store.state = normalizeState(defaultState()); Show._rd = null;
+      }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });
       {
         const ids = Sel.finalistIds();
