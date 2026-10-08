@@ -1,6 +1,6 @@
 /* =====================================================================
    OPERATOR COACH, ANNOUNCER & HOST ASSISTANT (ported from V100 Nexus).
-   Coach: one plain-Bengali sentence for "what to do now" + the buttons
+   Coach: one plain-English sentence for "what to do now" + the buttons
    that matter glow. Announcer: every action is confirmed in an
    aria-live region (and, if enabled, spoken on the operator laptop).
    ===================================================================== */
@@ -8,66 +8,66 @@ const Coach = {
   /** @returns {{t: string, glow: string[]}} */
   plan(s) {
     const sc = s.show.scene;
-    const NEXT = '"পরের ▶" (→)';
+    const NEXT = '"Next ▶" (→)';
     const l = s.live;
     switch (sc) {
-      case 'ORGANIZER': return { t: 'আয়োজক ব্যানার দেখানো হচ্ছে। অনুষ্ঠান শুরু করতে ' + NEXT + ' চাপুন।', glow: ['next'] };
+      case 'ORGANIZER': return { t: 'The organiser banner is showing. Press ' + NEXT + ' to start the show.', glow: ['next'] };
       case 'LOGO': case 'PROGRAMME': case 'CREW': case 'TEAMS_ALL': case 'GIFT': case 'PODIUM': case 'GRAPHIC':
-        return { t: 'উপস্থাপক কথা শেষ করলে ' + NEXT + ' চাপুন।', glow: ['next'] };
-      case 'THEME': return { t: 'থিম সং চলছে। উপস্থাপক কথা শেষ করলে ' + NEXT + ' চাপুন (গান নিজে থেকে থামবে না — দরকারে "থামাও")।', glow: ['next', 'musicStop'] };
-      case 'WELCOME': return { t: 'স্বাগত সংগীত চলছে। শেষ হলে ' + NEXT + ' → বিশেষ উপস্থাপনা।', glow: ['next', 'musicStop'] };
-      case 'TEAM_INTRO': case 'FINALIST_INTRO': return { t: 'দলের পরিচয় চলছে। প্রতিটি দলের পরে একবার করে ' + NEXT + '।', glow: ['next'] };
-      case 'PRELIM_RULES': return { t: 'বাছাই পর্বের নিয়মাবলী। পড়া হয়ে গেলে ' + NEXT + ' → কাউন্টডাউন।', glow: ['next'] };
-      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': return { t: 'কাউন্টডাউন চলছে — কিছু চাপবেন না। শেষ হলে ' + NEXT + '।', glow: [] };
+        return { t: 'When the host finishes speaking, press ' + NEXT + '.', glow: ['next'] };
+      case 'THEME': return { t: 'The theme song is playing. When the host finishes, press ' + NEXT + ' (the song does not stop by itself — use "Stop" if needed).', glow: ['next', 'musicStop'] };
+      case 'WELCOME': return { t: 'Welcome music is playing. When it ends, ' + NEXT + ' → special presentation.', glow: ['next', 'musicStop'] };
+      case 'TEAM_INTRO': case 'FINALIST_INTRO': return { t: 'Team introductions. Press ' + NEXT + ' once after each team.', glow: ['next'] };
+      case 'PRELIM_RULES': return { t: 'Prelim round rules. When they have been read, ' + NEXT + ' → countdown.', glow: ['next'] };
+      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': return { t: 'Countdown running — do not press anything. When it ends, ' + NEXT + '.', glow: [] };
       case 'PRELIM_Q': {
         const n = s.prelimLive.idx + 1; const N = Sel.prelimQuestions().length;
         return s.prelimLive.reveal
-          ? { t: 'প্রশ্ন ' + bn(n) + '-এর উত্তর দেখানো হচ্ছে। ' + NEXT + ' → ' + (n < N ? 'পরের প্রশ্ন।' : 'ফলাফল।'), glow: ['next'] }
-          : { t: 'বাছাই পর্ব — প্রশ্ন ' + bn(n) + ' / ' + bn(N) + '। দলগুলিকে লেখার সময় দিন, তারপর ' + NEXT + ' → পরের প্রশ্ন। উত্তর দেখাতে "উত্তর দেখাও (ANSWER)" (R)।', glow: ['next', 'prelimAnswer'] };
+          ? { t: 'Showing the answer to question ' + n + '. ' + NEXT + ' → ' + (n < N ? 'next question.' : 'results.'), glow: ['next'] }
+          : { t: 'Prelim round — question ' + n + ' / ' + N + '. Give the teams time to write, then ' + NEXT + ' → next question. To show the answer: "Show answer (ANSWER)" (R).', glow: ['next', 'prelimAnswer'] };
       }
-      case 'PRELIM_RESULT': return { t: 'উত্তরপত্র মিলিয়ে "বাছাই পর্ব" পাতার ম্যাট্রিক্সে টিক দিন। তারপর "শীর্ষ ৮ নিশ্চিত করুন" এবং ' + NEXT + '।', glow: ['confirmFinalists', 'next'] };
-      case 'FINALISTS': return { t: 'চূড়ান্ত দলের নাম ঠিক আছে কি না দেখে নিন (বাছাই পর্ব পাতায় সম্পাদনা করা যায়), তারপর ' + NEXT + '।', glow: ['next'] };
-      case 'ROUND_INTRO': case 'ROUND_RULES': return { t: 'রাউন্ডের নিয়মাবলী দেখানো হচ্ছে। পড়া হলে ' + NEXT + ' → প্রশ্ন-বোর্ড।', glow: ['next'] };
+      case 'PRELIM_RESULT': return { t: 'Check the answer sheets and tick them in the matrix on the "Prelim round" page. Then "Confirm top 8" and ' + NEXT + '.', glow: ['confirmFinalists', 'next'] };
+      case 'FINALISTS': return { t: 'Check that the finalist team names are right (edit them on the Prelim round page), then ' + NEXT + '.', glow: ['next'] };
+      case 'ROUND_INTRO': case 'ROUND_RULES': return { t: 'Round rules are showing. When they have been read, ' + NEXT + ' → question board.', glow: ['next'] };
       case 'GRID': {
         const r = Sel.round(s.show.params.roundId);
         const left = r ? Sel.roundQuestions(r.id).filter((q) => !s.board.played[q.id]).length : 0;
         const turn = r ? Sel.team(Game.turnFor(r.id)) : null;
         return left
-          ? { t: 'এখন ' + (turn ? turn.name : 'পরের দল') + '-এর পালা। দল যে প্রশ্ন-নম্বর বলবে, নিচে সেই নম্বরে ক্লিক করুন (বাকি ' + bn(left) + 'টি)।', glow: ['loadQ'] }
-          : { t: 'এই রাউন্ডের সব প্রশ্ন শেষ। "📊 স্কোরবোর্ড" (S) চাপুন।', glow: ['scoreboard'] };
+          ? { t: 'It is ' + (turn ? turn.name : 'the next team') + '\'s turn. Click the question number the team calls out below (' + left + ' left).', glow: ['loadQ'] }
+          : { t: 'All questions in this round are done. Press "📊 Scoreboard" (S).', glow: ['scoreboard'] };
       }
       case 'QUESTION': return this.question(s, l);
-      case 'SCOREBOARD': return { t: 'স্কোরবোর্ড দেখানো হচ্ছে। ' + NEXT + ' → পরের রাউন্ড।', glow: ['next'] };
+      case 'SCOREBOARD': return { t: 'The scoreboard is showing. ' + NEXT + ' → next round.', glow: ['next'] };
       case 'FINAL': {
         const n = Sel.finalistIds().length;
-        return s.finalReveal < n ? { t: 'চূড়ান্ত ফলাফল। প্রতিবার "পরের স্থান প্রকাশ" (R) চাপলে একটি করে স্থান ঘোষণা হবে।' + (Sel.ties().length ? ' ⚠ টাই আছে — আগে টাই-ব্রেকার ঠিক করুন।' : ''), glow: ['finalReveal'] } : { t: 'সব স্থান প্রকাশিত। ' + NEXT + ' → বিজয়ী মঞ্চ।', glow: ['next'] };
+        return s.finalReveal < n ? { t: 'Final results. Each press of "Reveal next place" (R) announces one place.' + (Sel.ties().length ? ' ⚠ There is a tie — settle the tie-breaker first.' : ''), glow: ['finalReveal'] } : { t: 'All places revealed. ' + NEXT + ' → winners\' stage.', glow: ['next'] };
       }
-      case 'TOP3': return { t: 'বিজয়ী মঞ্চ। ' + NEXT + ' → চ্যাম্পিয়ন।', glow: ['next'] };
-      case 'WINNER': return { t: 'চ্যাম্পিয়ন ঘোষণা হয়েছে। অনুষ্ঠান শেষ — অভিনন্দন!', glow: [] };
-      case 'END': return { t: 'অনুষ্ঠান শেষ। ধন্যবাদ!', glow: [] };
-      default: return { t: 'পরের ধাপের জন্য ' + NEXT + ' চাপুন।', glow: ['next'] };
+      case 'TOP3': return { t: 'Winners\' stage (Top 3). ' + NEXT + ' → champion.', glow: ['next'] };
+      case 'WINNER': return { t: 'The champion has been announced. The show is over — congratulations!', glow: [] };
+      case 'END': return { t: 'The show is over. Thank you!', glow: [] };
+      default: return { t: 'Press ' + NEXT + ' for the next step.', glow: ['next'] };
     }
   },
   question(s, l) {
     const r = Sel.round(l.roundId);
     const t = Sel.team(Sel.answeringTeam());
-    const name = t ? t.name : 'দল';
-    if (!r || !l.qid) return { t: 'প্রশ্ন লোড হয়নি — প্রশ্ন-বোর্ডে ফিরে নম্বর বাছুন।', glow: ['gotoGrid'] };
-    if (l.locked) return { t: 'প্রশ্ন লক করা আছে। আনলক করতে L।', glow: ['lock'] };
-    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'উত্তর দেখানো হয়েছে। "▦ প্রশ্ন বোর্ড" → পরের দলের পালা, অথবা "পরের প্রশ্ন"।', glow: ['gotoGrid', 'qStep'] };
-    if (l.result && !l.revealed) return { t: 'পয়েন্ট দেওয়া হয়েছে। টিভিতে উত্তর দেখাতে "উত্তর দেখাও" (R)' + (r.features.pass && l.result === 'wrong' && Game.nextPassTeam() ? ', অথবা পরের দলে "পাস" (P)।' : '।'), glow: ['reveal', 'pass'] };
-    if (s.timer.expired) return { t: 'সময় শেষ! ' + name + ' না পারলে "ভুল" (X)' + (r.features.pass ? ' তারপর "পাস" (P)।' : '।'), glow: ['judge', 'pass'] };
-    if (r.type === 'rapid') return { t: 'যে দল আগে বাজার টিপল, তার নম্বর (১–৮) চাপুন। তারপর সঠিক হলে "সঠিক" (C), ভুল হলে "ভুল" (X) — ভুলে প্রশ্ন শেষ।', glow: ['judge', 'setActive'] };
-    if (r.type === 'bonus') return { t: name + ' উত্তর দিচ্ছে। সঠিক হলে "সঠিক" (+' + bn(Game.pointsFor('correct')) + '), ভুল হলে "ভুল", না পারলে "পাস" (পরের দলে মান বাড়বে)।', glow: ['judge', 'pass'] };
-    const hands = r.features.challenge ? ' অন্য দল বাজার টিপলে / হাত তুললে Shift + তার নম্বর, তারপর ✓ বা ✕।' : '';
-    if (l.flow === 'pass' || l.flow === 'bonus') return { t: name + ' (পাসের পরে) উত্তর দিচ্ছে। সঠিক হলে "সঠিক" (C), ভুল হলে "ভুল" (X)। আবার না পারলে "পাস" (P)।', glow: ['judge', 'pass'] };
-    if (l.flow === 'challenge') return { t: 'চ্যালেঞ্জ: ' + name + ' উত্তর দিচ্ছে। সঠিক হলে "সঠিক" (+' + bn(r.scoring.challengeRight) + '), ভুল হলে "ভুল" (' + bn(r.scoring.challengeWrong) + ')।', glow: ['judge'] };
-    if (!l.optionsShown) return { t: name + ' বিকল্প ছাড়াই উত্তর দিচ্ছে। সঠিক হলে "সঠিক +' + bn(Game.pointsFor('correct')) + '" (C) — উত্তর সঙ্গে সঙ্গে দেখাবে। ভুল হলে "ভুল" (X)।' + (r.features.options ? ' সাহায্য চাইলে "বিকল্প দেখাও" (V)।' : '') + hands, glow: ['judge', 'options', 'timerToggle'] };
-    return { t: name + ' বিকল্প দেখে উত্তর দিচ্ছে।' + (r.features.judgeOptions ? ' দল যে বিকল্প (ক–ঘ) বলবে, নিচে সেটি চাপুন: সঙ্গে সঙ্গে রায়।' : ' সঠিক হলে "সঠিক +' + bn(Game.pointsFor('correct')) + '", ভুল হলে "ভুল"।') + (r.features.passAfterOptions ? '' : ' বিকল্প নেওয়ার পর পাস নেই।') + (r.features.lifelines ? ' দল সাহায্য চাইলে ৫০:৫০ (Alt+1)।' : '') + hands, glow: r.features.judgeOptions ? ['pick'] : ['judge', 'lifeline'] };
+    const name = t ? t.name : 'The team';
+    if (!r || !l.qid) return { t: 'No question loaded — go back to the question board and pick a number.', glow: ['gotoGrid'] };
+    if (l.locked) return { t: 'The question is locked. Press L to unlock.', glow: ['lock'] };
+    if (l.result === 'correct' || (l.revealed && l.result)) return { t: 'The answer has been shown. "▦ Question board" → next team\'s turn, or "Next question".', glow: ['gotoGrid', 'qStep'] };
+    if (l.result && !l.revealed) return { t: 'Points given. To show the answer on TV: "Show answer" (R)' + (r.features.pass && l.result === 'wrong' && Game.nextPassTeam() ? ', or "Pass" (P) to the next team.' : '.'), glow: ['reveal', 'pass'] };
+    if (s.timer.expired) return { t: 'Time is up! If ' + name + ' cannot answer, press "Wrong" (X)' + (r.features.pass ? ', then "Pass" (P).' : '.'), glow: ['judge', 'pass'] };
+    if (r.type === 'rapid') return { t: 'Press the number (1–8) of the team that buzzed first. Then "Correct" (C) if right, "Wrong" (X) if wrong — a wrong answer ends the question.', glow: ['judge', 'setActive'] };
+    if (r.type === 'bonus') return { t: name + ' is answering. "Correct" (+' + Game.pointsFor('correct') + ') if right, "Wrong" if wrong, "Pass" if they cannot answer (the value goes up for the next team).', glow: ['judge', 'pass'] };
+    const hands = r.features.challenge ? ' If another team buzzes / raises a hand, press Shift + its number, then ✓ or ✕.' : '';
+    if (l.flow === 'pass' || l.flow === 'bonus') return { t: name + ' is answering (after a pass). "Correct" (C) if right, "Wrong" (X) if wrong. If they cannot answer either, "Pass" (P).', glow: ['judge', 'pass'] };
+    if (l.flow === 'challenge') return { t: 'Challenge: ' + name + ' is answering. "Correct" (+' + r.scoring.challengeRight + ') if right, "Wrong" (' + r.scoring.challengeWrong + ') if wrong.', glow: ['judge'] };
+    if (!l.optionsShown) return { t: name + ' is answering without options. If right, "Correct +' + Game.pointsFor('correct') + '" (C) — the answer shows at once. If wrong, "Wrong" (X).' + (r.features.options ? ' If they ask for help, "Show 4 options" (V).' : '') + hands, glow: ['judge', 'options', 'timerToggle'] };
+    return { t: name + ' is answering with the options shown.' + (r.features.judgeOptions ? ' Press the option (A–D) the team names below: judged at once.' : ' "Correct +' + Game.pointsFor('correct') + '" if right, "Wrong" if wrong.') + (r.features.passAfterOptions ? '' : ' No pass after taking the options.') + (r.features.lifelines ? ' If the team asks for help: 50:50 (Alt+1).' : '') + hands, glow: r.features.judgeOptions ? ['pick'] : ['judge', 'lifeline'] };
   },
   html(s) {
     const p = safe('coach', () => this.plan(s), { t: '', glow: [] });
-    return '<div class="card coach" role="status"><h3>💡 এখন কী করবেন</h3><p class="coach-t">' + esc(p.t) + '</p><p class="coach-tip">ভুল চাপলে আনডু (Ctrl+Z)। জ্বলজ্বলে বোতামগুলোই এখন দরকারি।</p></div>';
+    return '<div class="card coach" role="status"><h3>💡 What to do now</h3><p class="coach-t">' + esc(p.t) + '</p><p class="coach-tip">Pressed the wrong button? Undo (Ctrl+Z). The glowing buttons are the ones you need now.</p></div>';
   },
   applyGlow(root, s) {
     const p = safe('coach', () => this.plan(s), { t: '', glow: [] });
