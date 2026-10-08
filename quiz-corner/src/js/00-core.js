@@ -235,7 +235,7 @@ function defaultState() {
     schema: SCHEMA, rulesVersion: RULES_VERSION, rev: 0, updatedAt: 0,
     event: {
       brandEn: 'QUIZ CORNER', brandBn: 'খেজুরি কুইজ কর্নার', tagline: 'Knowledge is Power',
-      programme: str(ev.name || 'জুনিয়র জিনিয়াস (সিজন ৪)'), subtitle: bannerLines[0] || 'আন্তঃপ্রাথমিক বিদ্যালয় কুইজ প্রতিযোগিতা',
+      programme: str(ev.name || 'জুনিয়র জিনিয়াস (সিজন ৪)'), brandEn: 'JUNIOR GENIUS SEASON 4', // the English title of the main rounds (opening, round intro, team intro, question, scoreboard, finale) subtitle: bannerLines[0] || 'আন্তঃপ্রাথমিক বিদ্যালয় কুইজ প্রতিযোগিতা',
       season: 'সিজন ৪', year: bannerLines[1] || '২০২৬–২৭ শিক্ষাবর্ষ',
       organizer: (bannerLines.find((l) => l.startsWith('আয়োজনে')) || '').replace(/^আয়োজনে:\s*/, '') || 'টিকাশী গুচ্ছ সম্পদ কেন্দ্র (CRC)',
       venue: (bannerLines.find((l) => l.startsWith('স্থান')) || '').replace(/^স্থান:\s*/, ''),

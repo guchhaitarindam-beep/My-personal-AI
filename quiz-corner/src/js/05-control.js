@@ -326,6 +326,8 @@ const UI = {
     } else if (sc === 'THEME' || sc === 'WELCOME') {
       const slot = sc === 'THEME' ? 'theme' : 'welcome';
       h += '<div class="card"><h3>' + (slot === 'theme' ? 'Theme song' : 'Welcome music') + ' <span class="hint">' + esc(Media.label(s.audio.music[slot].media)) + '</span></h3><div class="deck">' + b('music', '▶ Play', 'good', slot) + b('musicStop', '■ Stop (fade)', 'bad', slot) + '</div></div>';
+    } else if (sc === 'MAIN_TITLE') {
+      h += '<div class="card"><h3>Main round opening <span class="hint">' + esc(s.event.brandEn || '') + ' → MAIN ROUND</span></h3><div class="deck">' + b('replay', '↻ Play again') + b('next', 'Countdown ▶', 'primary', '', '→') + '</div></div>';
     } else if (sc === 'PRELIM_COUNTDOWN' || sc === 'MAIN_COUNTDOWN') {
       h += '<div class="card"><h3>Countdown</h3><div class="deck">' + b('replay', '↻ Restart') + '</div></div>';
     } else if (sc === 'PRELIM_RESULT' || sc === 'FINALISTS' || sc === 'FINALIST_INTRO' || sc === 'WELCOME') {
@@ -468,7 +470,7 @@ function HomeCards(s) {
     card('homeContinue', '▶', 'Continue Event', 'Live control • now: ' + (cur ? cur.label : '—'), 'go') +
     card('newGame', '✚', 'New Event', 'Scores back to zero — teams, questions and photos kept', 'warn') +
     card('rehearsalToggle', '🎭', Store.rehearsal ? 'End Rehearsal' : 'Rehearsal Mode', Store.rehearsal ? 'Back to the real event exactly as it was' : 'Practise freely — the real event stays safe', 'reh' + (Store.rehearsal ? ' on' : '')) +
-    card('skipToMain', '⏭', 'Skip to Main Round', 'Straight to the main-round countdown') +
+    card('skipToMain', '⏭', 'Skip to Main Round', 'Straight to the main-round opening and countdown') +
     '</section><h4 class="home-sub">Event settings</h4>';
 }
 function SettingsHome(s) {
@@ -501,7 +503,7 @@ const Actions = {
     const rows = Store.past.slice(-30).reverse().map((h, i) => '<div class="hist-row"><span>' + (i === 0 ? '<b>Last:</b> ' : '') + esc(UNDO_MSG(h.label) || h.label) + '</span></div>').join('') || '<p class="muted">Nothing done yet.</p>';
     UI.sheet('History', '<div class="hist">' + rows + '</div><div class="confirm-row"><button class="btn lg" data-act="undo">↶ Undo last</button><button class="btn lg" data-act="redo">↷ Redo</button></div>');
   },
-  skipToMain() { Show.jump('MAIN_COUNTDOWN'); UI.setLive(true); UI.toast('Main round countdown — press → after GO! for round 1', 'ok'); },
+  skipToMain() { Show.jump('MAIN_TITLE'); UI.setLive(true); UI.toast('Main round opening — press → for the countdown', 'ok'); },
   navTeams() { UI.setLive(false); Actions.tab('teams'); },
   navQuestions() { UI.setLive(false); Actions.tab('questions'); },
   /** Rehearsal: play freely on a copy; ending it puts the real event back exactly as it was. */

@@ -7,7 +7,7 @@ const SCENES = {
   ORGANIZER: 'আয়োজক ব্যানার', LOGO: 'কুইজ কর্নার লোগো', PROGRAMME: 'অনুষ্ঠান পরিচিতি', THEME: 'থিম সং', IDENTITY: 'আমাদের পরিচয়', CREW: 'আমাদের টিম',
   TEAMS_ALL: 'অংশগ্রহণকারী দল', TEAM_INTRO: 'দল পরিচিতি', OVERVIEW: 'আজকের অনুষ্ঠান', PRELIM_RULES: 'বাছাই পর্বের নিয়ম', PRELIM_COUNTDOWN: 'বাছাই কাউন্টডাউন', PRELIM_Q: 'বাছাই প্রশ্ন',
   PRELIM_RESULT: 'বাছাই ফলাফল', FINALISTS: 'চূড়ান্ত ৮', FINALIST_INTRO: 'মঞ্চে আহ্বান', WELCOME: 'স্বাগত সংগীত', DRAW: 'পোডিয়াম লটারি', GIFT: 'বিশেষ উপস্থাপনা', PODIUM: 'পোডিয়াম',
-  MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
+  MAIN_TITLE: 'মূল পর্বের সূচনা', MAIN_COUNTDOWN: 'মূল কাউন্টডাউন', ROUND_INTRO: 'রাউন্ড সূচনা', ROUND_RULES: 'রাউন্ডের নিয়ম', GRID: 'প্রশ্ন বোর্ড', QUESTION: 'প্রশ্ন', SCOREBOARD: 'স্কোরবোর্ড',
   FINAL: 'চূড়ান্ত স্কোরবোর্ড', TOP3: 'বিজয়ী মঞ্চ (২-১-৩)', WINNER: 'বিজয়ী', END: 'সমাপনী লোগো', GRAPHIC: 'গ্রাফিক',
 };
 /** English scene names for the operator's rundown list on the control window.
@@ -16,7 +16,7 @@ const SCENE_LABELS = {
   ORGANIZER: 'Organizer banner', LOGO: 'Quiz Corner logo', PROGRAMME: 'Programme intro', THEME: 'Theme song', IDENTITY: 'About us', CREW: 'Our team',
   TEAMS_ALL: 'Participating teams', TEAM_INTRO: 'Team intro', OVERVIEW: "Today's programme", PRELIM_RULES: 'Prelim rules', PRELIM_COUNTDOWN: 'Prelim countdown', PRELIM_Q: 'Prelim question',
   PRELIM_RESULT: 'Prelim results', FINALISTS: 'Final 8', FINALIST_INTRO: 'Call to stage', WELCOME: 'Welcome music', DRAW: 'Podium lottery', GIFT: 'Special presentation', PODIUM: 'Podium',
-  MAIN_COUNTDOWN: 'Main rounds countdown', ROUND_INTRO: 'Round intro', ROUND_RULES: 'Round rules', GRID: 'Question board', QUESTION: 'Question', SCOREBOARD: 'Scoreboard',
+  MAIN_TITLE: 'Main round opening (JUNIOR GENIUS SEASON 4)', MAIN_COUNTDOWN: 'Main rounds countdown', ROUND_INTRO: 'Round intro', ROUND_RULES: 'Round rules', GRID: 'Question board', QUESTION: 'Question', SCOREBOARD: 'Scoreboard',
   FINAL: 'Final results', TOP3: 'Top 3 (2-1-3)', WINNER: 'Winner', END: 'Closing logo', GRAPHIC: 'Graphic',
 };
 
@@ -48,7 +48,7 @@ const Show = {
     fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'Team intro • ' + Sel.label(t)); });
     // the old "special presentation" cards (one per team) are off by default: the podium lottery replaced them
     if (s.settings.giftScenes) Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'Special presentation • ' + ((Sel.team(id) || {}).name || '')));
-    add('PODIUM'); add('MAIN_COUNTDOWN');
+    add('PODIUM'); add('MAIN_TITLE'); add('MAIN_COUNTDOWN');
     s.rounds.forEach((r, ri) => {
       if (!r.enabled) return;
       add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'Round ' + String(ri + 1) + ' • ' + r.name);
@@ -94,6 +94,7 @@ const Show = {
       case 'WELCOME': if (override) play(); Cue.music('welcome', 'play'); break;
       case 'DRAW': Draw.ensure(); play('transition'); break;
       case 'TEAM_INTRO': case 'FINALIST_INTRO': play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
+      case 'MAIN_TITLE': play('round'); { const at = s.show.startedAt; setTimeout(() => { if (Store.state.show.startedAt === at) Cue.play('ding'); }, 1400); } break; // stinger, then a soft chime as the gold light passes
       case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); break; // the countdown clock emits its own beeps
       case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
       case 'ROUND_INTRO': if (override) play(); { const n = s.rounds.filter((x) => x.enabled).findIndex((x) => x.id === p.roundId) + 1; if (!override) Cue.play('roundintro', { n }); } { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); else if (s.audio.themeSting) { Cue.music('theme', 'play'); const at = Store.state.show.startedAt; clearTimeout(this.stingT); this.stingT = setTimeout(() => { Cue.music('theme', 'stop'); void at; }, 6500); } } break;

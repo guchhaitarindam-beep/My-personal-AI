@@ -9,6 +9,8 @@ function firstGrapheme(t) {
   try { if (window.Intl && Intl.Segmenter) { const it = new Intl.Segmenter('bn', { granularity: 'grapheme' }).segment(t)[Symbol.iterator]().next(); if (!it.done) return it.value.segment; } } catch (e) { /* older browser */ }
   return t.charAt(0);
 }
+/** Main-round screens that carry the JUNIOR GENIUS SEASON 4 title in their header. */
+const MAIN_BRAND_SCENES = ['ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3'];
 const H = {
   photo(mediaId, name, cls = '', color, label) {
     const initial = esc(label || str(name || '?').trim().charAt(0) || '?');
@@ -35,8 +37,11 @@ const H = {
   roundVars(r) { return r ? '--r-primary:' + esc(r.design.primary) + ';--r-secondary:' + esc(r.design.secondary) + ';--r-accent:' + esc(r.design.accent) + ';' : ''; },
   logo(s, cls = 'logo-chip') { return s.logo ? '<img class="' + cls + '" data-media="' + esc(s.logo) + '" alt="">' : ''; },
   head(s, left, right = '') {
-    return '<div class="s-head" data-part="head">' + (s.design.corner.show ? '' : H.logo(s)) + left + '<span class="spacer"></span>' + right + '</div>';
+    const mid = MAIN_BRAND_SCENES.includes(s.show.scene) ? H.brand(s) : '';
+    return '<div class="s-head" data-part="head">' + (s.design.corner.show ? '' : H.logo(s)) + left + '<span class="spacer">' + mid + '</span>' + right + '</div>';
   },
+  /** JUNIOR GENIUS SEASON 4 — the main rounds' English title (event.brandEn), always the exact same words. */
+  brand(s, cls = '') { const b = str(s.event.brandEn).trim(); return b ? '<span class="jg ' + cls + '"><span class="jg-t">' + esc(b) + '</span></span>' : ''; },
   part(name, html, cls = '', style = '') { return '<div data-part="' + name + '" class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + html + '</div>'; },
   timer() {
     return '<div class="timer idle" data-part="timer" data-timer><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52" stroke-width="2"/><circle class="ring" cx="60" cy="60" r="52" stroke-width="7" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="0"/><text class="digits" x="60" y="56">60</text><text class="mode" x="60" y="86">DIRECT</text></svg></div>';
@@ -141,7 +146,7 @@ const Scenes = {
     const cards = mem.map((m, k) => '<div data-part="m' + k + '" class="mem-card ' + (k % 2 ? 'from-right' : 'from-left') + (k < shown ? '' : ' hidden') + '">' + (k < shown ? H.photo(m.photo, m.name || '?', 'mem-face') + '<b class="mem-name">' + esc(m.name || '—') + '</b><small class="mem-role">' + (k === 0 ? 'সদস্য ১ • অধিনায়ক' : 'সদস্য ২') + '</small>' : '') + '</div>').join('');
     return {
       key: (finalist ? 'FIN:' : 'TEAM:') + t.id, anim: finalist ? 'push' : 'orbit', style: H.teamVars(t),
-      html: '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(hide ? bn(p.n || '') : code.charAt(0)) + '</div>' +
+      html: H.part('brand', H.brand(s, 'jg-ribbon'), 'jg-top') + '<div data-part="body" data-morph class="intro-card"><div data-part="spot" class="intro-spot"></div><div data-part="ghost" class="ghost-num">' + esc(hide ? bn(p.n || '') : code.charAt(0)) + '</div>' +
         '<div data-part="ph" class="intro-ph">' + H.tphoto(t, 'big-photo') + '</div>' +
         '<div data-part="info" data-morph class="intro-info"><div data-part="tx" class="intro-tx"><div class="num">' + esc(tag) + '</div><div class="name-box"><div class="name' + (nm && nm !== code ? '' : ' code-only') + '" data-fit="' + (nm && nm !== code ? 8 : 15) + '">' + (hide ? esc(nm) : nm && nm !== code ? '<span class="tcode big">' + esc(code) + '</span> ' + esc(nm) : 'TEAM ' + esc(code)) + '</div></div>' + (t.school && t.school !== nm ? '<div class="school">' + esc(t.school) + '</div>' : '') + (pr ? '<div class="fin-score">বাছাই পর্বে <b>' + bn(pr.score) + '</b> পয়েন্ট • স্থান <b>' + bn(pr.rank) + '</b></div>' : '') + '</div>' +
         '<div data-part="mem" data-morph class="mem-row">' + cards + '</div>' +
@@ -179,6 +184,14 @@ const Scenes = {
   },
   PRELIM_COUNTDOWN(s) { return Scenes.countdown(s, 'PRELIM ROUND STARTS IN'); },
   MAIN_COUNTDOWN(s) { return Scenes.countdown(s, 'MAIN ROUND STARTS IN'); },
+  /** Main-round opening: gold particles gather → a golden light sweeps → JUNIOR GENIUS SEASON 4 comes out of the depth,
+      grows a little and settles inside a luminous double frame → MAIN ROUND. */
+  MAIN_TITLE(s) {
+    const b = str(s.event.brandEn).trim() || 'JUNIOR GENIUS SEASON 4';
+    const dots = Array.from({ length: 28 }, (_, i) => { const a = (i / 28) * Math.PI * 2; const r = 38 + (i % 4) * 9; return '<i style="--x:' + (Math.cos(a) * r).toFixed(1) + 'cqw;--y:' + (Math.sin(a) * r * 0.55).toFixed(1) + 'cqh;--d:' + ((i % 7) * 0.05).toFixed(2) + 's"></i>'; }).join('');
+    const words = b.split(/\s+/); const last = words.pop();
+    return { key: 'MT:' + s.show.startedAt, anim: 'fade', html: H.part('body', '<div class="mt-dots" aria-hidden="true">' + dots + '</div><div class="mt-frame"><div class="mt-title"><span>' + esc(words.join(' ')) + '</span> <b>' + esc(last) + '</b></div><div class="mt-sweep" aria-hidden="true"></div></div><div class="mt-sub">MAIN ROUND</div>', 'main-title') };
+  },
   drone(deliverAt, enabled) {
     const ms = Show.droneMs();
     if (!enabled || !(now() - deliverAt < ms)) return { html: '', style: '--drone-ms:0;' };
@@ -268,7 +281,7 @@ const Scenes = {
     const fx = a === 'door' ? '<div class="doors" data-part="doors"><i></i><i></i></div>' : a === 'sweep' || a === 'glass' ? '<div class="sweep" data-part="sweep"></div>' : '';
     return {
       key: 'RI:' + r.id, anim: a === 'burst' ? 'zoom' : ['flip', 'cube', 'zoom', 'spin', 'slide', 'door', 'push', 'orbit'].includes(a) ? a : 'fade', style: H.roundVars(r), burst: a === 'burst' || a === 'sweep', bg: r.design.bg,
-      html: H.part('body', '<div class="rnum">ROUND ' + n + '</div><div class="rname-box"><div class="rname" data-fit="19" style="' + (r.design.titleFont ? 'font-family:' + esc(FONT_MAP[r.design.titleFont] || r.design.titleFont) : '') + '">' + esc(r.name) + '</div></div><div class="rules-underline big"></div>' + (r.label ? '<div class="rlabel">' + esc(r.label) + '</div>' : '') + (r.description ? '<div class="rdesc">' + esc(r.description) + '</div>' : ''), 'round-intro ri-anim-' + a) + fx,
+      html: H.part('body', H.brand(s, 'jg-kicker') + '<div class="rnum">ROUND ' + n + '</div><div class="rname-box"><div class="rname" data-fit="19" style="' + (r.design.titleFont ? 'font-family:' + esc(FONT_MAP[r.design.titleFont] || r.design.titleFont) : '') + '">' + esc(r.name) + '</div></div><div class="rules-underline big"></div>' + (r.label ? '<div class="rlabel">' + esc(r.label) + '</div>' : '') + (r.description ? '<div class="rdesc">' + esc(r.description) + '</div>' : ''), 'round-intro ri-anim-' + a) + fx,
     };
   },
   ROUND_RULES(s, p) { const r = Sel.round(p.roundId); return Object.assign(Scenes.rulesScene(s, r ? r.name : '', r ? r.rules : '', 'RR:' + p.roundId, r), { bg: r && r.design.bg }); },
@@ -316,16 +329,17 @@ const Scenes = {
     }).join(''), 'opts', dr.delivered ? '--opt-delay:' + (Show.droneMs() * 0.0008).toFixed(2) + 's' : '') : '';
     const poll = l.poll ? H.part('poll', l.poll.map((v, i) => (q.options[i] ? '<div class="bar"><span class="pct">' + bn(v) + '%</span><div class="fill" style="--h:' + Math.max(2, v) + '%"></div><span class="lab">' + OPT_LABELS[i] + '</span></div>' : '<div></div>')).join(''), 'poll glass') : '';
     const ansText = q.answerText || q.options[q.answer] || '';
-    const ans = l.revealed ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + (q.options[q.answer] && !q.answerText && l.optionsShown ? '(' + OPT_LABELS[q.answer] + ') ' : '') /* the option letter only when the options were on screen */ + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
+    const ans = l.revealed ? H.part('answer', '<span class="lbl lbl-en">CORRECT ANSWER</span><div class="ans-box"><div class="ans" data-fit="4.6">' + (q.options[q.answer] && !q.answerText && l.optionsShown ? '(' + OPT_LABELS[q.answer] + ') ' : '') /* the option letter only when the options were on screen */ + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
     const stamp = l.result ? '<div class="stamp ' + l.result + '" data-part="stamp-' + l.resultAt + '">' + ({ correct: 'সঠিক ✓', wrong: 'ভুল ✗', noscore: 'নো স্কোর' }[l.result]) + '</div>' + (l.lastPoints ? '<div class="points-fly" data-part="pts-' + l.resultAt + '">' + signed(l.lastPoints) + '</div>' : '') : '';
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
     const qScale = r && r.design.qScale && r.design.qScale !== 1 ? r.design.qScale : 1;
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
-      html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum">প্রশ্ন ' + bn(q.number) + '</span>') +
+      html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>') +
         '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (6.2 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + opts + poll + ans + '</div>' +
-        '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html,
+        '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +
+        (dr.delivered ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')),
     };
   },
   standingsRows(s, rows, rid, revealFrom = 0, titles = false) {
@@ -369,7 +383,7 @@ const Scenes = {
     const t = w.team;
     return {
       key: 'WIN:' + t.id, anim: 'zoom', style: H.teamVars(t), confetti: true,
-      html: H.part('body', (s.winnerPhoto ? H.photo(s.winnerPhoto, t.name, 'wphoto', '', Sel.code(t).charAt(0)) : H.tphoto(t, 'wphoto')) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + H.tn(t) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
+      html: H.part('brand', H.brand(s, 'jg-ribbon'), 'jg-top') + H.part('body', (s.winnerPhoto ? H.photo(s.winnerPhoto, t.name, 'wphoto', '', Sel.code(t).charAt(0)) : H.tphoto(t, 'wphoto')) + '<div class="wtxt">' + TROPHY_SVG + '<div class="champ">CHAMPION</div><div class="name-box"><div class="wname" data-fit="10">' + H.tn(t) + '</div></div>' + (t.school ? '<div class="wschool">' + esc(t.school) + '</div>' : '') + (t.captain ? '<div class="wcap">অধিনায়ক: ' + esc(t.captain) + '</div>' : '') + '<div class="wscore">' + bn(w.score) + ' পয়েন্ট</div></div>', 'winner'),
     };
   },
   TOP3(s) {

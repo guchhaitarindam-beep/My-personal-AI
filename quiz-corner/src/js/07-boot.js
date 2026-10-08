@@ -226,7 +226,7 @@ const SelfTest = {
       T('Render: every rundown scene (' + rd.length + ')', () => (bad.length ? bad.slice(0, 3).join('; ') && false : true));
       T('Rundown: prelim questions skipped on the day (results only)', () => !rd.some((x) => /^PRELIM_(RULES|COUNTDOWN|Q)$/.test(x.scene)) && rd.some((x) => x.scene === 'PRELIM_RESULT'));
       T('Rundown: prelim questions return when switched on', () => { Store.state.prelim.onStage = true; const ok = ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q'].every((k) => Show.rundown().some((x) => x.scene === k)); Store.state.prelim.onStage = false; return ok && !Show.rundown().some((x) => x.scene === 'PRELIM_Q'); });
-      T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
+      T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
       T('Rundown: the 3 main rounds for 13 October', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3');
 
       // ---- the latest rules (DOC-20261004-WA0002) for the 13 October main stage ----
@@ -246,7 +246,8 @@ const SelfTest = {
       T('Rules: round 3 text says "same answer not accepted"', () => R('R3').rules.includes('আলাদা') && R('R3').rules.includes('পাস নেই') && R('R3').rules.includes('৬০ সেকেন্ড'));
       T('Rules: prelim — 15 questions, stars on 3/6/9/12/15', () => s().prelim.rules.includes('১৫টি') && Sel.prelimQuestions().map((q, i) => (q.star ? i + 1 : 0)).filter(Boolean).join() === '3,6,9,12,15');
       T('Questions: 10 each in rounds 1–3, numbered 1–10', () => ['R1', 'R2', 'R3'].every((id) => { const qs = Sel.roundQuestions(id); return qs.length === 10 && qs.map((q) => q.number).sort((x, y) => x - y).join() === '1,2,3,4,5,6,7,8,9,10'; }));
-      T('Questions: at least one mythology question per round', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /রাম|রাবণ|রামায়ণ|মহাভারত|কুরুক্ষেত্র|গীতা|দুর্গা|অর্জুন/.test(q.text))));
+      // Round 1 opens with a current-affairs question (13 Oct, the organiser's choice); rounds 2 and 3 keep a mythology question
+      T('Questions: a mythology question in rounds 2 and 3', () => ['R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /রাম|রাবণ|রামায়ণ|মহাভারত|কুরুক্ষেত্র|গীতা|দুর্গা|অর্জুন/.test(q.text))));
       T('Questions: at least one story/cartoon question per round', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /টুনটুনি|সুকুমার|খিচুড়ি|গুপী|বাঘা|প্রদোষচন্দ্র|মগজাস্ত্র|ঠাকুরমার/.test(q.text))));
       T('Questions: every question in rounds 1–3 has a picture', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => /^asset:/.test(q.image))));
       T('Questions: old saves get new pictures, own pictures kept', () => { const old = defaultState(); delete old.rulesVersion; old.questions.forEach((q) => { q.image = ''; }); old.questions[1].image = 'm_mine'; const n = normalizeState(old); const d = defaultState(); return n.questions[0].image === d.questions[0].image && !!n.questions[0].image && n.questions[1].image === 'm_mine'; });
@@ -521,6 +522,14 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
+      T('JUNIOR GENIUS SEASON 4: opening before the countdown, and on round intro, team intro, question, scoreboard and winner', () => {
+        const st = Store.state; const keep = [st.show.scene, st.show.params]; const rd2 = Show.rundown(); const at = (k) => rd2.findIndex((x) => x.scene === k);
+        const has = (sc, p) => { st.show.scene = sc; st.show.params = p || {}; const h = Scenes[sc](st, st.show.params).html.replace(/<[^>]+>/g, ''); return h.includes('JUNIOR GENIUS SEASON 4'); };
+        const r1 = st.rounds[0]; const team = st.teams[0];
+        const ok = at('MAIN_TITLE') >= 0 && at('MAIN_TITLE') === at('MAIN_COUNTDOWN') - 1 && has('MAIN_TITLE') && has('ROUND_INTRO', { roundId: r1.id }) && has('TEAM_INTRO', { teamId: team.id, n: 1 }) && has('SCOREBOARD', { roundId: r1.id }) && has('GRID', { roundId: r1.id });
+        [st.show.scene, st.show.params] = keep; return ok;
+      });
+      T('Round 1 question 1: India\'s first LNG train — answer আহমেদাবাদ', () => { const q = Sel.roundQuestions('R1').find((x) => x.number === 1); return q && /LNG/.test(q.text) && q.options[q.answer] === 'আহমেদাবাদ' && !/জটায়ু/.test(q.options.join()); });
       T('Theme: default is Midnight Royal Blue · Warm White · Champagne Gold', () => { const c = defaultState().design.colors; return defaultState().design.theme === 'midnight' && c.bg === '#071a3d' && c.bg2 === '#102d63' && c.text === '#fff9e8' && c.head === '#ffffff' && c.gold === '#f4d27a'; });
       T('Theme: five calm themes with their exact colours', () => THEMES.violetGold.bg === '#170d38' && THEMES.violetGold.gold === '#e8b7c8' && THEMES.tealIvory.bg2 === '#07545a' && THEMES.navyCyan.accent === '#70cfff' && THEMES.royalYellow.accent === '#d9c2ff' && THEMES.royalYellow.gold === '#f2d27d');
       T('Theme: a round (or the finale) can have its own theme; default = show theme', () => {

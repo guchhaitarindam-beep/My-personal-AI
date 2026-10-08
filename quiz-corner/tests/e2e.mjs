@@ -40,7 +40,7 @@ check('Stage shows no operator controls', await stage.evaluate(() => !document.q
 await ctl.evaluate(() => window.QC.Store.commit('test-prelim-on', (s) => { s.prelim.onStage = true; }));
 const rd = await ctl.evaluate(() => window.QC.Show.rundown().map((s) => ({ key: s.key, scene: s.scene })));
 check('Rundown length', rd.length > 60, rd.length + ' steps');
-const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'IDENTITY', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
+const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'IDENTITY', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
 const shot = new Set();
 let overflowIssues = [];
 let syncIssues = 0;
@@ -343,6 +343,8 @@ await ctl.evaluate(() => {
 });
 const overflowAt = async (label) => {
   await stage.waitForTimeout(1800);
+  // a 4K stage under load can still be flying in: measure once the entrance animations have finished (at most 8 s)
+  await stage.evaluate(async () => { const t0 = performance.now(); while (performance.now() - t0 < 8000) { const busy = document.getAnimations().filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity && a.effect.getComputedTiming().activeDuration < 5000); if (!busy.length) break; await new Promise((r) => setTimeout(r, 100)); } });
   await stage.screenshot({ path: path.join(shots, 'stress-' + label + '.png') });
   return stage.evaluate(() => {
     const bad = [];

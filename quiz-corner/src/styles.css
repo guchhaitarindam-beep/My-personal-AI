@@ -1253,3 +1253,55 @@ body.live-mode .live-col { padding-bottom: 180px; }
 .stage .center-col:has(.welcome-note) .s-title { font-size: calc(11cqh * var(--title-scale)); }
 /* scoreboard rows sit on the theme's own deep colour (not near-black violet) */
 body.fx-premium .stage .sb-row { background: linear-gradient(90deg, color-mix(in srgb, var(--team) 30%, var(--panel-solid)), color-mix(in srgb, var(--panel-solid) 90%, #000)); }
+
+/* =====================================================================
+   JUNIOR GENIUS SEASON 4 — the main rounds' title (event.brandEn)
+   ===================================================================== */
+.stage .s-head .spacer { display: flex; justify-content: center; align-items: center; min-width: 0; }
+.stage .jg { position: relative; overflow: hidden; display: inline-flex; align-items: center; white-space: nowrap; max-width: 100%; font-family: var(--font-en); font-weight: 800; font-size: 2.5cqh; letter-spacing: .24em; color: var(--gold); padding: .55cqh 1.6cqw; border-radius: 99cqh; border: .2cqh solid color-mix(in srgb, var(--gold) 60%, transparent); background: color-mix(in srgb, var(--gold) 8%, transparent); box-shadow: 0 0 1.6cqh color-mix(in srgb, var(--gold) 25%, transparent); }
+.stage .jg .jg-t { overflow: hidden; text-overflow: ellipsis; }
+body.fx-premium .stage .jg { animation: pFromTop calc(.5s / var(--anim-speed)) var(--ease-p) both; }
+body.fx-premium .stage .jg::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgba(255, 246, 214, .55) 50%, transparent 62%); background-size: 280% 100%; animation: jgShine 7s ease-in-out 1s infinite; }
+@keyframes jgShine { 0%, 82% { background-position: 140% 0; } 100% { background-position: -40% 0; } }
+.stage .jg.jg-kicker { font-size: 3.6cqh; letter-spacing: .32em; padding: .8cqh 2.4cqw; border-width: .3cqh; box-shadow: 0 0 0 .45cqh color-mix(in srgb, var(--panel-solid) 75%, #000), 0 0 0 .62cqh color-mix(in srgb, var(--text) 45%, transparent), 0 0 3cqh color-mix(in srgb, var(--gold) 35%, transparent); }
+body.fx-premium .stage .jg.jg-kicker { animation: pFromTop calc(.6s / var(--anim-speed)) var(--ease-p) calc(.15s / var(--anim-speed)) both; }
+.stage .layer > .jg-top { position: absolute; top: 2.4cqh; left: 0; right: 0; z-index: 6; display: flex; justify-content: center; pointer-events: none; }
+.stage .jg.jg-ribbon { font-size: 2.8cqh; }
+.stage .jg.jg-small { font-size: 2.6cqh; margin-bottom: 1.4cqh; }
+
+/* the TV header on a question: QUESTION 01 in an illuminated gold frame */
+.stage .s-head .qnum.qtag { font-family: var(--font-en); font-weight: 900; letter-spacing: .14em; color: var(--head, #fff); padding: .6cqh 1.5cqw; border-radius: 1.4cqh; border: .3cqh solid var(--gold); background: color-mix(in srgb, var(--panel-solid) 85%, transparent); box-shadow: 0 0 2.2cqh color-mix(in srgb, var(--gold) 45%, transparent), inset 0 0 0 .3cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 .45cqh color-mix(in srgb, var(--text) 45%, transparent); }
+
+/* a new question: first "QUESTION 01" in a gold frame, then the glass panel comes out of the depth */
+.stage .q-intro { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+.stage .q-intro b { display: block; font-family: var(--font-en); font-weight: 900; font-size: 11cqh; letter-spacing: .1em; color: var(--head, #fff); padding: 2.2cqh 4.4cqw; border-radius: 3cqh; border: .5cqh solid var(--gold); background: linear-gradient(160deg, color-mix(in srgb, var(--panel-solid) 90%, #fff 6%), color-mix(in srgb, var(--panel-solid) 95%, #000)); box-shadow: inset 0 0 0 .7cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 .9cqh color-mix(in srgb, var(--text) 50%, transparent), 0 0 6cqh color-mix(in srgb, var(--gold) 45%, transparent), 0 3cqh 8cqh rgba(0, 0, 0, .6); text-shadow: 0 0 3cqh color-mix(in srgb, var(--gold) 45%, transparent); }
+.stage .q-intro { display: flex; flex-direction: column; align-items: center; justify-content: center; animation: qIntro calc(1.15s / var(--anim-speed)) cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes qIntro { 0% { opacity: 0; transform: perspective(1400px) translateZ(-30cqh) scale(.75); filter: blur(8px); } 20% { opacity: 1; transform: none; filter: blur(0); } 70% { opacity: 1; transform: scale(1.02); } 100% { opacity: 0; transform: perspective(1400px) translateZ(12cqh) scale(1.08); filter: blur(4px); visibility: hidden; } }
+body:not(.fx-premium) .stage .q-intro, body.no-motion .stage .q-intro { display: none; }
+body.fx-premium:not(.no-motion) .stage .layer:has(.q-intro) .q-card:not(.delivered) { animation-delay: calc(.82s / var(--anim-speed)); }
+body.fx-premium:not(.no-motion) .stage .layer:has(.q-intro) .q-card .q-text { animation-delay: calc(1.12s / var(--anim-speed)); }
+body.fx-premium:not(.no-motion) .stage .layer:has(.q-intro) .q-card::before { animation-delay: calc(1.85s / var(--anim-speed)); }
+
+/* answer: the correct option goes green, then CORRECT ANSWER in a gold-framed confirmation panel */
+body.fx-premium .stage .answer-bar { border-color: var(--gold); background: linear-gradient(100deg, color-mix(in srgb, var(--correct) 22%, var(--panel-solid)), color-mix(in srgb, var(--panel-solid) 92%, #000)); box-shadow: inset 0 0 0 .45cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 .62cqh color-mix(in srgb, var(--text) 45%, transparent), 0 0 3cqh color-mix(in srgb, var(--gold) 35%, transparent); animation: pFromBottom calc(.55s / var(--anim-speed)) var(--ease-p) calc(.45s / var(--anim-speed)) both; }
+.stage .answer-bar .lbl.lbl-en { font-family: var(--font-en); font-weight: 900; letter-spacing: .14em; font-size: 2.5cqh; color: var(--gold); text-align: center; line-height: 1.25; max-width: 12cqw; white-space: normal; }
+
+/* MAIN ROUND opening */
+.stage .main-title { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4cqh; perspective: 1400px; }
+.stage .mt-dots { position: absolute; left: 50%; top: 46%; width: 0; height: 0; pointer-events: none; }
+.stage .mt-dots i { position: absolute; width: 1.3cqh; height: 1.3cqh; margin: -.65cqh; border-radius: 50%; background: radial-gradient(circle, #fff6d6, var(--gold) 55%, transparent 70%); opacity: 0; animation: mtDot calc(1.2s / var(--anim-speed)) cubic-bezier(.5, 0, .3, 1) var(--d) both; }
+@keyframes mtDot { 0% { opacity: 0; transform: translate(var(--x), var(--y)) scale(1.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(0, 0) scale(.2); } }
+.stage .mt-frame { position: relative; padding: 3.4cqh 4.4cqw; border-radius: 3.2cqh; }
+.stage .mt-frame::before { content: ''; position: absolute; inset: 0; border-radius: inherit; border: .5cqh solid var(--gold); background: linear-gradient(160deg, color-mix(in srgb, var(--panel-solid) 70%, transparent), color-mix(in srgb, var(--panel-solid) 85%, transparent)); box-shadow: inset 0 0 0 .8cqh color-mix(in srgb, var(--panel-solid) 70%, #000), inset 0 0 0 1cqh color-mix(in srgb, var(--text) 50%, transparent), 0 0 7cqh color-mix(in srgb, var(--gold) 45%, transparent), inset 0 0 5cqh color-mix(in srgb, var(--gold) 20%, transparent); z-index: -1; animation: mtFrame calc(.9s / var(--anim-speed)) var(--ease-p) calc(1.35s / var(--anim-speed)) both; }
+@keyframes mtFrame { from { opacity: 0; transform: scale(1.12); } }
+.stage .mt-title { font-family: var(--font-en); font-weight: 900; font-size: 7.8cqh; letter-spacing: .08em; line-height: 1.2; white-space: nowrap; color: var(--head, #fff); text-shadow: 0 .5cqh 1cqh rgba(0, 0, 0, .55), 0 0 3cqh color-mix(in srgb, var(--gold) 40%, transparent); animation: mtTitle calc(1.5s / var(--anim-speed)) var(--ease-p) calc(.55s / var(--anim-speed)) both; }
+.stage .mt-title b { color: var(--gold); }
+@keyframes mtTitle { 0% { opacity: 0; transform: translateZ(-90cqh) scale(.4); filter: blur(12px); } 60% { opacity: 1; filter: blur(0); } 80% { transform: translateZ(4cqh) scale(1.06); } 100% { transform: none; } }
+.stage .mt-sweep { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.stage .mt-sweep::after { content: ''; position: absolute; top: -20%; bottom: -20%; width: 30%; left: -40%; background: linear-gradient(100deg, transparent, rgba(255, 240, 200, .5), transparent); transform: skewX(-18deg); animation: mtSweep calc(1.3s / var(--anim-speed)) ease-in-out calc(1s / var(--anim-speed)) 1 both; }
+@keyframes mtSweep { from { left: -40%; opacity: 1; } 90% { opacity: 1; } to { left: 120%; opacity: 0; } }
+.stage .mt-sub { font-family: var(--font-en); font-weight: 900; font-size: 5.2cqh; letter-spacing: .5em; padding-left: .5em; color: var(--gold); text-shadow: 0 0 2.4cqh color-mix(in srgb, var(--gold) 50%, transparent); animation: pFromBottom calc(.7s / var(--anim-speed)) var(--ease-p) calc(1.95s / var(--anim-speed)) both; }
+/* the "সঠিক ✓ / ভুল ✗" stamp is a short moment, so the green option and CORRECT ANSWER stay clear */
+body.fx-premium .stage .stamp { animation: stampIn .6s cubic-bezier(.2, 1.6, .4, 1) both, stampOut .5s ease-in 1.3s forwards; }
+.stage .mt-title { font-size: 9cqh; }
+.stage .answer-bar .lbl.lbl-en { font-size: 2.9cqh; max-width: 14cqw; }
