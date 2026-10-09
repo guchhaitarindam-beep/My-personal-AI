@@ -89,6 +89,9 @@ const Show = {
     const override = (s.sceneFx[step.scene] || {}).cue;
     // Scene cue: per-scene override from the Scene Engine, 'none' silences it.
     const play = (name) => { const n = override || name; if (n && n !== 'none') Cue.play(n, { round: p.roundId }); };
+    // Rules voice-over: never lets it run on over another screen.
+    clearTimeout(this.rvT);
+    if (VoicePlayer.clipRules && !(step.scene === 'ROUND_RULES' && RULES_VOICE[p.roundId])) { VoicePlayer.clipRules = false; VoicePlayer.stop(); }
     switch (step.scene) {
       case 'THEME': if (override) play(); Cue.music('theme', 'play'); break;
       case 'WELCOME': if (override) play(); Cue.music('welcome', 'play'); break;
@@ -112,6 +115,7 @@ const Show = {
         break;
       }
       case 'TOP3': play('fanfare'); break;
+      case 'ROUND_RULES': { play('transition'); const rv = RULES_VOICE[p.roundId]; if (rv) { const at = s.show.startedAt; this.rvT = setTimeout(() => { const cur = Store.state.show; if (cur.scene === 'ROUND_RULES' && cur.params.roundId === p.roundId && cur.startedAt === at) { VoicePlayer.clipRules = true; VoicePlayer.play(rv); } }, p.roundId === 'R3' ? 1000 : 900); } break; }
       case 'WINNER': Cue.music('winner', 'play'); play('fanfare'); setTimeout(() => Cue.play('applause'), 3300); { const w = this.winner(); if (w && s.speech.enabled) Speech.say('বিজয়ী দল ' + w.team.name, 'team'); } break;
       default: play('transition');
     }

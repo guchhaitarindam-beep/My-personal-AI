@@ -542,6 +542,7 @@ const SelfTest = {
         const qs = defaultState().questions.filter((q) => ['R1', 'R2', 'R3'].includes(q.roundId));
         return qs.length === 30 && qs.every((q) => q.voiceQ === 'asset:voice_' + q.roundId + '_' + q.number && Media.builtin('voice_' + q.roundId + '_' + q.number).startsWith('data:audio/mpeg'));
       });
+      T('Rules recordings: rounds 1, 2, 3 each have their own built-in reading of the rules', () => ['R1', 'R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
       T('Round 1 recordings: all 10 in order', () => {
         const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
         return qs.length === 10 && qs.every((q) => q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg'));

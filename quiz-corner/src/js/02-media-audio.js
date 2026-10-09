@@ -388,8 +388,11 @@ const Cue = {
    a question, its options and its answer. Plays on the audio window
    through the loud music bus; the background music ducks under it.
    ===================================================================== */
+/** Built-in voice-over that plays by itself when a round's rules screen opens (round id -> embedded audio). */
+const RULES_VOICE = { R1: 'asset:rules-r1', R2: 'asset:rules-r2', R3: 'asset:rules-r3' };
 const VoicePlayer = {
   el: null,
+  clipRules: false,
   playing: false,
   async play(id) {
     if (!id || Store.sandbox) return false;
