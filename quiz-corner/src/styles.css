@@ -1305,3 +1305,12 @@ body.fx-premium .stage .answer-bar { border-color: var(--gold); background: line
 body.fx-premium .stage .stamp { animation: stampIn .6s cubic-bezier(.2, 1.6, .4, 1) both, stampOut .5s ease-in 1.3s forwards; }
 .stage .mt-title { font-size: 9cqh; }
 .stage .answer-bar .lbl.lbl-en { font-size: 2.9cqh; max-width: 14cqw; }
+
+/* final results: bigger team photos, the school's name under the code, the place title beside the code */
+.stage .sb-final .sb-row { grid-template-columns: 7cqw 16cqh 1fr 12cqw 16cqw 8cqw; max-height: 11.4cqh; padding-block: .5cqh; }
+.stage .sb-final .sb-row .team-photo { width: 15.5cqh; height: auto; aspect-ratio: 16 / 9; align-self: stretch; max-height: 100%; border-radius: 1.4cqh; border-width: .3cqh; }
+.stage .sb-final .sb-row .team-photo img { object-position: 50% 25%; }
+.stage .sb-final .sb-row .team-photo .initial { font-size: 4.6cqh; }
+.stage .sb-final .sb-row .nm b { font-size: 3.2cqh; line-height: 1.25; }
+.stage .sb-final .sb-row .rt-pill { display: inline-block; margin-left: .8cqw; font-size: 2.1cqh; font-weight: 800; letter-spacing: .04em; color: var(--gold); vertical-align: middle; }
+.stage .sb-final .sb-row .nm small.fin-school { font-size: 2.7cqh; font-weight: 700; color: var(--text); line-height: 1.35; }

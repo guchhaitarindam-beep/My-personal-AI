@@ -40,8 +40,8 @@ const H = {
     const mid = MAIN_BRAND_SCENES.includes(s.show.scene) ? H.brand(s) : '';
     return '<div class="s-head" data-part="head">' + (s.design.corner.show ? '' : H.logo(s)) + left + '<span class="spacer">' + mid + '</span>' + right + '</div>';
   },
-  /** JUNIOR GENIUS SEASON 4 — the main rounds' English title (event.brandEn), always the exact same words. */
-  brand(s, cls = '') { const b = str(s.event.brandEn).trim(); return b ? '<span class="jg ' + cls + '"><span class="jg-t">' + esc(b) + '</span></span>' : ''; },
+  /** JUNIOR GENIUS SEASON 4 — the main rounds' English title (event.mainTitle), always the exact same words. */
+  brand(s, cls = '') { const b = str(s.event.mainTitle).trim(); return b ? '<span class="jg ' + cls + '"><span class="jg-t">' + esc(b) + '</span></span>' : ''; },
   part(name, html, cls = '', style = '') { return '<div data-part="' + name + '" class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + html + '</div>'; },
   timer() {
     return '<div class="timer idle" data-part="timer" data-timer><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52" stroke-width="2"/><circle class="ring" cx="60" cy="60" r="52" stroke-width="7" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="0"/><text class="digits" x="60" y="56">60</text><text class="mode" x="60" y="86">DIRECT</text></svg></div>';
@@ -187,7 +187,7 @@ const Scenes = {
   /** Main-round opening: gold particles gather → a golden light sweeps → JUNIOR GENIUS SEASON 4 comes out of the depth,
       grows a little and settles inside a luminous double frame → MAIN ROUND. */
   MAIN_TITLE(s) {
-    const b = str(s.event.brandEn).trim() || 'JUNIOR GENIUS SEASON 4';
+    const b = str(s.event.mainTitle).trim() || 'JUNIOR GENIUS SEASON 4';
     const dots = Array.from({ length: 28 }, (_, i) => { const a = (i / 28) * Math.PI * 2; const r = 38 + (i % 4) * 9; return '<i style="--x:' + (Math.cos(a) * r).toFixed(1) + 'cqw;--y:' + (Math.sin(a) * r * 0.55).toFixed(1) + 'cqh;--d:' + ((i % 7) * 0.05).toFixed(2) + 's"></i>'; }).join('');
     const words = b.split(/\s+/); const last = words.pop();
     return { key: 'MT:' + s.show.startedAt, anim: 'fade', html: H.part('body', '<div class="mt-dots" aria-hidden="true">' + dots + '</div><div class="mt-frame"><div class="mt-title"><span>' + esc(words.join(' ')) + '</span> <b>' + esc(last) + '</b></div><div class="mt-sweep" aria-hidden="true"></div></div><div class="mt-sub">MAIN ROUND</div>', 'main-title') };
@@ -347,7 +347,10 @@ const Scenes = {
       const hidden = i < revealFrom;
       const mv = r.move > 0 ? '<span class="mv up">▲ ' + bn(r.move) + '</span>' : r.move < 0 ? '<span class="mv down">▼ ' + bn(-r.move) + '</span>' : '<span class="mv same">—</span>';
       if (hidden) return '<div class="sb-row" style="--i:' + i + ';--team:#555"><span class="rank">' + bn(r.rank) + '</span><div class="team-photo"><span class="initial">?</span></div><div class="nm"><b>? ? ?</b></div><span class="rs"></span><span class="tot">—</span><span></span></div>';
-      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm"><b>' + H.tn(r.team) + '</b>' + (titles ? '<small class="rtitle">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</small>' : (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
+      return '<div class="sb-row' + (r.rank === 1 && r.score > 0 ? ' lead' : '') + (revealFrom && i === revealFrom ? ' just' : '') + '" data-team="' + esc(r.team.id) + '" style="--i:' + i + ';' + H.teamVars(r.team) + '"><span class="rank">' + bn(r.rank) + '</span>' + H.tphoto(r.team) + '<div class="nm">' + (titles
+        // final results: code + place title on the first line, the school's name underneath
+        ? '<b>' + H.tn(r.team) + ' <span class="rt-pill">' + Sel.rankTitle(r.rank) + (rows.filter((x) => x.rank === r.rank).length > 1 ? ' • সমান' : '') + '</span></b>' + (r.team.school ? '<small class="fin-school">' + esc(r.team.school) + '</small>' : '')
+        : '<b>' + H.tn(r.team) + '</b>' + (r.team.school ? '<small>' + esc(r.team.school) + '</small>' : '')) + '</div><span class="rs">' + (rid ? signed(r.rscore).replace(/\d/g, (d) => BN_DIGITS[d]) : '') + '</span><span class="tot">' + bn(r.score) + '</span>' + mv + '</div>';
     }).join('');
   },
   /** End of a round, in two steps: first every team in code order (A / 1 … H / 8) with this round's points and the
@@ -375,7 +378,7 @@ const Scenes = {
   FINAL(s) {
     const rows = Sel.standings();
     const revealFrom = Math.max(0, rows.length - s.finalReveal);
-    return { key: 'FINAL', anim: 'cube', html: H.head(s, '<span class="round-tag">চূড়ান্ত ফলাফল</span>', '<span class="qnum">' + (s.finalReveal >= rows.length ? 'সম্পূর্ণ' : bn(s.finalReveal) + ' / ' + bn(rows.length)) + '</span>') + H.part('sb-' + s.finalReveal, '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span></span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, '', revealFrom, true), 'sb') };
+    return { key: 'FINAL', anim: 'cube', html: H.head(s, '<span class="round-tag">চূড়ান্ত ফলাফল</span>', '<span class="qnum">' + (s.finalReveal >= rows.length ? 'সম্পূর্ণ' : bn(s.finalReveal) + ' / ' + bn(rows.length)) + '</span>') + H.part('sb-' + s.finalReveal, '<div class="sb-head"><span>RANK</span><span></span><span>TEAM</span><span></span><span>TOTAL</span><span>MOVE</span></div>' + Scenes.standingsRows(s, rows, '', revealFrom, true), 'sb sb-final') };
   },
   WINNER(s) {
     const w = Show.winner();

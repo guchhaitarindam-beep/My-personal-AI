@@ -327,7 +327,7 @@ const UI = {
       const slot = sc === 'THEME' ? 'theme' : 'welcome';
       h += '<div class="card"><h3>' + (slot === 'theme' ? 'Theme song' : 'Welcome music') + ' <span class="hint">' + esc(Media.label(s.audio.music[slot].media)) + '</span></h3><div class="deck">' + b('music', '▶ Play', 'good', slot) + b('musicStop', '■ Stop (fade)', 'bad', slot) + '</div></div>';
     } else if (sc === 'MAIN_TITLE') {
-      h += '<div class="card"><h3>Main round opening <span class="hint">' + esc(s.event.brandEn || '') + ' → MAIN ROUND</span></h3><div class="deck">' + b('replay', '↻ Play again') + b('next', 'Countdown ▶', 'primary', '', '→') + '</div></div>';
+      h += '<div class="card"><h3>Main round opening <span class="hint">' + esc(s.event.mainTitle || '') + ' → MAIN ROUND</span></h3><div class="deck">' + b('replay', '↻ Play again') + b('next', 'Countdown ▶', 'primary', '', '→') + '</div></div>';
     } else if (sc === 'PRELIM_COUNTDOWN' || sc === 'MAIN_COUNTDOWN') {
       h += '<div class="card"><h3>Countdown</h3><div class="deck">' + b('replay', '↻ Restart') + '</div></div>';
     } else if (sc === 'PRELIM_RESULT' || sc === 'FINALISTS' || sc === 'FINALIST_INTRO' || sc === 'WELCOME') {

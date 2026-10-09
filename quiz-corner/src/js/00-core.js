@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 14;
+const RULES_VERSION = 15;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -236,7 +236,8 @@ function defaultState() {
     schema: SCHEMA, rulesVersion: RULES_VERSION, rev: 0, updatedAt: 0,
     event: {
       brandEn: 'QUIZ CORNER', brandBn: 'খেজুরি কুইজ কর্নার', tagline: 'Knowledge is Power',
-      programme: str(ev.name || 'জুনিয়র জিনিয়াস (সিজন ৪)'), brandEn: 'JUNIOR GENIUS SEASON 4', // the English title of the main rounds (opening, round intro, team intro, question, scoreboard, finale) subtitle: bannerLines[0] || 'আন্তঃপ্রাথমিক বিদ্যালয় কুইজ প্রতিযোগিতা',
+      programme: str(ev.name || 'জুনিয়র জিনিয়াস (সিজন ৪)'), subtitle: bannerLines[0] || 'আন্তঃপ্রাথমিক বিদ্যালয় কুইজ প্রতিযোগিতা',
+      mainTitle: 'JUNIOR GENIUS SEASON 4', // the main rounds' English title on TV (opening, round intro, team intro, question, scoreboard, finale)
       season: 'সিজন ৪', year: bannerLines[1] || '২০২৬–২৭ শিক্ষাবর্ষ',
       organizer: (bannerLines.find((l) => l.startsWith('আয়োজনে')) || '').replace(/^আয়োজনে:\s*/, '') || 'টিকাশী গুচ্ছ সম্পদ কেন্দ্র (CRC)',
       venue: (bannerLines.find((l) => l.startsWith('স্থান')) || '').replace(/^স্থান:\s*/, ''),
@@ -324,6 +325,8 @@ function mergeDefaults(def, src) {
 
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
 function upgradeRules(s, def, from = 0) {
+  // versions 13–14 kept the main-round title in event.brandEn (the QUIZ CORNER brand): give the brand back, the title has its own field
+  if (isObj(s.event) && str(s.event.brandEn).trim().toUpperCase() === 'JUNIOR GENIUS SEASON 4') { s.event.brandEn = def.event.brandEn; if (!str(s.event.mainTitle).trim()) s.event.mainTitle = def.event.mainTitle; }
   // the calm TV look (Midnight Blue · Ivory · Soft Gold) replaces the old neon default — only where the operator had not chosen colours
   if (isObj(s.design) && (!s.design.theme || (s.design.theme === 'broadcast' && from < 12))) { s.design.theme = 'midnight'; s.design.colors = Object.assign({}, THEMES.midnight); }
   // the five calm themes got their final colours — a save still on the earlier shade of the same theme moves to the new one

@@ -18,7 +18,7 @@ const Coach = {
       case 'WELCOME': return { t: 'Welcome music is playing. When it ends, ' + NEXT + ' → special presentation.', glow: ['next', 'musicStop'] };
       case 'TEAM_INTRO': case 'FINALIST_INTRO': return { t: 'Team introductions. Press ' + NEXT + ' once after each team.', glow: ['next'] };
       case 'PRELIM_RULES': return { t: 'Prelim round rules. When they have been read, ' + NEXT + ' → countdown.', glow: ['next'] };
-      case 'MAIN_TITLE': return { t: 'Main round opening (' + (s.event.brandEn || '') + '). When the title has settled, ' + NEXT + ' for the countdown.', glow: ['next'] };
+      case 'MAIN_TITLE': return { t: 'Main round opening (' + (s.event.mainTitle || '') + '). When the title has settled, ' + NEXT + ' for the countdown.', glow: ['next'] };
       case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': return { t: 'Countdown running — do not press anything. When it ends, ' + NEXT + '.', glow: [] };
       case 'PRELIM_Q': {
         const n = s.prelimLive.idx + 1; const N = Sel.prelimQuestions().length;
