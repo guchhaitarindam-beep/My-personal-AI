@@ -1314,3 +1314,10 @@ body.fx-premium .stage .stamp { animation: stampIn .6s cubic-bezier(.2, 1.6, .4,
 .stage .sb-final .sb-row .nm b { font-size: 3.2cqh; line-height: 1.25; }
 .stage .sb-final .sb-row .rt-pill { display: inline-block; margin-left: .8cqw; font-size: 2.1cqh; font-weight: 800; letter-spacing: .04em; color: var(--gold); vertical-align: middle; }
 .stage .sb-final .sb-row .nm small.fin-school { font-size: 2.7cqh; font-weight: 700; color: var(--text); line-height: 1.35; }
+
+/* question board: number + subject picture + subject name on every tile */
+.stage .tile.has-topic { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: .6cqh; padding: 1.6cqh 1cqw 1.8cqh; font-size: inherit; }
+.stage .tile.has-topic .t-num { font-family: var(--font-timer); font-weight: 700; font-size: 7.4cqh; line-height: 1; }
+.stage .tile.has-topic .t-ic { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; }
+.stage .tile.has-topic .t-ic img { max-width: 78%; max-height: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 1.2cqh rgba(255, 249, 232, .45)) drop-shadow(0 .6cqh .8cqh rgba(0, 0, 0, .45)); }
+.stage .tile.has-topic .t-sub { max-width: 100%; font-family: var(--font-bn); font-weight: 800; font-size: 3cqh; line-height: 1.3; text-align: center; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-block: .05em; }

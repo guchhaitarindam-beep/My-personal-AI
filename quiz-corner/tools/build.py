@@ -35,6 +35,8 @@ assets = [('logo', 'logo.jpg', 'image/jpeg'), ('crew0', 'photo_crew0.jpg', 'imag
 assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jpeg') for f in sorted(glob.glob(os.path.join(A, 'qmedia_art_*.jpg')))]
 # podium lottery pictures: Microsoft Fluent UI Emoji, 3D style (MIT licence — assets/LICENSE_fluentui-emoji.txt)
 assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'draw_*.png')))]
+# question-board subject pictures (same set; chosen so that none hints at an answer)
+assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'topic_*.png')))]
 if not lite:
     assets += [('theme', 'theme.mp3', 'audio/mpeg'), ('welcome', 'welcome_tagore.mp3', 'audio/mpeg')]
 asset_html = '\n'.join('<script type="text/plain" id="asset-%s">%s</script>' % (aid, data_uri(f, m)) for aid, f, m in assets)

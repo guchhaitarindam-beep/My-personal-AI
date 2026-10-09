@@ -532,6 +532,17 @@ const SelfTest = {
         [st.show.scene, st.show.params] = keep; return ok;
       });
       T('Round 1 question 1: India\'s first LNG train — answer আহমেদাবাদ', () => { const q = Sel.roundQuestions('R1').find((x) => x.number === 1); return q && /LNG/.test(q.text) && q.options[q.answer] === 'আহমেদাবাদ' && !/জটায়ু/.test(q.options.join()); });
+      T('Question board: all 30 main-round questions have a subject and a built-in picture; the board shows them', () => {
+        const qs = ['R1', 'R2', 'R3'].flatMap((id) => Sel.roundQuestions(id));
+        const st = Store.state; const keep = [st.show.scene, st.show.params]; st.show.scene = 'GRID'; st.show.params = { roundId: 'R1' };
+        const html = Scenes.GRID(st, st.show.params).html; [st.show.scene, st.show.params] = keep;
+        return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('সাম্প্রতিক ঘটনা') && (html.match(/class="t-ic"/g) || []).length === 10;
+      });
+      T('Opening (prelim held earlier): no count of every registered team; the all-teams screen shows the finalists only', () => {
+        const st = Store.state; const extra = Object.assign(clone(st.teams[0]), { id: 'TX9', name: 'X' }); st.teams.push(extra);
+        const ov = Scenes.OVERVIEW(st).html; const ta = Scenes.TEAMS_ALL(st).html; st.teams.pop();
+        return !st.prelim.onStage && !ov.includes('অংশগ্রহণকারী দল') && (ta.match(/class="team-tile/g) || []).length === Sel.finalistIds().length;
+      });
       T('Podium lottery: default is প্রিয় পশুপাখি with a picture on all 8 cards; 6 themes', () => { const d = defaultState().draw; return d.theme === 'animals' && d.items.length === 8 && d.items.every((x) => /^asset:draw_/.test(x.image)) && Object.keys(DRAW_THEMES).length === 6; });
       T('Theme: default is Midnight Royal Blue · Warm White · Champagne Gold', () => { const c = defaultState().design.colors; return defaultState().design.theme === 'midnight' && c.bg === '#071a3d' && c.bg2 === '#102d63' && c.text === '#fff9e8' && c.head === '#ffffff' && c.gold === '#f4d27a'; });
       T('Theme: five calm themes with their exact colours', () => THEMES.violetGold.bg === '#170d38' && THEMES.violetGold.gold === '#e8b7c8' && THEMES.tealIvory.bg2 === '#07545a' && THEMES.navyCyan.accent === '#70cfff' && THEMES.royalYellow.accent === '#d9c2ff' && THEMES.royalYellow.gold === '#f2d27d');

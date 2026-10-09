@@ -23,7 +23,9 @@
       "পিতার কথা রাখতে চোদ্দো বছর বনবাসে গিয়েছিলেন এবং রাবণকে বধ করে সীতাকে উদ্ধার করেছিলেন রামায়ণের কোন নায়ক?",
       "সীতাকে হরণ করে রাবণ যখন পুষ্পক রথে লঙ্কার দিকে যাচ্ছিলেন, তখন বাধা দিতে গিয়ে রাবণের তলোয়ারে ডানা কাটা পড়ে রামায়ণের কোন বৃদ্ধ পক্ষীরাজের?",
       "রাবণ যখন সীতাকে হরণ করে আকাশপথে লঙ্কার দিকে নিয়ে যাচ্ছিলেন, তখন বাধা দিতে গিয়ে রাবণের তলোয়ারে ডানা কাটা পড়ে রামায়ণের কোন বৃদ্ধ পাখির?"
-    ]
+    ],
+    "subject": "সাম্প্রতিক ঘটনা",
+    "subjectIcon": "asset:topic_newspaper.png"
   },
   {
     "id": "Q09",
@@ -44,7 +46,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q09.jpg"
-    }
+    },
+    "subject": "গল্পের দেশ",
+    "subjectIcon": "asset:topic_open_book.png"
   },
   {
     "id": "Q03",
@@ -68,7 +72,9 @@
     },
     "prevText": [
       "শরতে কাশফুল ফোটার সময় কলকাতার যে উৎসব ২০২১ সালে ইউনেস্কোর বিশ্ব-ঐতিহ্যের (অধরা সাংস্কৃতিক ঐতিহ্য) তালিকায় স্থান পেয়েছে, তার নাম কী?"
-    ]
+    ],
+    "subject": "উৎসব",
+    "subjectIcon": "asset:topic_party_popper.png"
   },
   {
     "id": "Q05",
@@ -94,7 +100,9 @@
       "বৃষ্টির পর সূর্যের উল্টো দিকের আকাশে ধনুকের মতো বাঁকা যে সাত রঙের দৃশ্য দেখা যায়, তাকে কী বলে?",
       "স্যার আইজ্যাক নিউটন কাচের প্রিজমের মধ্য দিয়ে সূর্যের আলো পাঠিয়ে দেখিয়েছিলেন যে সাদা আলো আসলে অনেকগুলো রঙের মিশ্রণ। রামধনুতে আমরা মোট কয়টি রং দেখি?",
       "ওজন ও আয়তনে মানবদেহের সবচেয়ে বড় অঙ্গ কোনটি?"
-    ]
+    ],
+    "subject": "মানবদেহ",
+    "subjectIcon": "asset:topic_anatomical_heart.png"
   },
   {
     "id": "Q06",
@@ -118,7 +126,9 @@
     },
     "prevText": [
       "ফুটবল বিশ্বকাপে সবচেয়ে বেশি, পাঁচবার চ্যাম্পিয়ন হয়েছে হলুদ জার্সির কোন দেশ?"
-    ]
+    ],
+    "subject": "খেলাধুলা",
+    "subjectIcon": "asset:topic_soccer_ball.png"
   },
   {
     "id": "Q10",
@@ -143,7 +153,9 @@
     "prevText": [
       "১৯৪৩ সালে চালু হওয়া হুগলি নদীর ওপরের যে বিখ্যাত ইস্পাতের সেতু কলকাতা ও হাওড়াকে জুড়েছে, তার নাম কী?",
       "ভারতের কোন রাজ্যে দেশের মধ্যে সবার আগে সূর্যোদয় হয়?"
-    ]
+    ],
+    "subject": "ভূগোল",
+    "subjectIcon": "asset:topic_world_map.png"
   },
   {
     "id": "Q15",
@@ -167,7 +179,9 @@
     },
     "prevText": [
       "আমাদের সৌরজগতের সবচেয়ে বড় গ্রহ কোনটি?"
-    ]
+    ],
+    "subject": "বিজ্ঞান",
+    "subjectIcon": "asset:topic_telescope.png"
   },
   {
     "id": "Q20",
@@ -191,7 +205,9 @@
     },
     "prevText": [
       "আমাদের জাতীয় পতাকার মাঝখানে ২৪টি দণ্ডযুক্ত নীল রঙের চাকাটি সারনাথের সিংহস্তম্ভ থেকে নেওয়া। চাকাটির নাম কী?"
-    ]
+    ],
+    "subject": "জীবজগৎ",
+    "subjectIcon": "asset:topic_paw_prints.png"
   },
   {
     "id": "Q71",
@@ -212,7 +228,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q71.jpg"
-    }
+    },
+    "subject": "কল্পবিজ্ঞান",
+    "subjectIcon": "asset:topic_test_tube.png"
   },
   {
     "id": "Q02",
@@ -236,7 +254,9 @@
     },
     "prevText": [
       "রেড ক্রসের প্রতিষ্ঠাতা হেনরি ডুনান্টের জন্মদিন ৮ই মে কোন দিবস হিসেবে পালিত হয়?"
-    ]
+    ],
+    "subject": "গান ও দেশ",
+    "subjectIcon": "asset:topic_musical_notes.png"
   },
   {
     "id": "Q23",
@@ -260,7 +280,9 @@
     },
     "prevText": [
       "কুরুক্ষেত্রের যুদ্ধে অর্জুনের রথের সারথি হয়ে কে তাঁকে গীতার উপদেশ দিয়েছিলেন?"
-    ]
+    ],
+    "subject": "পুরাণ",
+    "subjectIcon": "asset:topic_bow_and_arrow.png"
   },
   {
     "id": "Q16",
@@ -281,7 +303,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q16.jpg"
-    }
+    },
+    "subject": "ছড়া",
+    "subjectIcon": "asset:topic_memo.png"
   },
   {
     "id": "Q12",
@@ -302,7 +326,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q12.jpg"
-    }
+    },
+    "subject": "স্বাধীনতা সংগ্রাম",
+    "subjectIcon": "asset:topic_scroll.png"
   },
   {
     "id": "Q72",
@@ -323,7 +349,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q72.jpg"
-    }
+    },
+    "subject": "গল্পের দেশ",
+    "subjectIcon": "asset:topic_books.png"
   },
   {
     "id": "Q14",
@@ -348,7 +376,9 @@
     "prevText": [
       "ক্রিকেটে ব্যাটারের মারা বল মাটি না ছুঁয়ে সরাসরি সীমানার বাইরে পড়লে কত রান হয়?",
       "১৯৮৩ সালে কপিল দেবের অধিনায়কত্বে ভারত প্রথমবার কোন খেলার বিশ্বকাপ জিতেছিল?"
-    ]
+    ],
+    "subject": "খেলাধুলা",
+    "subjectIcon": "asset:topic_chess_pawn.png"
   },
   {
     "id": "Q18",
@@ -369,7 +399,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q18.jpg"
-    }
+    },
+    "subject": "সাহিত্য ও নোবেল",
+    "subjectIcon": "asset:topic_sports_medal.png"
   },
   {
     "id": "Q25",
@@ -390,7 +422,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q25.jpg"
-    }
+    },
+    "subject": "সাহিত্য",
+    "subjectIcon": "asset:topic_green_book.png"
   },
   {
     "id": "Q28",
@@ -414,7 +448,9 @@
     },
     "prevText": [
       "মাত্র ১৮ বছর বয়সে হাসিমুখে ফাঁসির মঞ্চে প্রাণ দেওয়া বাংলার কিশোর বিপ্লবী কে?"
-    ]
+    ],
+    "subject": "বিজ্ঞানী",
+    "subjectIcon": "asset:topic_microscope.png"
   },
   {
     "id": "Q73",
@@ -435,7 +471,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q73.jpg"
-    }
+    },
+    "subject": "বিশেষ দিবস",
+    "subjectIcon": "asset:topic_spiral_calendar.png"
   },
   {
     "id": "Q50",
@@ -459,7 +497,9 @@
     },
     "prevText": [
       "১৮৯৩ সালে শিকাগোর বিশ্বধর্ম মহাসভায় 'আমেরিকাবাসী ভগিনী ও ভ্রাতৃগণ' সম্বোধন করে কে সবাইকে মুগ্ধ করেছিলেন?"
-    ]
+    ],
+    "subject": "মহাকাশ",
+    "subjectIcon": "asset:topic_rocket.png"
   },
   {
     "id": "Q01",
@@ -483,7 +523,9 @@
     },
     "prevText": [
       "আমাদের বিদ্যালয়ে আমরা প্রার্থনা সংগীতে ‘বন্দে মাতরম’ গানটি গেয়ে থাকি। গানটি লিখেছেন বঙ্কিমচন্দ্র চট্টোপাধ্যায়, কিন্তু এই গানের সুর কে দিয়েছেন বলতো?"
-    ]
+    ],
+    "subject": "সাহিত্য",
+    "subjectIcon": "asset:topic_open_book.png"
   },
   {
     "id": "Q47",
@@ -504,7 +546,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q47.jpg"
-    }
+    },
+    "subject": "পুরাণ",
+    "subjectIcon": "asset:topic_diya_lamp.png"
   },
   {
     "id": "Q40",
@@ -528,7 +572,9 @@
     },
     "prevText": [
       "উপেন্দ্রকিশোর রায়চৌধুরীর গল্প অবলম্বনে 'গুপী গাইন বাঘা বাইন' সিনেমাটি কে বানিয়েছিলেন?"
-    ]
+    ],
+    "subject": "মহাকাশ",
+    "subjectIcon": "asset:topic_telescope.png"
   },
   {
     "id": "Q04",
@@ -552,7 +598,9 @@
     },
     "prevExplanation": [
       "সঠিক উত্তর: (খ) অন্নামৃত ফাউন্ডেশন (Annamrita Foundation)।"
-    ]
+    ],
+    "subject": "আমাদের সমাজ",
+    "subjectIcon": "asset:topic_pot_of_food.png"
   },
   {
     "id": "Q17",
@@ -576,7 +624,9 @@
     },
     "prevExplanation": [
       "ফেলুদার সঙ্গী তাঁর ভাই তোপসে এবং লেখক লালমোহন গাঙ্গুলী, যাঁর ছদ্মনাম 'জটায়ু'।"
-    ]
+    ],
+    "subject": "গোয়েন্দা গল্প",
+    "subjectIcon": "asset:topic_magnifying_glass_tilted_left.png"
   },
   {
     "id": "Q11",
@@ -600,7 +650,9 @@
     },
     "prevText": [
       "৫ই জুন পরিবেশ রক্ষার বার্তা নিয়ে সারা বিশ্বে কোন দিবস পালিত হয়?"
-    ]
+    ],
+    "subject": "পরিবেশ",
+    "subjectIcon": "asset:topic_deciduous_tree.png"
   },
   {
     "id": "Q24",
@@ -624,7 +676,9 @@
     },
     "prevText": [
       "ভারতের জাতীয় পাখি কোনটি?"
-    ]
+    ],
+    "subject": "পাখির জগৎ",
+    "subjectIcon": "asset:topic_feather.png"
   },
   {
     "id": "Q26",
@@ -645,7 +699,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q26.jpg"
-    }
+    },
+    "subject": "সমাজ সংস্কার",
+    "subjectIcon": "asset:topic_candle.png"
   },
   {
     "id": "Q42",
@@ -666,7 +722,9 @@
     "media": {
       "kind": "image",
       "name": "art_Q42.jpg"
-    }
+    },
+    "subject": "লোকশিল্প",
+    "subjectIcon": "asset:topic_artist_palette.png"
   },
   {
     "id": "Q45",
@@ -691,7 +749,9 @@
     "prevText": [
       "খালি চোখে দেখা যায় না এমন ছোট জীবাণু বা কোষকে বড় করে দেখতে কোন যন্ত্র ব্যবহার করা হয়?",
       "ভারতের 'মিসাইল ম্যান' নামে পরিচিত যে বিজ্ঞানী পরে দেশের রাষ্ট্রপতি হয়েছিলেন এবং ছোটদের সবসময় বড় স্বপ্ন দেখতে বলতেন, তিনি কে?"
-    ]
+    ],
+    "subject": "মহাকাশ বিজ্ঞান",
+    "subjectIcon": "asset:topic_satellite.png"
   },
   {
     "id": "Q08",

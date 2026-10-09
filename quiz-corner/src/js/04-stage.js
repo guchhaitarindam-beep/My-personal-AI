@@ -132,7 +132,12 @@ const Scenes = {
     const cols = teams.length <= 8 ? 4 : teams.length <= 12 ? 4 : teams.length <= 18 ? 6 : 8;
     return '<div class="team-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + teams.map((t, i) => '<div class="team-tile glass" style="--i:' + i + ';' + H.teamVars(t) + '">' + H.tphoto(t) + '<b>' + H.tn(t) + '</b>' + (t.school && !(Sel.codeHidden(t) && Sel.preName(t) === t.school) ? '<small>' + esc(t.school) + '</small>' : '') + (Sel.members(t).some((m) => m.name) ? '<small class="tmem">' + esc(Sel.members(t).map((m) => m.name).filter(Boolean).join(' • ')) + '</small>' : '') + (extra ? extra(t, i) : '') + '</div>').join('') + '</div>';
   },
-  TEAMS_ALL(s) { return { key: 'TEAMS_ALL', anim: 'flip', html: H.head(s, '<span class="round-tag">অংশগ্রহণকারী দলসমূহ</span>', '<span class="qnum">' + bn(s.teams.length) + ' টি দল</span>') + H.part('grid', Scenes.teamGrid(s.teams), '', 'flex:1;display:flex;min-height:0') }; },
+  TEAMS_ALL(s) {
+    // on the day of the main rounds (prelim held earlier) the stage shows the finalists only — never a registered extra team
+    const teams = s.prelim.onStage ? s.teams : (Sel.finalistIds().map((id) => Sel.team(id)).filter(Boolean));
+    const list = teams.length ? teams : s.teams;
+    return { key: 'TEAMS_ALL', anim: 'flip', html: H.head(s, '<span class="round-tag">অংশগ্রহণকারী দলসমূহ</span>', '<span class="qnum">' + bn(list.length) + ' টি দল</span>') + H.part('grid', Scenes.teamGrid(list), '', 'flex:1;display:flex;min-height:0') };
+  },
   intro(s, p, finalist) {
     const t = Sel.team(p.teamId);
     if (!t) return { key: 'INTRO:none', html: H.part('body', '<h1 class="s-title">দল পাওয়া যায়নি</h1>', 'center-col') };
@@ -175,7 +180,7 @@ const Scenes = {
     return {
       key: 'OVERVIEW', anim: 'flip',
       html: H.head(s, '<span class="round-tag">আজকের অনুষ্ঠান</span>', '<span class="qnum">TONIGHT</span>') +
-        H.part('body', '<div class="ov-stats"><div class="glass">' + (s.prelim.onStage ? '<b>' + bn(Sel.prelimQuestions().length) + '</b><small>বাছাই প্রশ্ন</small>' : '<b>' + bn(played.reduce((n, r) => n + Sel.roundQuestions(r.id).length, 0)) + '</b><small>মূল পর্বের প্রশ্ন</small>') + '</div><div class="glass"><b>' + bn(s.teams.length) + '</b><small>অংশগ্রহণকারী দল</small></div><div class="glass"><b>' + bn(s.prelim.finalistCount) + '</b><small>দল মূল পর্বে</small></div><div class="glass"><b>' + bn(played.length) + '</b><small>মূল রাউন্ড</small></div></div><div class="ov-rounds">' + played.map((r, i) => '<span style="' + H.roundVars(r) + '">' + bn(i + 1) + '. ' + esc(r.name) + '</span>').join('') + '</div>' + (s.event.welcomeNote ? '<div class="s-sub" style="text-align:center">' + esc(s.event.welcomeNote) + '</div>' : ''), 'center-col'),
+        H.part('body', '<div class="ov-stats"><div class="glass">' + (s.prelim.onStage ? '<b>' + bn(Sel.prelimQuestions().length) + '</b><small>বাছাই প্রশ্ন</small>' : '<b>' + bn(played.reduce((n, r) => n + Sel.roundQuestions(r.id).length, 0)) + '</b><small>মূল পর্বের প্রশ্ন</small>') + '</div>' + (s.prelim.onStage ? '<div class="glass"><b>' + bn(s.teams.length) + '</b><small>অংশগ্রহণকারী দল</small></div>' : '') + '<div class="glass"><b>' + bn(Sel.finalistIds().length || s.prelim.finalistCount) + '</b><small>দল মূল পর্বে</small></div><div class="glass"><b>' + bn(played.length) + '</b><small>মূল রাউন্ড</small></div></div><div class="ov-rounds">' + played.map((r, i) => '<span style="' + H.roundVars(r) + '">' + bn(i + 1) + '. ' + esc(r.name) + '</span>').join('') + '</div>' + (s.event.welcomeNote ? '<div class="s-sub" style="text-align:center">' + esc(s.event.welcomeNote) + '</div>' : ''), 'center-col'),
     };
   },
   PRELIM_RULES(s) { return Scenes.rulesScene(s, 'বাছাই পর্ব', s.prelim.rules, 'PRULES'); },
@@ -291,7 +296,9 @@ const Scenes = {
     const qs = Sel.roundQuestions(r.id);
     const cols = qs.length <= 10 ? 5 : qs.length <= 20 ? 5 : 8;
     const turn = Sel.team(Game.turnFor(r.id));
-    const tiles = qs.length ? qs.map((q, i) => '<div class="tile' + (s.board.played[q.id] ? ' played' : '') + (s.live.qid === q.id ? ' current' : '') + '" style="--i:' + i + '">' + bn(q.number) + '</div>').join('') : '<div class="s-sub" style="grid-column:1/-1;text-align:center;align-self:center">এই রাউন্ডে এখনও প্রশ্ন যোগ করা হয়নি</div>';
+    // each number with its subject (a word and a picture) — the picture is a general symbol, never the answer
+    const tile = (q) => (q.subject || q.subjectIcon ? '<span class="t-num">' + bn(q.number) + '</span>' + (q.subjectIcon ? '<span class="t-ic"><img data-media="' + esc(q.subjectIcon) + '" alt=""></span>' : '') + (q.subject ? '<span class="t-sub">' + esc(q.subject) + '</span>' : '') : bn(q.number));
+    const tiles = qs.length ? qs.map((q, i) => '<div class="tile' + (q.subject || q.subjectIcon ? ' has-topic' : '') + (s.board.played[q.id] ? ' played' : '') + (s.live.qid === q.id ? ' current' : '') + '" style="--i:' + i + '">' + tile(q) + '</div>').join('') : '<div class="s-sub" style="grid-column:1/-1;text-align:center;align-self:center">এই রাউন্ডে এখনও প্রশ্ন যোগ করা হয়নি</div>';
     return {
       key: 'GRID:' + r.id, anim: 'flip', style: H.roundVars(r), bg: r.design.bg,
       html: H.head(s, '<span class="round-tag">' + esc(r.name) + '</span>', turn ? '<span class="qnum" style="' + H.teamVars(turn) + 'color:var(--team)">পালা: ' + H.tn(turn) + '</span>' : Sel.finalistIds().length ? '<span class="qnum" style="color:var(--accent)">👥 দর্শকদের প্রশ্ন</span>' : '') + H.part('board', tiles, 'board', 'grid-template-columns:repeat(' + cols + ',1fr)'),
