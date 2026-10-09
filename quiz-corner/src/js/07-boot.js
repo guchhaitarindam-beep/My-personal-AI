@@ -538,7 +538,11 @@ const SelfTest = {
         const html = Scenes.GRID(st, st.show.params).html; [st.show.scene, st.show.params] = keep;
         return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('সাম্প্রতিক ঘটনা') && (html.match(/class="t-ic"/g) || []).length === 10;
       });
-      T('Round 1 recordings: the operator\'s readings for all 10 questions are built in', () => {
+      T('Round 1 and 2 recordings: the operator\'s readings for all 20 questions are built in', () => {
+        const qs = defaultState().questions.filter((q) => q.roundId === 'R1' || q.roundId === 'R2');
+        return qs.length === 20 && qs.every((q) => q.voiceQ === 'asset:voice_' + q.roundId + '_' + q.number && Media.builtin('voice_' + q.roundId + '_' + q.number).startsWith('data:audio/mpeg'));
+      });
+      T('Round 1 recordings: all 10 in order', () => {
         const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
         return qs.length === 10 && qs.every((q) => q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg'));
       });

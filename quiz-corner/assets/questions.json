@@ -292,7 +292,8 @@
       "কুরুক্ষেত্রের যুদ্ধে অর্জুনের রথের সারথি হয়ে কে তাঁকে গীতার উপদেশ দিয়েছিলেন?"
     ],
     "subject": "পুরাণ",
-    "subjectIcon": "asset:topic_bow_and_arrow.png"
+    "subjectIcon": "asset:topic_bow_and_arrow.png",
+    "voiceQ": "asset:voice_R2_1"
   },
   {
     "id": "Q16",
@@ -315,7 +316,8 @@
       "name": "art_Q16.jpg"
     },
     "subject": "ছড়া",
-    "subjectIcon": "asset:topic_memo.png"
+    "subjectIcon": "asset:topic_memo.png",
+    "voiceQ": "asset:voice_R2_2"
   },
   {
     "id": "Q12",
@@ -338,7 +340,8 @@
       "name": "art_Q12.jpg"
     },
     "subject": "স্বাধীনতা সংগ্রাম",
-    "subjectIcon": "asset:topic_scroll.png"
+    "subjectIcon": "asset:topic_scroll.png",
+    "voiceQ": "asset:voice_R2_3"
   },
   {
     "id": "Q72",
@@ -361,7 +364,8 @@
       "name": "art_Q72.jpg"
     },
     "subject": "গল্পের দেশ",
-    "subjectIcon": "asset:topic_books.png"
+    "subjectIcon": "asset:topic_books.png",
+    "voiceQ": "asset:voice_R2_4"
   },
   {
     "id": "Q14",
@@ -388,7 +392,8 @@
       "১৯৮৩ সালে কপিল দেবের অধিনায়কত্বে ভারত প্রথমবার কোন খেলার বিশ্বকাপ জিতেছিল?"
     ],
     "subject": "খেলাধুলা",
-    "subjectIcon": "asset:topic_chess_pawn.png"
+    "subjectIcon": "asset:topic_chess_pawn.png",
+    "voiceQ": "asset:voice_R2_5"
   },
   {
     "id": "Q18",
@@ -411,7 +416,8 @@
       "name": "art_Q18.jpg"
     },
     "subject": "সাহিত্য ও নোবেল",
-    "subjectIcon": "asset:topic_sports_medal.png"
+    "subjectIcon": "asset:topic_sports_medal.png",
+    "voiceQ": "asset:voice_R2_6"
   },
   {
     "id": "Q25",
@@ -434,7 +440,8 @@
       "name": "art_Q25.jpg"
     },
     "subject": "সাহিত্য",
-    "subjectIcon": "asset:topic_green_book.png"
+    "subjectIcon": "asset:topic_green_book.png",
+    "voiceQ": "asset:voice_R2_7"
   },
   {
     "id": "Q28",
@@ -460,7 +467,8 @@
       "মাত্র ১৮ বছর বয়সে হাসিমুখে ফাঁসির মঞ্চে প্রাণ দেওয়া বাংলার কিশোর বিপ্লবী কে?"
     ],
     "subject": "বিজ্ঞানী",
-    "subjectIcon": "asset:topic_microscope.png"
+    "subjectIcon": "asset:topic_microscope.png",
+    "voiceQ": "asset:voice_R2_8"
   },
   {
     "id": "Q73",
@@ -483,7 +491,8 @@
       "name": "art_Q73.jpg"
     },
     "subject": "বিশেষ দিবস",
-    "subjectIcon": "asset:topic_spiral_calendar.png"
+    "subjectIcon": "asset:topic_spiral_calendar.png",
+    "voiceQ": "asset:voice_R2_9"
   },
   {
     "id": "Q50",
@@ -509,7 +518,8 @@
       "১৮৯৩ সালে শিকাগোর বিশ্বধর্ম মহাসভায় 'আমেরিকাবাসী ভগিনী ও ভ্রাতৃগণ' সম্বোধন করে কে সবাইকে মুগ্ধ করেছিলেন?"
     ],
     "subject": "মহাকাশ",
-    "subjectIcon": "asset:topic_rocket.png"
+    "subjectIcon": "asset:topic_rocket.png",
+    "voiceQ": "asset:voice_R2_10"
   },
   {
     "id": "Q01",
