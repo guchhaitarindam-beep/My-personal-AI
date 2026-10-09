@@ -25,7 +25,8 @@
       "রাবণ যখন সীতাকে হরণ করে আকাশপথে লঙ্কার দিকে নিয়ে যাচ্ছিলেন, তখন বাধা দিতে গিয়ে রাবণের তলোয়ারে ডানা কাটা পড়ে রামায়ণের কোন বৃদ্ধ পাখির?"
     ],
     "subject": "সাম্প্রতিক ঘটনা",
-    "subjectIcon": "asset:topic_newspaper.png"
+    "subjectIcon": "asset:topic_newspaper.png",
+    "voiceQ": "asset:voice_R1_1"
   },
   {
     "id": "Q09",
@@ -48,7 +49,8 @@
       "name": "art_Q09.jpg"
     },
     "subject": "গল্পের দেশ",
-    "subjectIcon": "asset:topic_open_book.png"
+    "subjectIcon": "asset:topic_open_book.png",
+    "voiceQ": "asset:voice_R1_2"
   },
   {
     "id": "Q03",
@@ -102,7 +104,8 @@
       "ওজন ও আয়তনে মানবদেহের সবচেয়ে বড় অঙ্গ কোনটি?"
     ],
     "subject": "মানবদেহ",
-    "subjectIcon": "asset:topic_anatomical_heart.png"
+    "subjectIcon": "asset:topic_anatomical_heart.png",
+    "voiceQ": "asset:voice_R1_4"
   },
   {
     "id": "Q06",
@@ -128,7 +131,8 @@
       "ফুটবল বিশ্বকাপে সবচেয়ে বেশি, পাঁচবার চ্যাম্পিয়ন হয়েছে হলুদ জার্সির কোন দেশ?"
     ],
     "subject": "খেলাধুলা",
-    "subjectIcon": "asset:topic_soccer_ball.png"
+    "subjectIcon": "asset:topic_soccer_ball.png",
+    "voiceQ": "asset:voice_R1_5"
   },
   {
     "id": "Q10",
@@ -155,7 +159,8 @@
       "ভারতের কোন রাজ্যে দেশের মধ্যে সবার আগে সূর্যোদয় হয়?"
     ],
     "subject": "ভূগোল",
-    "subjectIcon": "asset:topic_world_map.png"
+    "subjectIcon": "asset:topic_world_map.png",
+    "voiceQ": "asset:voice_R1_6"
   },
   {
     "id": "Q15",
@@ -181,7 +186,8 @@
       "আমাদের সৌরজগতের সবচেয়ে বড় গ্রহ কোনটি?"
     ],
     "subject": "বিজ্ঞান",
-    "subjectIcon": "asset:topic_telescope.png"
+    "subjectIcon": "asset:topic_telescope.png",
+    "voiceQ": "asset:voice_R1_7"
   },
   {
     "id": "Q20",
@@ -207,7 +213,8 @@
       "আমাদের জাতীয় পতাকার মাঝখানে ২৪টি দণ্ডযুক্ত নীল রঙের চাকাটি সারনাথের সিংহস্তম্ভ থেকে নেওয়া। চাকাটির নাম কী?"
     ],
     "subject": "জীবজগৎ",
-    "subjectIcon": "asset:topic_paw_prints.png"
+    "subjectIcon": "asset:topic_paw_prints.png",
+    "voiceQ": "asset:voice_R1_8"
   },
   {
     "id": "Q71",
@@ -230,7 +237,8 @@
       "name": "art_Q71.jpg"
     },
     "subject": "কল্পবিজ্ঞান",
-    "subjectIcon": "asset:topic_test_tube.png"
+    "subjectIcon": "asset:topic_test_tube.png",
+    "voiceQ": "asset:voice_R1_9"
   },
   {
     "id": "Q02",
@@ -256,7 +264,8 @@
       "রেড ক্রসের প্রতিষ্ঠাতা হেনরি ডুনান্টের জন্মদিন ৮ই মে কোন দিবস হিসেবে পালিত হয়?"
     ],
     "subject": "গান ও দেশ",
-    "subjectIcon": "asset:topic_musical_notes.png"
+    "subjectIcon": "asset:topic_musical_notes.png",
+    "voiceQ": "asset:voice_R1_10"
   },
   {
     "id": "Q23",

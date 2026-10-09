@@ -727,6 +727,7 @@ const Game = {
     if (rn > 0) setTimeout(() => Cue.play('rq' + Math.min(6, rn)), (drone ? Show.droneMs() * 0.6 : 250) + 120);
     if (Store.state.settings.autoTimer) Timer.start('direct', Timer.durationFor('direct'), drone ? Show.droneMs() : 900);
     const sp = Store.state.speech;
+    VoicePlayer.stop(); // the last question's reading never runs on over a new question
     if (sp.autoQuestion || (sp.rec && q.voiceQ)) setTimeout(() => Speech.readQuestion(sp.autoQuestion), drone ? Show.droneMs() : 800);
     return true;
   },

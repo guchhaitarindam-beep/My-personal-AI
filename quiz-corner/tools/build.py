@@ -37,6 +37,8 @@ assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jp
 assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'draw_*.png')))]
 # question-board subject pictures (same set; chosen so that none hints at an answer)
 assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'topic_*.png')))]
+# the operator's own recorded question readings (ElevenLabs), trimmed and levelled: voice_R1_<number>.mp3
+assets += [(os.path.basename(f)[:-4], os.path.basename(f), 'audio/mpeg') for f in sorted(glob.glob(os.path.join(A, 'voice_*.mp3')))]
 if not lite:
     assets += [('theme', 'theme.mp3', 'audio/mpeg'), ('welcome', 'welcome_tagore.mp3', 'audio/mpeg')]
 asset_html = '\n'.join('<script type="text/plain" id="asset-%s">%s</script>' % (aid, data_uri(f, m)) for aid, f, m in assets)

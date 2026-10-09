@@ -32,11 +32,14 @@ Write-Host '  ===  QUIZ CORNER  ===' -ForegroundColor Yellow
 Write-Host ''
 
 # --- the quiz file ---------------------------------------------------------
-$html = Get-ChildItem -Path $here -Filter 'Quiz_Corner*Broadcast_Engine*.html' -File -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $html) { $html = Get-ChildItem -Path $here -Filter 'Quiz_Corner*.html' -File -ErrorAction SilentlyContinue | Sort-Object Length -Descending | Select-Object -First 1 }
+# several copies in the folder (an older one, "... (1).html" from a new download): always the newest one
+$all = @(Get-ChildItem -Path $here -Filter 'Quiz_Corner*.html' -File -ErrorAction SilentlyContinue)
+$html = $all | Where-Object { $_.Name -notlike '*LITE*' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $html) { $html = $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1 }
+if ($all.Count -gt 1) { Say ('Note: ' + $all.Count + ' quiz files in this folder - using the newest. Keep only the newest one to avoid confusion.') }
 if (-not $html) { Fail 'কুইজের HTML ফাইলটি এই ফোল্ডারে পাওয়া যায়নি। START_QUIZ_CORNER.bat, QuizCorner_Launcher.ps1 আর কুইজের HTML — তিনটে ফাইল একই ফোল্ডারে রাখুন।' 'The quiz HTML file is not in this folder.' }
 $url = ([System.Uri]$html.FullName).AbsoluteUri
-Say ('Quiz file : ' + $html.Name)
+Say ('Quiz file : ' + $html.Name + '  (' + $html.LastWriteTime.ToString('dd MMM yyyy HH:mm') + ', ' + [int]($html.Length / 1MB) + ' MB)')
 
 # --- the browser: Google Chrome, else Microsoft Edge -----------------------
 $browsers = @(

@@ -358,7 +358,7 @@ const SelfTest = {
         const mine = old.questions.find((q) => !arr((arr(SEED.questions).find((x) => x.id === q.id) || {}).prevText).length); mine.text = 'আমার নিজের প্রশ্ন';
         const n = normalizeState(old); const d = defaultState();
         const na = n.questions.find((q) => q.id === seedOld.id);
-        return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && !na.voiceQ && n.questions.find((q) => q.id === mine.id).text === 'আমার নিজের প্রশ্ন';
+        return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && na.voiceQ !== 'm_oldvoice' && na.voiceQ === d.questions.find((q) => q.id === seedOld.id).voiceQ && n.questions.find((q) => q.id === mine.id).text === 'আমার নিজের প্রশ্ন';
       });
       T('Questions: every question in rounds 1–3 has a "good to know" fact', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.explanation && q.explanation.length > 10)));
       T('Old save: new questions added and changed prelim questions get new text', () => {
@@ -537,6 +537,18 @@ const SelfTest = {
         const st = Store.state; const keep = [st.show.scene, st.show.params]; st.show.scene = 'GRID'; st.show.params = { roundId: 'R1' };
         const html = Scenes.GRID(st, st.show.params).html; [st.show.scene, st.show.params] = keep;
         return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('সাম্প্রতিক ঘটনা') && (html.match(/class="t-ic"/g) || []).length === 10;
+      });
+      T('Round 1 recordings: the operator\'s readings for questions 1, 2, 4–10 are built in (3 still to come)', () => {
+        const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
+        return qs.every((q) => (q.number === 3 ? !q.voiceQ : q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg')));
+      });
+      T('Older save: recordings and board pictures arrive, also when only spaces or punctuation differ; own recordings kept', () => {
+        const d = defaultState(); const old = clone(d); old.rulesVersion = 16;
+        const q1 = old.questions.find((q) => q.roundId === 'R1' && q.number === 1); const q2 = old.questions.find((q) => q.roundId === 'R1' && q.number === 2);
+        const q5 = old.questions.find((q) => q.roundId === 'R1' && q.number === 5);
+        Object.assign(q1, { voiceQ: '', subject: '', subjectIcon: '', text: q1.text.replace(/ /g, '  ') + ' ' }); Object.assign(q2, { voiceQ: 'm_mine' }); Object.assign(q5, { voiceQ: '', text: 'আমার নিজের প্রশ্ন' });
+        const n = normalizeState(old); const g = (q) => n.questions.find((x) => x.id === q.id);
+        return g(q1).voiceQ === 'asset:voice_R1_1' && g(q1).subjectIcon === 'asset:topic_newspaper.png' && g(q2).voiceQ === 'm_mine' && g(q5).voiceQ === '';
       });
       T('Opening (prelim held earlier): no count of every registered team; the all-teams screen shows the finalists only', () => {
         const st = Store.state; const extra = Object.assign(clone(st.teams[0]), { id: 'TX9', name: 'X' }); st.teams.push(extra);
