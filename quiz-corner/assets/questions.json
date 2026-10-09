@@ -545,7 +545,8 @@
       "আমাদের বিদ্যালয়ে আমরা প্রার্থনা সংগীতে ‘বন্দে মাতরম’ গানটি গেয়ে থাকি। গানটি লিখেছেন বঙ্কিমচন্দ্র চট্টোপাধ্যায়, কিন্তু এই গানের সুর কে দিয়েছেন বলতো?"
     ],
     "subject": "সাহিত্য",
-    "subjectIcon": "asset:topic_open_book.png"
+    "subjectIcon": "asset:topic_open_book.png",
+    "voiceQ": "asset:voice_R3_1"
   },
   {
     "id": "Q47",
@@ -568,7 +569,8 @@
       "name": "art_Q47.jpg"
     },
     "subject": "পুরাণ",
-    "subjectIcon": "asset:topic_diya_lamp.png"
+    "subjectIcon": "asset:topic_diya_lamp.png",
+    "voiceQ": "asset:voice_R3_2"
   },
   {
     "id": "Q40",
@@ -594,7 +596,8 @@
       "উপেন্দ্রকিশোর রায়চৌধুরীর গল্প অবলম্বনে 'গুপী গাইন বাঘা বাইন' সিনেমাটি কে বানিয়েছিলেন?"
     ],
     "subject": "মহাকাশ",
-    "subjectIcon": "asset:topic_telescope.png"
+    "subjectIcon": "asset:topic_telescope.png",
+    "voiceQ": "asset:voice_R3_3"
   },
   {
     "id": "Q04",
@@ -620,7 +623,8 @@
       "সঠিক উত্তর: (খ) অন্নামৃত ফাউন্ডেশন (Annamrita Foundation)।"
     ],
     "subject": "আমাদের সমাজ",
-    "subjectIcon": "asset:topic_pot_of_food.png"
+    "subjectIcon": "asset:topic_pot_of_food.png",
+    "voiceQ": "asset:voice_R3_4"
   },
   {
     "id": "Q17",
@@ -646,7 +650,8 @@
       "ফেলুদার সঙ্গী তাঁর ভাই তোপসে এবং লেখক লালমোহন গাঙ্গুলী, যাঁর ছদ্মনাম 'জটায়ু'।"
     ],
     "subject": "গোয়েন্দা গল্প",
-    "subjectIcon": "asset:topic_magnifying_glass_tilted_left.png"
+    "subjectIcon": "asset:topic_magnifying_glass_tilted_left.png",
+    "voiceQ": "asset:voice_R3_5"
   },
   {
     "id": "Q11",
@@ -672,7 +677,8 @@
       "৫ই জুন পরিবেশ রক্ষার বার্তা নিয়ে সারা বিশ্বে কোন দিবস পালিত হয়?"
     ],
     "subject": "পরিবেশ",
-    "subjectIcon": "asset:topic_deciduous_tree.png"
+    "subjectIcon": "asset:topic_deciduous_tree.png",
+    "voiceQ": "asset:voice_R3_6"
   },
   {
     "id": "Q24",
@@ -698,7 +704,8 @@
       "ভারতের জাতীয় পাখি কোনটি?"
     ],
     "subject": "পাখির জগৎ",
-    "subjectIcon": "asset:topic_feather.png"
+    "subjectIcon": "asset:topic_feather.png",
+    "voiceQ": "asset:voice_R3_7"
   },
   {
     "id": "Q26",
@@ -721,7 +728,8 @@
       "name": "art_Q26.jpg"
     },
     "subject": "সমাজ সংস্কার",
-    "subjectIcon": "asset:topic_candle.png"
+    "subjectIcon": "asset:topic_candle.png",
+    "voiceQ": "asset:voice_R3_8"
   },
   {
     "id": "Q42",
@@ -744,7 +752,8 @@
       "name": "art_Q42.jpg"
     },
     "subject": "লোকশিল্প",
-    "subjectIcon": "asset:topic_artist_palette.png"
+    "subjectIcon": "asset:topic_artist_palette.png",
+    "voiceQ": "asset:voice_R3_9"
   },
   {
     "id": "Q45",
@@ -771,7 +780,8 @@
       "ভারতের 'মিসাইল ম্যান' নামে পরিচিত যে বিজ্ঞানী পরে দেশের রাষ্ট্রপতি হয়েছিলেন এবং ছোটদের সবসময় বড় স্বপ্ন দেখতে বলতেন, তিনি কে?"
     ],
     "subject": "মহাকাশ বিজ্ঞান",
-    "subjectIcon": "asset:topic_satellite.png"
+    "subjectIcon": "asset:topic_satellite.png",
+    "voiceQ": "asset:voice_R3_10"
   },
   {
     "id": "Q08",

@@ -49,6 +49,11 @@ if '</script' in js.lower():
     raise SystemExit('script contains a closing script tag')
 
 html = read('src', 'template.html')
+# build stamp: the launcher opens the file with the newest stamp; the date also shows in the control window's title bar
+import datetime
+_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+html = html.replace('<head>', '<head>\n<!-- QC-BUILD: %s -->' % _now.strftime('%Y%m%d-%H%M'), 1)
+html = html.replace('Ultimate Broadcast Engine</title>', 'Ultimate Broadcast Engine · %s</title>' % _now.strftime('%d-%m-%Y %H:%M'), 1)
 html = html.replace('/*@@FONTS@@*/', read('assets', 'fonts.css'))
 html = html.replace('/*@@STYLES@@*/', read('src', 'styles.css'))
 html = html.replace('/*@@SEED@@*/', seed_json)

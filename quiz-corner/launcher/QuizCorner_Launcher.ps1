@@ -32,14 +32,39 @@ Write-Host '  ===  QUIZ CORNER  ===' -ForegroundColor Yellow
 Write-Host ''
 
 # --- the quiz file ---------------------------------------------------------
-# several copies in the folder (an older one, "... (1).html" from a new download): always the newest one
-$all = @(Get-ChildItem -Path $here -Filter 'Quiz_Corner*.html' -File -ErrorAction SilentlyContinue)
-$html = $all | Where-Object { $_.Name -notlike '*LITE*' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $html) { $html = $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1 }
-if ($all.Count -gt 1) { Say ('Note: ' + $all.Count + ' quiz files in this folder - using the newest. Keep only the newest one to avoid confusion.') }
+# Always the NEWEST quiz file. Every quiz file carries its build time ("QC-BUILD: yyyyMMdd-HHmm") near the top.
+# A new download often lands in Downloads (or as "... (1).html") while the desktop shortcut still opens this folder,
+# so Downloads, Desktop and Documents are looked at too; a newer file found there is copied here and used,
+# and older copies in this folder are moved to "old_versions" so they can never open by mistake.
+function BuildOf($f) {
+  try { $r = New-Object System.IO.StreamReader($f.FullName); $buf = New-Object char[] 6000; $n = $r.Read($buf, 0, 6000); $r.Close()
+        $m = [regex]::Match((New-Object string($buf, 0, $n)), 'QC-BUILD:\s*(\d{8}-\d{4})'); if ($m.Success) { return $m.Groups[1].Value } } catch { }
+  return '00000000-0000'
+}
+$places = @($here, (Join-Path $env:USERPROFILE 'Downloads'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('MyDocuments')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
+$cands = @()
+foreach ($pl in $places) {
+  $depth = $(if ($pl -eq $here) { 0 } else { 1 })
+  $cands += @(Get-ChildItem -Path $pl -Filter 'Quiz_Corner*.html' -File -Recurse -Depth $depth -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -notlike '*\old_versions\*' })
+}
+$best = $cands | Sort-Object @{ Expression = { BuildOf $_ }; Descending = $true }, @{ Expression = { (Split-Path -Parent $_.FullName) -eq $here }; Descending = $true }, @{ Expression = { $_.LastWriteTime }; Descending = $true } | Select-Object -First 1
+if ($best) {
+  Say ('Newest quiz file found: ' + $best.FullName + '  [build ' + (BuildOf $best) + ']')
+  $mine = @(Get-ChildItem -Path $here -Filter 'Quiz_Corner*.html' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -ne $best.FullName })
+  if ($mine.Count) {
+    $oldDir = Join-Path $here 'old_versions'; New-Item -ItemType Directory -Force -Path $oldDir | Out-Null
+    foreach ($o in $mine) { try { Move-Item -LiteralPath $o.FullName -Destination (Join-Path $oldDir ((Get-Date -Format 'yyyyMMdd-HHmmss') + '_' + $o.Name)) -Force; Say ('  older copy moved to old_versions: ' + $o.Name) } catch { Say ('  could not move ' + $o.Name) } }
+  }
+  if ((Split-Path -Parent $best.FullName) -ne $here) {
+    $dest = Join-Path $here 'Quiz_Corner_V66_FINAL_Broadcast_Engine.html'
+    try { Copy-Item -LiteralPath $best.FullName -Destination $dest -Force; Say '  copied into this folder'; $best = Get-Item -LiteralPath $dest } catch { Say ('  could not copy - opening it where it is: ' + $_.Exception.Message) }
+  }
+}
+$html = $best
 if (-not $html) { Fail 'কুইজের HTML ফাইলটি এই ফোল্ডারে পাওয়া যায়নি। START_QUIZ_CORNER.bat, QuizCorner_Launcher.ps1 আর কুইজের HTML — তিনটে ফাইল একই ফোল্ডারে রাখুন।' 'The quiz HTML file is not in this folder.' }
 $url = ([System.Uri]$html.FullName).AbsoluteUri
-Say ('Quiz file : ' + $html.Name + '  (' + $html.LastWriteTime.ToString('dd MMM yyyy HH:mm') + ', ' + [int]($html.Length / 1MB) + ' MB)')
+$build = BuildOf $html
+Say ('Quiz file : ' + $html.Name + '  [build ' + $build + ', ' + [int]($html.Length / 1MB) + ' MB]')
 
 # --- the browser: Google Chrome, else Microsoft Edge -----------------------
 $browsers = @(
@@ -325,16 +350,17 @@ function AskRight($lap) {
   # a small question on the laptop: is the control here and the stage on the TV?  (closes by itself after 25 s)
   $f = New-Object System.Windows.Forms.Form
   $f.Text = 'Quiz Corner'; $f.TopMost = $true; $f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.MinimizeBox = $false
-  $f.StartPosition = 'Manual'; $f.ClientSize = New-Object System.Drawing.Size(720, 250); $f.BackColor = [System.Drawing.Color]::FromArgb(11, 33, 80)
-  $f.Location = New-Object System.Drawing.Point(($lap.WL + [int](($lap.WW - 720) / 2)), ($lap.WT + [int](($lap.WH - 250) / 2)))
+  $f.StartPosition = 'Manual'; $f.ClientSize = New-Object System.Drawing.Size(720, 280); $f.BackColor = [System.Drawing.Color]::FromArgb(11, 33, 80)
+  $f.Location = New-Object System.Drawing.Point(($lap.WL + [int](($lap.WW - 720) / 2)), ($lap.WT + [int](($lap.WH - 280) / 2)))
   $font = New-Object System.Drawing.Font('Nirmala UI', 15)
   $l = New-Object System.Windows.Forms.Label
-  $l.Text = "ল্যাপটপে কন্ট্রোল প্যানেল আর টিভিতে স্টেজ (পুরো পর্দা) — ঠিকঠাক এসেছে?`n(২৫ সেকেন্ড পরে এই বাক্স নিজে বন্ধ হবে)"
-  $l.Font = $font; $l.ForeColor = [System.Drawing.Color]::White; $l.SetBounds(20, 18, 680, 110)
+  $bt = $(if ($script:build -match '^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})$') { $Matches[3] + '-' + $Matches[2] + '-' + $Matches[1] + '  ' + $Matches[4] + ':' + $Matches[5] } else { '?' })
+  $l.Text = "ল্যাপটপে কন্ট্রোল প্যানেল আর টিভিতে স্টেজ (পুরো পর্দা) — ঠিকঠাক এসেছে?`nকুইজ ফাইল তৈরির সময়: " + $bt + "`n(২৫ সেকেন্ড পরে এই বাক্স নিজে বন্ধ হবে)"
+  $l.Font = $font; $l.ForeColor = [System.Drawing.Color]::White; $l.SetBounds(20, 14, 680, 150)
   $yes = New-Object System.Windows.Forms.Button
-  $yes.Text = 'হ্যাঁ, ঠিক আছে'; $yes.Font = $font; $yes.SetBounds(20, 150, 250, 70); $yes.BackColor = [System.Drawing.Color]::FromArgb(244, 210, 122); $yes.DialogResult = 'OK'
+  $yes.Text = 'হ্যাঁ, ঠিক আছে'; $yes.Font = $font; $yes.SetBounds(20, 180, 250, 70); $yes.BackColor = [System.Drawing.Color]::FromArgb(244, 210, 122); $yes.DialogResult = 'OK'
   $sw = New-Object System.Windows.Forms.Button
-  $sw.Text = 'না, উল্টো হয়েছে — অদলবদল করো'; $sw.Font = $font; $sw.SetBounds(290, 150, 410, 70); $sw.BackColor = [System.Drawing.Color]::White; $sw.DialogResult = 'Retry'
+  $sw.Text = 'না, উল্টো হয়েছে — অদলবদল করো'; $sw.Font = $font; $sw.SetBounds(290, 180, 410, 70); $sw.BackColor = [System.Drawing.Color]::White; $sw.DialogResult = 'Retry'
   $f.Controls.AddRange(@($l, $yes, $sw)); $f.AcceptButton = $yes
   $timer = New-Object System.Windows.Forms.Timer; $timer.Interval = 25000; $timer.Add_Tick({ $timer.Stop(); $f.DialogResult = 'OK' }.GetNewClosure()); $timer.Start()
   $r = $f.ShowDialog(); $timer.Stop(); $f.Dispose()
