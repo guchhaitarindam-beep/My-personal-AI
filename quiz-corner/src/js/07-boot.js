@@ -538,9 +538,9 @@ const SelfTest = {
         const html = Scenes.GRID(st, st.show.params).html; [st.show.scene, st.show.params] = keep;
         return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('সাম্প্রতিক ঘটনা') && (html.match(/class="t-ic"/g) || []).length === 10;
       });
-      T('Round 1 recordings: the operator\'s readings for questions 1, 2, 4–10 are built in (3 still to come)', () => {
+      T('Round 1 recordings: the operator\'s readings for all 10 questions are built in', () => {
         const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
-        return qs.every((q) => (q.number === 3 ? !q.voiceQ : q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg')));
+        return qs.length === 10 && qs.every((q) => q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg'));
       });
       T('Older save: recordings and board pictures arrive, also when only spaces or punctuation differ; own recordings kept', () => {
         const d = defaultState(); const old = clone(d); old.rulesVersion = 16;
