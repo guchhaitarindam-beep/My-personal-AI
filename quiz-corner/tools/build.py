@@ -1,0 +1,69 @@
+"""Builds the single-file Quiz Corner engine.
+
+Usage: python3 -I tools/build.py [--lite]
+  default  -> dist/Quiz_Corner_V66_FINAL_Broadcast_Engine.html (all media embedded)
+  --lite   -> dist/Quiz_Corner_V66_FINAL_LITE.html (no built-in songs; add your own in the Audio tab)
+"""
+import base64, json, os, sys, glob
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+A = os.path.join(ROOT, 'assets')
+lite = '--lite' in sys.argv
+
+def read(*p):
+    with open(os.path.join(ROOT, *p), encoding='utf-8') as f:
+        return f.read()
+
+def data_uri(name, mime):
+    with open(os.path.join(A, name), 'rb') as f:
+        return 'data:' + mime + ';base64,' + base64.b64encode(f.read()).decode()
+
+seed = {
+    'questions': json.load(open(os.path.join(A, 'questions.json'), encoding='utf-8')),
+    'testQuestions': json.load(open(os.path.join(A, 'test-questions.json'), encoding='utf-8')),
+    'prelim': json.load(open(os.path.join(A, 'prelim.json'), encoding='utf-8')),
+    'show': json.load(open(os.path.join(A, 'show.json'), encoding='utf-8')),
+}
+seed_json = json.dumps(seed, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
+
+assets = [('logo', 'logo.jpg', 'image/jpeg'), ('crew0', 'photo_crew0.jpg', 'image/jpeg'), ('crew1', 'photo_crew1.jpg', 'image/jpeg'),
+          ('crew2', 'photo_crew2.jpg', 'image/jpeg'), ('crew3', 'photo_crew3.jpg', 'image/jpeg'),
+          ('crew4', 'photo_crew4.jpg', 'image/jpeg'), ('crew5', 'photo_crew5.jpg', 'image/jpeg'),
+          ('group', 'photo_group.jpg', 'image/jpeg'), ('Q01_bankim.jpg', 'qmedia_Q01_bankim.jpg', 'image/jpeg'),
+          ('Q04_mega_kitchen.jpg', 'qmedia_Q04_mega_kitchen.jpg', 'image/jpeg')]
+# answer-safe illustrations for the main-stage questions (they never show the answer)
+assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jpeg') for f in sorted(glob.glob(os.path.join(A, 'qmedia_art_*.jpg')))]
+# podium lottery pictures: Microsoft Fluent UI Emoji, 3D style (MIT licence — assets/LICENSE_fluentui-emoji.txt)
+assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'draw_*.png')))]
+# question-board subject pictures (same set; chosen so that none hints at an answer)
+assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'topic_*.png')))]
+# the operator's own recorded question readings (ElevenLabs), trimmed and levelled: voice_R1_<number>.mp3
+assets += [(os.path.basename(f)[:-4], os.path.basename(f), 'audio/mpeg') for f in sorted(glob.glob(os.path.join(A, 'voice_*.mp3')))]
+# the operator's recorded rules of rounds 1-3 (play by themselves when a round's rules screen opens): rules-r<n>.mp3
+assets += [(os.path.basename(f)[:-4], os.path.basename(f), 'audio/mpeg') for f in sorted(glob.glob(os.path.join(A, 'rules-r*.mp3')))]
+if not lite:
+    assets += [('theme', 'theme.mp3', 'audio/mpeg'), ('welcome', 'welcome_tagore.mp3', 'audio/mpeg')]
+asset_html = '\n'.join('<script type="text/plain" id="asset-%s">%s</script>' % (aid, data_uri(f, m)) for aid, f, m in assets)
+
+js_parts = sorted(glob.glob(os.path.join(ROOT, 'src', 'js', '*.js')))
+js = "(() => {\n'use strict';\n" + '\n'.join(read('src', 'js', os.path.basename(p)) for p in js_parts) + '\n})();'
+if '</script' in js.lower():
+    raise SystemExit('script contains a closing script tag')
+
+html = read('src', 'template.html')
+# build stamp: the launcher opens the file with the newest stamp; the date also shows in the control window's title bar
+import datetime
+_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+html = html.replace('<head>', '<head>\n<!-- QC-BUILD: %s -->' % _now.strftime('%Y%m%d-%H%M'), 1)
+html = html.replace('Ultimate Broadcast Engine</title>', 'Ultimate Broadcast Engine · %s</title>' % _now.strftime('%d-%m-%Y %H:%M'), 1)
+html = html.replace('/*@@FONTS@@*/', read('assets', 'fonts.css'))
+html = html.replace('/*@@STYLES@@*/', read('src', 'styles.css'))
+html = html.replace('/*@@SEED@@*/', seed_json)
+html = html.replace('<!--@@ASSETS@@-->', asset_html)
+html = html.replace('/*@@SCRIPT@@*/', js)
+
+out = os.path.join(ROOT, 'dist', 'Quiz_Corner_V66_FINAL_LITE.html' if lite else 'Quiz_Corner_V66_FINAL_Broadcast_Engine.html')
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, 'w', encoding='utf-8') as f:
+    f.write(html)
+print(out, round(os.path.getsize(out) / 1e6, 2), 'MB')
