@@ -1,14 +1,16 @@
-﻿# Quiz Corner — one-click launcher for Windows 10 / 11.
+# Quiz Corner - one-click launcher for Windows 10 / 11.
 # Started by "START_QUIZ_CORNER.bat". It
 #   1. makes sure the TV is a SEPARATE screen (Extend), asking the operator to press Windows+P if Windows will not switch,
 #   2. tells the laptop screen from the TV (the laptop's own panel, else the main display),
 #   3. opens the control window maximized on the laptop and the stage full screen on the TV, and checks both,
-#   4. asks once "is it right?" — one click swaps the two screens, and the choice is remembered for next time.
+#   4. asks once "is it right?" - one click swaps the two screens, and the choice is remembered for next time.
 # Both windows share one browser profile of their own, so they stay in sync, sound starts by itself
 # and the event data stays in one place.  With no TV both windows open side by side on the laptop.
 # A log of every start is kept in %LOCALAPPDATA%\QuizCorner\launcher_log.txt.
 
 $ErrorActionPreference = 'Continue'
+# Bengali messages are kept as UTF-8 Base64 so this file is plain ASCII and reads the same in every Windows PowerShell
+function T($b) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b)) }
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $qcHome = Join-Path $env:LOCALAPPDATA 'QuizCorner'
 New-Item -ItemType Directory -Force -Path $qcHome | Out-Null
@@ -42,15 +44,19 @@ function BuildOf($f) {
   return '00000000-0000'
 }
 $places = @($here, (Join-Path $env:USERPROFILE 'Downloads'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('MyDocuments')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
+# files opened from WhatsApp Desktop are kept in its own folder
+$wa = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter '*WhatsApp*' -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName 'LocalState\shared\transfers' } | Where-Object { Test-Path $_ })
 $cands = @()
-foreach ($pl in $places) {
-  $depth = $(if ($pl -eq $here) { 0 } else { 1 })
-  $cands += @(Get-ChildItem -Path $pl -Filter 'Quiz_Corner*.html' -File -Recurse -Depth $depth -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -notlike '*\old_versions\*' })
+foreach ($pl in @($places) + $wa) {
+  $depth = $(if ($pl -eq $here) { 0 } elseif ($wa -contains $pl) { 3 } else { 1 })
+  # every .html that is a quiz file: named Quiz_Corner*, or carrying the quiz's build stamp (a renamed copy)
+  $cands += @(Get-ChildItem -Path $pl -Filter '*.html' -File -Recurse -Depth $depth -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -notlike '*\old_versions\*' -and $_.Length -gt 1MB -and ($_.Name -like 'Quiz_Corner*' -or (BuildOf $_) -ne '00000000-0000') })
 }
 $best = $cands | Sort-Object @{ Expression = { BuildOf $_ }; Descending = $true }, @{ Expression = { (Split-Path -Parent $_.FullName) -eq $here }; Descending = $true }, @{ Expression = { $_.LastWriteTime }; Descending = $true } | Select-Object -First 1
 if ($best) {
   Say ('Newest quiz file found: ' + $best.FullName + '  [build ' + (BuildOf $best) + ']')
-  $mine = @(Get-ChildItem -Path $here -Filter 'Quiz_Corner*.html' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -ne $best.FullName })
+  $mine = @(Get-ChildItem -Path $here -Filter '*.html' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -ne $best.FullName -and ($_.Name -like 'Quiz_Corner*' -or (BuildOf $_) -ne '00000000-0000') })
   if ($mine.Count) {
     $oldDir = Join-Path $here 'old_versions'; New-Item -ItemType Directory -Force -Path $oldDir | Out-Null
     foreach ($o in $mine) { try { Move-Item -LiteralPath $o.FullName -Destination (Join-Path $oldDir ((Get-Date -Format 'yyyyMMdd-HHmmss') + '_' + $o.Name)) -Force; Say ('  older copy moved to old_versions: ' + $o.Name) } catch { Say ('  could not move ' + $o.Name) } }
@@ -61,7 +67,7 @@ if ($best) {
   }
 }
 $html = $best
-if (-not $html) { Fail 'কুইজের HTML ফাইলটি এই ফোল্ডারে পাওয়া যায়নি। START_QUIZ_CORNER.bat, QuizCorner_Launcher.ps1 আর কুইজের HTML — তিনটে ফাইল একই ফোল্ডারে রাখুন।' 'The quiz HTML file is not in this folder.' }
+if (-not $html) { Fail (T '4KaV4KeB4KaH4Kac4KeH4KawIEhUTUwg4Kar4Ka+4KaH4Kay4Kaf4Ka/IOCmj+CmhyDgpqvgp4vgprLgp43gpqHgpr7gprDgp4cg4Kaq4Ka+4KaT4Kav4Ka84Ka+IOCmr+CmvuCmr+CmvOCmqOCmv+ClpCBTVEFSVF9RVUlaX0NPUk5FUi5iYXQsIFF1aXpDb3JuZXJfTGF1bmNoZXIucHMxIOCmhuCmsCDgppXgp4Hgpofgppzgp4fgprAgSFRNTCDigJQg4Kak4Ka/4Kao4Kaf4KeHIOCmq+CmvuCmh+CmsiDgpo/gppXgpocg4Kar4KeL4Kay4KeN4Kah4Ka+4Kaw4KeHIOCmsOCmvuCmluCngeCmqOClpA==') 'The quiz HTML file is not in this folder.' }
 $url = ([System.Uri]$html.FullName).AbsoluteUri
 $build = BuildOf $html
 Say ('Quiz file : ' + $html.Name + '  [build ' + $build + ', ' + [int]($html.Length / 1MB) + ' MB]')
@@ -75,7 +81,7 @@ $browsers = @(
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
 )
 $browser = $browsers | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-if (-not $browser) { Fail 'Google Chrome বা Microsoft Edge পাওয়া যায়নি। যেকোনো একটি ইনস্টল করুন।' 'Install Google Chrome or Microsoft Edge.' }
+if (-not $browser) { Fail (T 'R29vZ2xlIENocm9tZSDgpqzgpr4gTWljcm9zb2Z0IEVkZ2Ug4Kaq4Ka+4KaT4Kav4Ka84Ka+IOCmr+CmvuCmr+CmvOCmqOCmv+ClpCDgpq/gp4fgppXgp4vgpqjgp4sg4KaP4KaV4Kaf4Ka/IOCmh+CmqOCmuOCnjeCmn+CmsiDgppXgprDgp4HgpqjgpaQ=') 'Install Google Chrome or Microsoft Edge.' }
 Say ('Browser   : ' + (Split-Path -Leaf $browser))
 
 # --- a browser profile of its own (sound allowed, no pop-ups, data kept in one place) ---
@@ -217,10 +223,10 @@ if (-not $native) {
   Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url", '--start-maximized'))
   Start-Sleep -Seconds 3
   Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url#stage", '--new-window'))
-  [void](Box ("দুটো জানালা খোলা হয়েছে, কিন্তু এই কম্পিউটার নিজে থেকে জায়গামতো বসাতে দিচ্ছে না।`n`n" +
-    "১. Windows + P চেপে 'Extend' বেছে নিন।`n" +
-    "২. 'Quiz Corner — STAGE' জানালাটি মাউসে টেনে টিভিতে নিন (বা সেটায় ক্লিক করে Windows + Shift + → চাপুন)।`n" +
-    "৩. টিভির ছবিতে একবার ডাবল-ক্লিক করুন — পুরো পর্দা হবে।") 'OK' 'Information')
+  [void](Box ((T '4Kam4KeB4Kaf4KeLIOCmnOCmvuCmqOCmvuCmsuCmviDgppbgp4vgprLgpr4g4Ka54Kav4Ka84KeH4Kab4KeHLCDgppXgpr/gpqjgp43gpqTgp4Eg4KaP4KaHIOCmleCmruCnjeCmquCmv+CmieCmn+CmvuCmsCDgpqjgpr/gppzgp4cg4Kal4KeH4KaV4KeHIOCmnOCmvuCmr+CmvOCml+CmvuCmruCmpOCniyDgpqzgprjgpr7gpqTgp4cg4Kam4Ka/4Kaa4KeN4Kab4KeHIOCmqOCmvuClpAoK') +
+    (T '4KenLiBXaW5kb3dzICsgUCDgpprgp4fgpqrgp4cgJ0V4dGVuZCcg4Kas4KeH4Kab4KeHIOCmqOCmv+CmqOClpAo=') +
+    (T '4KeoLiAnUXVpeiBDb3JuZXIg4oCUIFNUQUdFJyDgppzgpr7gpqjgpr7gprLgpr7gpp/gpr8g4Kau4Ka+4KaJ4Ka44KeHIOCmn+Cnh+CmqOCnhyDgpp/gpr/gpq3gpr/gpqTgp4cg4Kao4Ka/4KaoICjgpqzgpr4g4Ka44KeH4Kaf4Ka+4Kav4Ka8IOCmleCnjeCmsuCmv+CmlSDgppXgprDgp4cgV2luZG93cyArIFNoaWZ0ICsg4oaSIOCmmuCmvuCmquCngeCmqCngpaQK') +
+    (T '4KepLiDgpp/gpr/gpq3gpr/gprAg4Kab4Kas4Ka/4Kak4KeHIOCmj+CmleCmrOCmvuCmsCDgpqHgpr7gpqzgprIt4KaV4KeN4Kay4Ka/4KaVIOCmleCmsOCngeCmqCDigJQg4Kaq4KeB4Kaw4KeLIOCmquCmsOCnjeCmpuCmviDgprngpqzgp4fgpaQ=')) 'OK' 'Information')
   exit 0
 }
 
@@ -237,12 +243,12 @@ if ($mons.Count -lt 2) {
   try { Start-Process -FilePath "$env:WINDIR\System32\DisplaySwitch.exe" -ArgumentList '/extend' } catch { }
   for ($i = 0; $i -lt 20 -and $mons.Count -lt 2; $i++) { Start-Sleep -Milliseconds 700; $mons = Mons }
   while ($mons.Count -lt 2) {
-    $ans = Box ("টিভিকে আলাদা পর্দা হিসেবে পাওয়া যাচ্ছে না।`n`n" +
-      "১. HDMI তার ঠিকমতো লাগানো আছে কি না, আর টিভিতে HDMI ইনপুট বেছে নেওয়া আছে কি না দেখুন।`n" +
-      "২. কীবোর্ডে Windows + P চাপুন ▸ 'Extend' (প্রসারিত) বেছে নিন।`n" +
-      "   ('Duplicate' বা 'Second screen only' নয়)`n`n" +
-      "তারপর 'Retry' চাপুন।`n" +
-      "'Cancel' চাপলে শুধু ল্যাপটপে খুলবে (বাড়িতে মহড়ার জন্য)।") 'RetryCancel' 'Warning'
+    $ans = Box ((T '4Kaf4Ka/4Kat4Ka/4KaV4KeHIOCmhuCmsuCmvuCmpuCmviDgpqrgprDgp43gpqbgpr4g4Ka54Ka/4Ka44KeH4Kas4KeHIOCmquCmvuCmk+Cmr+CmvOCmviDgpq/gpr7gpprgp43gppvgp4cg4Kao4Ka+4KWkCgo=') +
+      (T '4KenLiBIRE1JIOCmpOCmvuCmsCDgpqDgpr/gppXgpq7gpqTgp4sg4Kay4Ka+4KaX4Ka+4Kao4KeLIOCmhuCmm+CnhyDgppXgpr8g4Kao4Ka+LCDgpobgprAg4Kaf4Ka/4Kat4Ka/4Kak4KeHIEhETUkg4KaH4Kao4Kaq4KeB4KafIOCmrOCnh+Cmm+CnhyDgpqjgp4fgppPgpq/gprzgpr4g4KaG4Kab4KeHIOCmleCmvyDgpqjgpr4g4Kam4KeH4KaW4KeB4Kao4KWkCg==') +
+      (T '4KeoLiDgppXgp4Dgpqzgp4vgprDgp43gpqHgp4cgV2luZG93cyArIFAg4Kaa4Ka+4Kaq4KeB4KaoIOKWuCAnRXh0ZW5kJyAo4Kaq4KeN4Kaw4Ka44Ka+4Kaw4Ka/4KakKSDgpqzgp4fgppvgp4cg4Kao4Ka/4Kao4KWkCg==') +
+      (T 'ICAgKCdEdXBsaWNhdGUnIOCmrOCmviAnU2Vjb25kIHNjcmVlbiBvbmx5JyDgpqjgpq/gprwpCgo=') +
+      (T '4Kak4Ka+4Kaw4Kaq4KawICdSZXRyeScg4Kaa4Ka+4Kaq4KeB4Kao4KWkCg==') +
+      (T 'J0NhbmNlbCcg4Kaa4Ka+4Kaq4Kay4KeHIOCmtuCngeCmp+CngSDgprLgp43gpq/gpr7gpqrgpp/gpqrgp4cg4KaW4KeB4Kay4Kas4KeHICjgpqzgpr7gpqHgprzgpr/gpqTgp4cg4Kau4Ka54Kah4Ka84Ka+4KawIOCmnOCmqOCnjeCmryngpaQ=')) 'RetryCancel' 'Warning'
     if ("$ans" -ne 'Retry') { break }
     for ($i = 0; $i -lt 8 -and $mons.Count -lt 2; $i++) { Start-Sleep -Milliseconds 600; $mons = Mons }
   }
@@ -355,12 +361,12 @@ function AskRight($lap) {
   $font = New-Object System.Drawing.Font('Nirmala UI', 15)
   $l = New-Object System.Windows.Forms.Label
   $bt = $(if ($script:build -match '^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})$') { $Matches[3] + '-' + $Matches[2] + '-' + $Matches[1] + '  ' + $Matches[4] + ':' + $Matches[5] } else { '?' })
-  $l.Text = "ল্যাপটপে কন্ট্রোল প্যানেল আর টিভিতে স্টেজ (পুরো পর্দা) — ঠিকঠাক এসেছে?`nকুইজ ফাইল তৈরির সময়: " + $bt + "`n(২৫ সেকেন্ড পরে এই বাক্স নিজে বন্ধ হবে)"
+  $l.Text = (T '4Kay4KeN4Kav4Ka+4Kaq4Kaf4Kaq4KeHIOCmleCmqOCnjeCmn+CnjeCmsOCni+CmsiDgpqrgp43gpq/gpr7gpqjgp4fgprIg4KaG4KawIOCmn+Cmv+CmreCmv+CmpOCnhyDgprjgp43gpp/gp4fgppwgKOCmquCngeCmsOCniyDgpqrgprDgp43gpqbgpr4pIOKAlCDgpqDgpr/gppXgpqDgpr7gppUg4KaP4Ka44KeH4Kab4KeHPwrgppXgp4Hgpofgppwg4Kar4Ka+4KaH4KayIOCmpOCniOCmsOCmv+CmsCDgprjgpq7gpq/gprw6IA==') + $bt + (T 'Cijgp6jgp6sg4Ka44KeH4KaV4KeH4Kao4KeN4KahIOCmquCmsOCnhyDgpo/gpocg4Kas4Ka+4KaV4KeN4Ka4IOCmqOCmv+CmnOCnhyDgpqzgpqjgp43gpqcg4Ka54Kas4KeHKQ==')
   $l.Font = $font; $l.ForeColor = [System.Drawing.Color]::White; $l.SetBounds(20, 14, 680, 150)
   $yes = New-Object System.Windows.Forms.Button
-  $yes.Text = 'হ্যাঁ, ঠিক আছে'; $yes.Font = $font; $yes.SetBounds(20, 180, 250, 70); $yes.BackColor = [System.Drawing.Color]::FromArgb(244, 210, 122); $yes.DialogResult = 'OK'
+  $yes.Text = (T '4Ka54KeN4Kav4Ka+4KaBLCDgpqDgpr/gppUg4KaG4Kab4KeH'); $yes.Font = $font; $yes.SetBounds(20, 180, 250, 70); $yes.BackColor = [System.Drawing.Color]::FromArgb(244, 210, 122); $yes.DialogResult = 'OK'
   $sw = New-Object System.Windows.Forms.Button
-  $sw.Text = 'না, উল্টো হয়েছে — অদলবদল করো'; $sw.Font = $font; $sw.SetBounds(290, 180, 410, 70); $sw.BackColor = [System.Drawing.Color]::White; $sw.DialogResult = 'Retry'
+  $sw.Text = (T '4Kao4Ka+LCDgpongprLgp43gpp/gp4sg4Ka54Kav4Ka84KeH4Kab4KeHIOKAlCDgpoXgpqbgprLgpqzgpqbgprIg4KaV4Kaw4KeL'); $sw.Font = $font; $sw.SetBounds(290, 180, 410, 70); $sw.BackColor = [System.Drawing.Color]::White; $sw.DialogResult = 'Retry'
   $f.Controls.AddRange(@($l, $yes, $sw)); $f.AcceptButton = $yes
   $timer = New-Object System.Windows.Forms.Timer; $timer.Interval = 25000; $timer.Add_Tick({ $timer.Stop(); $f.DialogResult = 'OK' }.GetNewClosure()); $timer.Start()
   $r = $f.ShowDialog(); $timer.Stop(); $f.Dispose()
@@ -373,7 +379,7 @@ if ($tv) {
   $ok = PlaceAll $laptop $tv
   if (-not $ok) { Say 'Second try ...'; Start-Sleep -Milliseconds 800; $ok = PlaceAll $laptop $tv }
   if ($stage -eq [IntPtr]::Zero) {
-    [void](Box ("স্টেজ জানালাটি খোলেনি।`n`nকন্ট্রোল প্যানেলে কীবোর্ডের O চাপুন — স্টেজ খুলবে। সেটাকে টেনে টিভিতে নিন (বা Windows + Shift + →), তারপর টিভির ছবিতে ডাবল-ক্লিক।") 'OK' 'Warning')
+    [void](Box ((T '4Ka44KeN4Kaf4KeH4KacIOCmnOCmvuCmqOCmvuCmsuCmvuCmn+CmvyDgppbgp4vgprLgp4fgpqjgpr/gpaQKCuCmleCmqOCnjeCmn+CnjeCmsOCni+CmsiDgpqrgp43gpq/gpr7gpqjgp4fgprLgp4cg4KaV4KeA4Kas4KeL4Kaw4KeN4Kah4KeH4KawIE8g4Kaa4Ka+4Kaq4KeB4KaoIOKAlCDgprjgp43gpp/gp4fgppwg4KaW4KeB4Kay4Kas4KeH4KWkIOCmuOCnh+Cmn+CmvuCmleCnhyDgpp/gp4fgpqjgp4cg4Kaf4Ka/4Kat4Ka/4Kak4KeHIOCmqOCmv+CmqCAo4Kas4Ka+IFdpbmRvd3MgKyBTaGlmdCArIOKGkiksIOCmpOCmvuCmsOCmquCmsCDgpp/gpr/gpq3gpr/gprAg4Kab4Kas4Ka/4Kak4KeHIOCmoeCmvuCmrOCmsi3gppXgp43gprLgpr/gppXgpaQ=')) 'OK' 'Warning')
   } else {
     $ans = AskRight $laptop
     if ($ans -eq 'Retry') {
@@ -384,7 +390,7 @@ if ($tv) {
       [void](PlaceAll $laptop $tv)
     }
     if ($script:needDblClick) {
-      [void](Box "স্টেজ টিভিতে এসেছে, কিন্তু নিজে থেকে পুরো পর্দা হয়নি।`n`nটিভির ছবির উপর মাউস দিয়ে একবার ডাবল-ক্লিক করুন — পুরো পর্দা হয়ে যাবে।" 'OK' 'Information')
+      [void](Box (T '4Ka44KeN4Kaf4KeH4KacIOCmn+Cmv+CmreCmv+CmpOCnhyDgpo/gprjgp4fgppvgp4csIOCmleCmv+CmqOCnjeCmpOCngSDgpqjgpr/gppzgp4cg4Kal4KeH4KaV4KeHIOCmquCngeCmsOCniyDgpqrgprDgp43gpqbgpr4g4Ka54Kav4Ka84Kao4Ka/4KWkCgrgpp/gpr/gpq3gpr/gprAg4Kab4Kas4Ka/4KawIOCmieCmquCmsCDgpq7gpr7gpongprgg4Kam4Ka/4Kav4Ka84KeHIOCmj+CmleCmrOCmvuCmsCDgpqHgpr7gpqzgprIt4KaV4KeN4Kay4Ka/4KaVIOCmleCmsOCngeCmqCDigJQg4Kaq4KeB4Kaw4KeLIOCmquCmsOCnjeCmpuCmviDgprngpq/gprzgp4cg4Kav4Ka+4Kas4KeH4KWk') 'OK' 'Information')
     }
     if ($ctl -ne [IntPtr]::Zero) { [void][QCWin]::Front($ctl) }
   }
