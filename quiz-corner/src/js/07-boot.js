@@ -545,7 +545,7 @@ const SelfTest = {
       T('Main countdown: the recorded voice is built in; each number follows the voice (10 … 1, GO!), music silent under it', () => {
         const st = clone(Store.state); st.show.scene = 'MAIN_COUNTDOWN'; st.audio.cdVoice = true;
         const ok = Media.builtin('cd-voice').startsWith('data:audio/mpeg') && cdVoiceOn(st) && CD_VOICE.at.every((v, i) => i === 0 || v > CD_VOICE.at[i - 1]) && CD_VOICE.go > CD_VOICE.at[9];
-        const steps = [0, 2200, 3700, 14700, 16300].map((ms) => cdStepAt(st, ms)).join();
+        const steps = [0, 4600, 6100, 17100, 18700].map((ms) => cdStepAt(st, ms)).join();
         st.audio.cdVoice = false; const plain = [0, 999, 1000, 10000].map((ms) => cdStepAt(st, ms)).join() + '|' + cdTotalMs(st);
         return ok && steps === '0,1,2,9,10' && plain === '0,0,1,10|10000';
       });

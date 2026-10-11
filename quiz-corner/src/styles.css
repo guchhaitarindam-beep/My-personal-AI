@@ -1403,3 +1403,51 @@ body.fx-premium .stage .stamp { animation: stampIn .6s cubic-bezier(.2, 1.6, .4,
 .layer.enter[data-anim="bcast"] { animation: aBcast calc(.75s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
 .layer.enter[data-anim="bcast"].after-wipe { animation-delay: calc(.36s / var(--anim-speed)); }
 @keyframes aBcast { 0% { opacity: 0; transform: translateY(2.4cqh) scale(.985); filter: blur(.5cqh) brightness(1.35); } 60% { opacity: 1; filter: none; } 100% { transform: none; } }
+
+/* ===================== 13 Oct: every screen arrives in its own way, slowly ===================== */
+.layer.exiting { animation-duration: calc(.95s / var(--anim-speed)); }
+.layer.exiting.under-wipe { animation-duration: calc(.6s / var(--anim-speed)); }
+.layer.enter[data-anim="fade"] { animation: aFade calc(1.2s / var(--anim-speed)) ease-out both; }
+.layer.enter[data-anim="slide"] { animation: aSlide calc(1.45s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="zoom"] { animation: aZoom calc(1.45s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="flip"] { animation: aFlip calc(1.55s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="spin"] { animation: aSpin calc(1.7s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="door"] { animation: aDoor calc(1.4s / var(--anim-speed)) cubic-bezier(.65, 0, .25, 1) both; }
+.layer.enter[data-anim="push"] { animation: aPush calc(1.6s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="orbit"] { animation: aOrbit calc(1.75s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="sweep"] { animation: aSweep calc(1.45s / var(--anim-speed)) cubic-bezier(.65, 0, .25, 1) both; }
+.layer.enter[data-anim="burst"] { animation: aBurst calc(1.45s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim="glass"] { animation: aGlass calc(1.6s / var(--anim-speed)) ease-out both; }
+.layer.enter[data-anim="digital"] { animation: aDigital calc(1.3s / var(--anim-speed)) steps(16, end) both; }
+.layer.enter[data-anim="iris"] { animation: aIris calc(1.5s / var(--anim-speed)) cubic-bezier(.65, 0, .25, 1) both; }
+.layer.enter[data-anim="curtain"] { animation: aCurtain calc(1.45s / var(--anim-speed)) cubic-bezier(.65, 0, .25, 1) both; }
+.layer.enter[data-anim="diag"] { animation: aDiag calc(1.45s / var(--anim-speed)) cubic-bezier(.65, 0, .25, 1) both; }
+.layer.enter[data-anim="rise"] { animation: aRise calc(1.6s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; transform-origin: 50% 100%; }
+.layer.enter[data-anim="swing"] { animation: aSwing calc(1.6s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; transform-origin: 0 50%; }
+.layer.enter[data-anim="warp"] { animation: aWarp calc(1.5s / var(--anim-speed)) cubic-bezier(.16, 1, .3, 1) both; }
+.layer.enter[data-anim].after-wipe { animation-delay: calc(.5s / var(--anim-speed)); }
+@keyframes aIris { 0% { opacity: 0; clip-path: circle(0% at 50% 50%); filter: brightness(1.8); } 25% { opacity: 1; } 100% { clip-path: circle(80% at 50% 50%); filter: none; } }
+@keyframes aCurtain { 0% { opacity: 0; clip-path: inset(50% 0 50% 0); transform: scaleY(1.04); } 30% { opacity: 1; } 100% { clip-path: inset(0 0 0 0); transform: none; } }
+@keyframes aDiag { 0% { opacity: 0; clip-path: polygon(100% 0, 100% 0, 100% 0, 100% 0); transform: translate(3cqw, -3cqh); } 25% { opacity: 1; } 100% { clip-path: polygon(-60% 0, 100% 0, 100% 160%, -60% 160%); transform: none; } }
+@keyframes aRise { 0% { opacity: 0; transform: perspective(140cqh) rotateX(38deg) translateY(16cqh) scale(.9); filter: blur(.8cqh); } 65% { opacity: 1; transform: perspective(140cqh) rotateX(-3deg) translateY(-.6cqh); filter: none; } 100% { transform: none; } }
+@keyframes aSwing { 0% { opacity: 0; transform: perspective(160cqh) rotateY(70deg); filter: brightness(1.6); } 60% { opacity: 1; transform: perspective(160cqh) rotateY(-6deg); filter: none; } 82% { transform: perspective(160cqh) rotateY(2deg); } 100% { transform: none; } }
+@keyframes aWarp { 0% { opacity: 0; transform: scale(1.35) skewX(-10deg); filter: blur(1.4cqh) saturate(2); } 55% { opacity: 1; transform: scale(.98) skewX(1deg); filter: none; } 100% { transform: none; } }
+
+/* the branded wipe takes turns: diagonal sweep with the logo, an expanding gold ring, falling gold bars, a light flare */
+.stage .wipe[data-kind="ring"] i, .stage .wipe[data-kind="bars"] i, .stage .wipe[data-kind="flare"] i { transform: none; }
+.stage .wipe.go[data-kind="ring"] i { top: 50%; left: 50%; bottom: auto; width: 12cqh; height: 12cqh; margin: -6cqh; border-radius: 50%; background: none; filter: none; opacity: 0; }
+.stage .wipe.go[data-kind="ring"] .w1 { border: 4cqh solid var(--accent); box-shadow: 0 0 6cqh var(--accent); animation: wRing calc(1.2s / var(--anim-speed)) cubic-bezier(.5, 0, .2, 1) forwards; }
+.stage .wipe.go[data-kind="ring"] .w2 { border: 1.6cqh solid var(--gold); box-shadow: 0 0 5cqh var(--gold); animation: wRing calc(1.2s / var(--anim-speed)) cubic-bezier(.5, 0, .2, 1) .12s forwards; }
+.stage .wipe.go[data-kind="ring"] .w3 { background: radial-gradient(circle, #fff, transparent 70%); animation: wRing calc(1s / var(--anim-speed)) ease-out .05s forwards; }
+.stage .wipe.go[data-kind="ring"] .wl, .stage .wipe.go[data-kind="flare"] .wl { animation: wipeLogo calc(1.2s / var(--anim-speed)) ease-in-out forwards; }
+@keyframes wRing { 0% { opacity: 0; transform: scale(.2); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(18); } }
+.stage .wipe.go[data-kind="bars"] i { top: 0; bottom: 0; height: 100%; width: 34%; opacity: .96; animation: wBar calc(1.15s / var(--anim-speed)) cubic-bezier(.7, 0, .25, 1) forwards; }
+.stage .wipe.go[data-kind="bars"] .w1 { left: 0; background: linear-gradient(180deg, transparent, var(--accent2) 15%, var(--accent) 50%, var(--accent2) 85%, transparent); }
+.stage .wipe.go[data-kind="bars"] .w2 { left: 33%; background: linear-gradient(180deg, transparent, var(--gold) 20%, #fff3b0 50%, var(--gold) 80%, transparent); animation-delay: .1s; }
+.stage .wipe.go[data-kind="bars"] .w3 { left: 66%; filter: none; background: linear-gradient(180deg, transparent, var(--accent2) 15%, var(--accent) 50%, var(--accent2) 85%, transparent); animation-delay: .2s; }
+@keyframes wBar { 0% { transform: translateY(-120%); } 45%, 55% { transform: translateY(0); } 100% { transform: translateY(120%); } }
+.stage .wipe.go[data-kind="flare"] i { left: -10%; right: -10%; width: auto; }
+.stage .wipe.go[data-kind="flare"] .w1 { top: 30%; bottom: 30%; background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--accent) 85%, transparent), transparent 70%); animation: wFlare calc(1.2s / var(--anim-speed)) ease-in-out forwards; }
+.stage .wipe.go[data-kind="flare"] .w2 { top: 47%; bottom: 47%; background: linear-gradient(90deg, transparent, var(--gold), #fff, var(--gold), transparent); box-shadow: 0 0 4cqh var(--gold); animation: wFlare calc(1.2s / var(--anim-speed)) ease-in-out .06s forwards; }
+.stage .wipe.go[data-kind="flare"] .w3 { top: 49.4%; bottom: 49.4%; background: #fff; filter: blur(.2cqh); animation: wFlare calc(1.1s / var(--anim-speed)) ease-in-out .1s forwards; }
+@keyframes wFlare { 0% { opacity: 0; transform: scaleX(0) scaleY(.4); } 40% { opacity: 1; transform: scaleX(1) scaleY(1); } 60% { opacity: 1; transform: scaleX(1) scaleY(2.4); } 100% { opacity: 0; transform: scaleX(1.2) scaleY(.2); } }

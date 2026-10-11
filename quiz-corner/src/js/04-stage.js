@@ -12,6 +12,17 @@ function firstGrapheme(t) {
 /** Main-round screens that carry the JUNIOR GENIUS SEASON 4 title in their header. */
 /** Screens that keep their own, bigger entrance animation. */
 const BIG_MOMENTS = ['MAIN_TITLE', 'ROUND_INTRO', 'DRAW', 'FINAL', 'TOP3', 'WINNER', 'END', 'THEME', 'LOGO'];
+/** 13 Oct: every kind of screen arrives in its own way, slowly; questions, the board and team introductions take turns
+    through a set, so two in a row never look the same. */
+const SCENE_ANIM = {
+  ORGANIZER: 'glass', PROGRAMME: 'iris', OVERVIEW: 'fade', TEAMS_ALL: 'curtain', PRELIM_RESULT: 'digital', FINALISTS: 'burst',
+  WELCOME: 'push', IDENTITY: 'orbit', CREW: 'sweep', PODIUM: 'spin', MAIN_COUNTDOWN: 'zoom', ROUND_RULES: 'flip', SCOREBOARD: 'rise',
+  TEAM_INTRO: ['swing', 'warp', 'slide', 'rise'], FINALIST_INTRO: ['swing', 'warp', 'slide', 'rise'],
+  GRID: ['door', 'diag', 'glass', 'curtain'], QUESTION: ['iris', 'curtain', 'diag', 'rise', 'swing', 'warp', 'door', 'glass'],
+};
+const ANIM_POOL = ['iris', 'curtain', 'diag', 'rise', 'swing', 'warp', 'door', 'glass', 'slide', 'flip', 'zoom', 'sweep'];
+/** The branded wipe between screens also changes its picture each time. */
+const WIPE_KINDS = ['sweep', 'ring', 'bars', 'flare'];
 const MAIN_BRAND_SCENES = ['ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3'];
 const H = {
   photo(mediaId, name, cls = '', color, label) {
@@ -455,15 +466,15 @@ class StageView {
       const old = this.cur;
       // A clear, branded wipe between scenes; a lighter flash between steps of the same scene.
       const sceneChanged = this.lastSceneName !== s.show.scene; this.lastSceneName = s.show.scene;
-      const wipe = old && s.design.motion && s.design.wipe !== 'none' ? (sceneChanged ? s.design.wipe : 'flash') : '';
+      const wipe = old && s.design.motion && s.design.wipe !== 'none' ? (sceneChanged ? (s.design.wipe === 'sweep' ? WIPE_KINDS[(this.wipeN = ((this.wipeN || 0) + 1)) % WIPE_KINDS.length] : s.design.wipe) : 'flash') : '';
       if (wipe) this.wipe(wipe, s);
-      if (old) { old.classList.remove('enter'); old.classList.add('exiting'); if (wipe === 'sweep') old.classList.add('under-wipe'); setTimeout(() => old.remove(), 800); }
+      if (old) { old.classList.remove('enter'); old.classList.add('exiting'); if (wipe && wipe !== 'flash') old.classList.add('under-wipe'); setTimeout(() => old.remove(), 1500); }
       const layer = document.createElement('div');
-      layer.className = 'layer enter' + (sc.bare ? ' bare' : '') + (wipe === 'sweep' ? ' after-wipe' : '');
+      layer.className = 'layer enter' + (sc.bare ? ' bare' : '') + (wipe && wipe !== 'flash' ? ' after-wipe' : '');
       if (sc.bare) layer.style.padding = '0';
       // one calm broadcast entrance everywhere, the big moments keep their own (and the Scene Engine still overrides)
       const own = sc.fxAnim || sc.anim === 'none' || BIG_MOMENTS.includes(s.show.scene);
-      layer.dataset.anim = s.design.motion ? (own ? (sc.anim || s.design.anim) : 'bcast') : 'none';
+      layer.dataset.anim = s.design.motion ? (own ? (sc.anim || s.design.anim) : this.pickAnim(s.show.scene)) : 'none';
       layer.setAttribute('style', (sc.bare ? 'padding:0;' : '') + (sc.style || ''));
       Array.from(tpl.content.children).forEach((c) => { c._src = c.outerHTML; layer.appendChild(c); });
       this.layers.appendChild(layer);
@@ -545,6 +556,16 @@ class StageView {
     const img = $('.cl-in img', el);
     if ((s.logo || '') !== (img.getAttribute('data-media') || '')) { delete img.dataset.loaded; img.hidden = true; img.removeAttribute('src'); if (s.logo) img.setAttribute('data-media', s.logo); else img.removeAttribute('data-media'); Media.hydrate(el); }
     if (!hide && !was && s.design.motion) { el.classList.remove('intro'); void el.offsetWidth; el.classList.add('intro'); clearTimeout(this.clT); this.clT = setTimeout(() => el.classList.remove('intro'), 2600); }
+  }
+  /** This screen's own entrance; a rotating one for questions, the board and team introductions; never twice the same in a row. */
+  pickAnim(scene) {
+    const m = SCENE_ANIM[scene];
+    this.animIdx = this.animIdx || {};
+    const n = this.animIdx[scene] = (this.animIdx[scene] || 0) + 1; // each kind of screen walks through its own set
+    let a = Array.isArray(m) ? m[(n - 1) % m.length] : m || ANIM_POOL[(n - 1) % ANIM_POOL.length];
+    if (a === this.lastAnim) a = Array.isArray(m) ? m[n % m.length] : ANIM_POOL[(n + 2) % ANIM_POOL.length];
+    this.lastAnim = a;
+    return a;
   }
   wipe(kind, s) {
     const w = $('.wipe', this.stage);

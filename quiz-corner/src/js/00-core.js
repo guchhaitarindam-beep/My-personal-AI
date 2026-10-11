@@ -394,7 +394,8 @@ function upgradeRules(s, def, from = 0) {
 
 /** 13 Oct main countdown: the operator's own video soundtrack (a woman's voice "Ten … One, GO!" with its music and effects).
     Each number appears on the TV the moment the voice says it: times in ms from the start of the countdown screen. */
-const CD_VOICE = { id: 'asset:cd-voice', at: [500, 2100, 3600, 5130, 6730, 8300, 9870, 11400, 13070, 14670], go: 16230 };
+// it opens with about 2.5 s of the soundtrack's music (a big hit), then the voice counts
+const CD_VOICE = { id: 'asset:cd-voice', at: [2900, 4500, 6000, 7530, 9130, 10700, 12270, 13800, 15470, 17070], go: 18630 };
 let cdVoiceHas = null;
 function cdVoiceOn(s) {
   if (cdVoiceHas === null && typeof document !== 'undefined') cdVoiceHas = !!document.getElementById('asset-cd-voice');
