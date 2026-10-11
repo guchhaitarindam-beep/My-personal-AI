@@ -715,7 +715,7 @@ const Game = {
     Store.commit('load-q', (s) => {
       const owner = teamId || Sel.turnTeam(r);
       s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: owner, owner, audience: !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
-      s.board.played[qid] = true;
+      s.board.played[qid] = owner || true; // which team played it (true: an audience question) — the board shows the team's code
       if (r && r.features.twoOptions) s.live.eliminated = this.wrongIndexes(q).slice(0, 2);
       if (r && (r.type === 'rapid' || (!r.features.judgeOptions && r.features.options && !r.features.challenge))) s.live.optionsShown = r.type === 'rapid';
       const d = ((q.timer || (r && r.timers.direct) || 60) * 1000);

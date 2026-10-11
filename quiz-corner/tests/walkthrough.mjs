@@ -31,7 +31,7 @@ step(true, 'ক্রম', seen.join(' → '));
 await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('walk-setup', (s) => { s.teams.forEach((t, i) => { t.school = ['উত্তর কলমদান প্রাথমিক বিদ্যালয়', 'টিকাশী প্রাথমিক বিদ্যালয়', 'খেজুরি বালিকা বিদ্যালয়', 'কলমদান শিশু শিক্ষা কেন্দ্র', 'হেঁড়িয়া প্রাথমিক বিদ্যালয়', 'জনকা প্রাথমিক বিদ্যালয়', 'বীরবন্দর প্রাথমিক বিদ্যালয়', 'বাঁশগোড়া প্রাথমিক বিদ্যালয়'][i]; t.prelim.manual = 70 - i * 5; }); }); });
 await stage.waitForTimeout(1200); await shot('02-finalist-call');
 const fin = await stage.evaluate(() => document.querySelector('.layer:not(.exiting)').innerText);
-step(/FINALIST/.test(fin) && /৭০/.test(fin) && /বিদ্যালয়/.test(fin), 'মঞ্চে আহ্বান: দলের নম্বর, স্কুল ও বাছাইয়ের নম্বর', fin.replace(/\s+/g, ' ').slice(0, 120));
+step(/FINALIST/.test(fin) && /70/.test(fin) && /বিদ্যালয়/.test(fin), 'মঞ্চে আহ্বান: দলের নম্বর, স্কুল ও বাছাইয়ের নম্বর', fin.replace(/\s+/g, ' ').slice(0, 120));
 while (sc !== 'WELCOME' && guard++ < 90) sc = await next(500);
 step(sc === 'WELCOME', 'স্বাগত সংগীত'); await stage.waitForTimeout(1200); await shot('03-welcome');
 sc = await next(4500); step(sc === 'DRAW', 'পোডিয়াম লটারি (স্বাগতের পরেই)', sc); await stage.waitForTimeout(1200); await shot('03b-draw');
@@ -60,7 +60,7 @@ while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) sc = await next(450);
 step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); const cd0 = (await cues()).filter((c) => c === 'countdown'); await stage.waitForTimeout(1600); await shot('07-countdown');
 // with the operator's recorded countdown (voice + music) the numbers follow the voice; without it: beeps, one second per number
 const vmode = await ctl.evaluate(() => { const V = window.QC.VoicePlayer; return !!(V.el && V.el.duration > 15); });
-await stage.waitForTimeout(vmode ? 15200 : 11500); // 10, 9 … 1, then GO! (no zero)
+await stage.waitForTimeout(vmode ? 17800 : 11500); // 10, 9 … 1, then GO! (no zero)
 const cdc = cd0.concat(await cues());
 if (vmode) { const fin = await stage.evaluate(() => (document.querySelector('.layer:not(.exiting) .cd-final') || {}).textContent); step(!cdc.includes('countdown') && fin === 'GO!', 'Countdown: the recorded voice plays (no beeps over it), GO! comes with the voice', cdc.join(',') + ' | ' + fin); }
 else step(cdc.filter((c) => c === 'countdown').length === 10 && cdc.includes('impact'), 'Countdown sounds: 10 … 1 beeps, then GO! (impact)', cdc.join(','));

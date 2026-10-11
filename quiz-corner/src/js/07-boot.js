@@ -314,7 +314,7 @@ const SelfTest = {
       T('Teams: with a name, code + name', () => { s().teams[1].name = 'উত্তর কলমদান'; const ok = Sel.label(s().teams[1]) === 'B / 2 উত্তর কলমদান' && Sel.label(s().teams[0]) === 'A / 1'; s().teams[1].name = 'B / 2'; return ok; });
       T('Teams: old "Team 3" names become codes', () => normalizeState({ teams: [{ name: 'দল ১' }, { name: 'Team 2' }, { name: '' }] }).teams.map((t) => t.name).join('|') === 'A / 1|B / 2|C / 3');
       T('Prelim: manually entered total and stars are kept in saves', () => { const n = normalizeState({ teams: [{ prelim: { manual: 70, stars: 3, marks: [] } }] }); return n.teams[0].prelim.manual === 70 && n.teams[0].prelim.stars === 3; });
-      T('Call to stage: prelim score and place shown large', () => { const st0 = normalizeState(defaultState()); st0.teams[0].prelim.manual = 70; st0.teams[0].school = 'উত্তর কলমদান'; const keep = Store.state; Store.state = st0; const h = Scenes.FINALIST_INTRO(st0, { teamId: st0.teams[0].id, n: 1 }).html; Store.state = keep; return h.includes('fin-score') && h.includes('৭০') && h.includes('উত্তর কলমদান'); });
+      T('Call to stage: prelim score and place shown large', () => { const st0 = normalizeState(defaultState()); st0.teams[0].prelim.manual = 70; st0.teams[0].school = 'উত্তর কলমদান'; const keep = Store.state; Store.state = st0; const h = Scenes.FINALIST_INTRO(st0, { teamId: st0.teams[0].id, n: 1 }).html; Store.state = keep; return h.includes('fin-score') && h.includes('70') && h.includes('উত্তর কলমদান'); });
       T('Teams: custom name kept intact', () => normalizeState({ teams: [{ name: 'সূর্যমুখী' }] }).teams[0].name === 'সূর্যমুখী');
       T('Members: no members at start', () => Sel.members(s().teams[0]).length === 0);
       s().teams[0].captain = 'রিয়া'; s().teams[0].players[0] = 'সোহম'; s().teams[0].captainPhoto = 'm_test1'; s().teams[0].playerPhotos[0] = 'm_test2';
@@ -493,7 +493,7 @@ const SelfTest = {
         T('Scoreboard step 1: by code A / 1 … H / 8', () => order.join('|') === ids.map((id) => Sel.code(Sel.team(id))).join('|') && order[0] === 'A / 1');
         Show.next();
         const h1 = Scenes.SCOREBOARD(s(), s().show.params).html;
-        T('Scoreboard step 2: by rank (reveals bottom-up), no round-champion banner (13 Oct)', () => s().show.scene === 'SCOREBOARD' && h1.includes('reveal-up') && !h1.includes('round-champ') && h1.includes('A / 1') && h1.includes('+১০'));
+        T('Scoreboard step 2: by rank (reveals bottom-up), no round-champion banner (13 Oct)', () => s().show.scene === 'SCOREBOARD' && h1.includes('reveal-up') && !h1.includes('round-champ') && h1.includes('A / 1') && h1.includes('+10'));
         T('Scoreboard: team photo on every row; school and both children on the rows', () => { const t = Sel.team(ids[0]); const keep = [t.school, t.captain, t.players[0]]; Object.assign(t, { school: 'পরীক্ষা বিদ্যালয়', captain: 'রিয়া' }); t.players[0] = 'অয়ন'; const h = Scenes.SCOREBOARD(s(), s().show.params).html; [t.school, t.captain, t.players[0]] = keep; return (h1.match(/class="sb-row/g) || []).length === Sel.standings().length && (h1.match(/team-photo/g) || []).length >= Sel.standings().length && h.includes('পরীক্ষা বিদ্যালয়') && h.includes('রিয়া • অয়ন'); });
         Show.next();
         T('After round 3: final result → top 3 → winner → closing, no more rounds', () => { const rr = Show.rundown(); const last = rr.map((x) => x.scene); const iSB3 = rr.findIndex((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R3'); return last.slice(iSB3 + 1).join() === 'FINAL,TOP3,WINNER,END' && rr.filter((x) => x.scene === 'ROUND_INTRO').length === 3; });
@@ -584,6 +584,7 @@ const SelfTest = {
         const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
+      T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R1')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R1'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return h.includes('রাউন্ড ১'); })(); });
       T('TV timer and countdown in English digits (1:00, 45 … 0)', () => fmtTime(60000) === '1:00' && fmtTime(45000) === '45' && /^[0-9:]+$/.test(fmtTime(9000)) && !/[০-৯]/.test(Scenes.MAIN_COUNTDOWN(s()).html.replace(/<[^>]+>/g, '').replace(/MAIN ROUND STARTS IN/, '')));
       T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
