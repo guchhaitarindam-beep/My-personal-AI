@@ -339,6 +339,7 @@ const SoundDirector = {
     else {
       if (('speechSynthesis' in window && speechSynthesis.speaking) || VoicePlayer.playing) level = Math.min(level, 0.2);
       if (performance.now() < this.duckUntil) level = Math.min(level, this.duckLevel);
+      if (['MAIN_COUNTDOWN', 'PRELIM_COUNTDOWN'].includes(s.show.scene)) level = Math.min(level, cdVoiceOn(s) ? 0 : 0.3); // the countdown must be heard
       if (['QUESTION', 'PRELIM_Q'].includes(s.show.scene)) {
         level = Math.min(level, clamp(num(b.questionLevel, 0.5), 0, 1));
         const over = s.timer.expired || (s.show.scene === 'QUESTION' ? s.live.revealed : s.prelimLive.reveal);

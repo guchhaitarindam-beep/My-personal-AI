@@ -664,7 +664,7 @@ const Game = {
         const old = st.live.qid;
         delete st.board.played[old];
         st.board.played[next.id] = true;
-        Object.assign(st.live, { qid: next.id, flipped: old, optionsShown: false, eliminated: [], poll: null, revealed: false, result: '', picked: -1, deliverAt: now() });
+        Object.assign(st.live, { qid: next.id, flipped: old, zoomPic: false, optionsShown: false, eliminated: [], poll: null, revealed: false, result: '', picked: -1, deliverAt: now() });
         this.markLifeline(st, team, kind);
       });
       Timer.reset('direct');

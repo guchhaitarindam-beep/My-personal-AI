@@ -542,6 +542,14 @@ const SelfTest = {
         const qs = defaultState().questions.filter((q) => ['R1', 'R2', 'R3'].includes(q.roundId));
         return qs.length === 30 && qs.every((q) => q.voiceQ === 'asset:voice_' + q.roundId + '_' + q.number && Media.builtin('voice_' + q.roundId + '_' + q.number).startsWith('data:audio/mpeg'));
       });
+      T('Main countdown: the recorded voice is built in; each number follows the voice (10 … 1, GO!), music silent under it', () => {
+        const st = clone(Store.state); st.show.scene = 'MAIN_COUNTDOWN'; st.audio.cdVoice = true;
+        const ok = Media.builtin('cd-voice').startsWith('data:audio/mpeg') && cdVoiceOn(st) && CD_VOICE.at.every((v, i) => i === 0 || v > CD_VOICE.at[i - 1]) && CD_VOICE.go > CD_VOICE.at[9];
+        const steps = [0, 2200, 3700, 14700, 16300].map((ms) => cdStepAt(st, ms)).join();
+        st.audio.cdVoice = false; const plain = [0, 999, 1000, 10000].map((ms) => cdStepAt(st, ms)).join() + '|' + cdTotalMs(st);
+        return ok && steps === '0,1,2,9,10' && plain === '0,0,1,10|10000';
+      });
+      T('Question picture: Z shows it full screen on the TV, a new question starts without it', () => { const def = emptyLive(); return def.zoomPic === false && typeof Actions.zoomPic === 'function'; });
       T('Rules recordings: rounds 1, 2, 3 each have their own built-in reading of the rules', () => ['R1', 'R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
       T('Round 1 recordings: all 10 in order', () => {
         const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
@@ -630,10 +638,11 @@ const Authority = {
       const key = s.show.scene + s.show.startedAt;
       if (key !== this.cdKey) { this.cdKey = key; this.cdStep = -1; }
       const from = s.settings.countdownFrom;
-      const step = Math.floor((now() - s.show.startedAt) / s.settings.countdownStepMs);
+      const step = cdStepAt(s, now() - s.show.startedAt);
       if (step !== this.cdStep && step <= from && step >= 0) {
         this.cdStep = step;
-        if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); Cue.play('fanfare'); setTimeout(() => Cue.play('applause'), 600); if (s.audio.countVoice) Cue.voice(-1); } // GO!: impact + fanfare + applause, voice "Go!"
+        if (cdVoiceOn(s)) { if (step >= from) setTimeout(() => Cue.play('applause'), 1200); } // the recording carries the voice, beats and the GO! burst
+        else if (step < from) { Cue.play('countdown', { n: from - step }); if (s.audio.countVoice) Cue.voice(from - step); else if (s.speech.enabled) Speech.say(bn(from - step), 'timer'); } else { Cue.play('impact'); Cue.play('fanfare'); setTimeout(() => Cue.play('applause'), 600); if (s.audio.countVoice) Cue.voice(-1); } // GO!: impact + fanfare + applause, voice "Go!"
       }
     }
   },

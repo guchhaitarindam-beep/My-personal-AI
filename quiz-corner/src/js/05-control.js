@@ -306,7 +306,7 @@ const UI = {
         h += '<div class="deck-sep">✋ Buzz' + (r.features.singleChallenger ? ' (first team only)' : '') + ' — Shift+1–8</div>' + b('timerRaise', '✋ Buzz time ' + r.timers.raise + 's', 'warn');
         h += others.map((id) => { const t = Sel.team(id); if (!t) return ''; const up = l.hands.includes(id); const j = l.handsJudged[id]; return up && !j ? b('judgeHand', '✓ ' + esc(t.name) + ' +' + r.scoring.challengeRight, 'good', id + '|1') + b('judgeHand', '✕ ' + esc(t.name) + ' ' + r.scoring.challengeWrong, 'bad', id + '|0') + b('raiseHand', '✋ Lower', 'sm', id) : b('raiseHand', (j ? (j === 'right' ? '✓ ' : '✕ ') : '✋ ') + esc(t.name), up ? 'on' : '', id, '', !!j); }).join('');
       }
-      h += timerRow + '<div class="deck-sep">Voice & question</div>' + b('speak', q && q.voiceQ ? '🎙 Play question' : '🔊 Read question', q && q.voiceQ ? 'good' : '', 'question', 'E') + b('speak', q && q.voiceOpt ? '🎙 Play options' : '🔊 Read options', q && q.voiceOpt ? 'good' : '', 'options') + b('speak', q && q.voiceAns ? '🎙 Play answer' : '🔊 Read answer', q && q.voiceAns ? 'good' : '', 'answer', 'A') + b('speak', '■ Stop reading', '', 'stop') + b('speak', '🔊 Team name', '', 'team', 'T') + b('qStep', '⏮ Previous question', '', '-1') + b('qStep', 'Next question ⏭', '', '1') + b('gotoGrid', '▦ Question board');
+      h += timerRow + (q && q.image ? '<div class="deck-sep">Picture</div>' + b('zoomPic', Store.state.live.zoomPic ? '↩ Back to the question' : '🔍 Picture full screen', Store.state.live.zoomPic ? 'good' : '', '', 'Z') : '') + '<div class="deck-sep">Voice & question</div>' + b('speak', q && q.voiceQ ? '🎙 Play question' : '🔊 Read question', q && q.voiceQ ? 'good' : '', 'question', 'E') + b('speak', q && q.voiceOpt ? '🎙 Play options' : '🔊 Read options', q && q.voiceOpt ? 'good' : '', 'options') + b('speak', q && q.voiceAns ? '🎙 Play answer' : '🔊 Read answer', q && q.voiceAns ? 'good' : '', 'answer', 'A') + b('speak', '■ Stop reading', '', 'stop') + b('speak', '🔊 Team name', '', 'team', 'T') + b('qStep', '⏮ Previous question', '', '-1') + b('qStep', 'Next question ⏭', '', '1') + b('gotoGrid', '▦ Question board');
       h += '</div></div>';
     } else if (sc === 'PRELIM_Q') {
       const idx = s.prelimLive.idx; const q = Sel.prelimQuestions()[idx];
@@ -607,6 +607,8 @@ const Actions = {
     Game.setActive(id);
   },
   options() { Game.showOptions(); },
+  /** Z: the question's picture fills the TV (again: back to the question). */
+  zoomPic() { const q = Sel.liveQuestion(); if (!q || !q.image || Store.state.show.scene !== 'QUESTION') { UI.toast('This question has no picture', 'err'); return; } Store.commit('zoom-pic', (s) => { s.live.zoomPic = !s.live.zoomPic; }, { undo: false }); },
   pick(i) { Game.pick(int(i)); },
   twoOptions() { Game.twoOptions(); },
   /** On the question board a number key opens that question (0 = 10). */
@@ -653,7 +655,7 @@ const Actions = {
 const SOUNDBOARD = [['drumroll', '🥁 Drumroll'], ['applause', '👏 Applause'], ['suspense', '😱 Suspense'], ['gong', '🔔 Gong'], ['ding', '✨ Ding'], ['fanfare', '🎺 Fanfare'], ['correct', '✓ Correct'], ['wrong', '✗ Wrong'], ['buzzer', '⏰ Buzzer'], ['tick', '⏱ Tick-tock'], ['pass', '➜ Pass'], ['option', '◉ Pop'], ['siren', '🚨 Siren'], ['laser', '⚡ Laser'], ['heartbeat', '❤ Heartbeat']];
 const SHORTCUTS = [
   ['Space', 'Timer start / pause'], ['→ / PgDn', 'Next scene'], ['← / PgUp', 'Previous scene'], ['D', 'Direct timer (60s)'], ['P', 'Pass: next team + 45s'], ['Shift+P', '45s timer only'],
-  ['R', 'Show answer / reveal next place'], ['C', 'Correct'], ['X / W', 'Wrong'], ['N', 'No score'], ['H', 'Challenge (then 1–8)'], ['V', 'Show / hide options'],
+  ['R', 'Show answer / reveal next place'], ['C', 'Correct'], ['X / W', 'Wrong'], ['N', 'No score'], ['H', 'Challenge (then 1–8)'], ['V', 'Show / hide options'], ['Z', 'Question picture full screen / back'],
   ['1–10 (on board)', 'On the question board a number opens that question (0 = 10)'], ['Shift+A/B/C/D', 'The option the team named — judged at once in Round 1'], ['V / Shift+V', 'Show 4 options / cut to 2 options'], ['1–9', 'Choose the answering team; after a wrong answer = pass to that team; in Round 3 = that team buzzed'], ['Alt+1/2/3', '50:50 / poll / flip'], ['0', 'Timer reset'], ['+ / −', 'Add / subtract 10 seconds'], ['S', 'Scoreboard'], ['Shift+W', 'Winner'],
   ['B', 'Blackout'], ['L', 'Lock / unlock question'], ['Shift+L', 'Read out the full scores'], ['G', 'Bonus'], ['Shift+1–8', 'Buzz'], ['F', 'Fullscreen'], ['O', 'Open Stage window'], ['E', 'Read question aloud'], ['A', 'Read answer aloud'], ['T', 'Read team name'], ['M', 'Mute / unmute'], ['[ / ]', 'Master volume down / up'],
   ['G', 'Question board'], ['Ctrl+Z', 'Undo'], ['Ctrl+Y', 'Redo'], ['Ctrl+S', 'Save now'], ['?', 'This list'], ['Esc', 'Cancel / close'],
@@ -745,6 +747,7 @@ const Keys = {
       case 'n': Actions.judge('noscore'); return true;
       case 'h': Actions.challengePick(); return true;
       case 'v': Actions.options(); return true;
+      case 'z': Actions.zoomPic(); return true;
       case '0': Actions.timerReset(); return true;
       case '+': case '=': Actions.timerAdd(10); return true;
       case '-': Actions.timerAdd(-10); return true;

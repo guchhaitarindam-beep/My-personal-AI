@@ -284,7 +284,7 @@ function defaultState() {
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
+      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cdVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
       music: {
         theme: { media: 'asset:theme', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
         welcome: { media: 'asset:welcome', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
@@ -311,7 +311,7 @@ function defaultState() {
 }
 
 function emptyLive() {
-  return { turnDone: false, owner: '', audience: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
+  return { zoomPic: false, turnDone: false, owner: '', audience: false, clip: { action: 'stop', at: 0 }, locked: false, hands: [], handsJudged: {}, bonusGiven: false, closed: false, qid: '', roundId: '', active: '', flow: 'direct', passChain: [], challenger: '', optionsShown: false, eliminated: [], picked: -1, poll: null, revealed: false, result: '', resultAt: 0, lastPoints: 0, deliverAt: 0, flipped: '' };
 }
 
 /** Deep-merge saved/imported data onto defaults so old or partial files never break the engine. */
@@ -391,6 +391,21 @@ function upgradeRules(s, def, from = 0) {
   }
   if (isObj(s.design)) s.design.corner = Object.assign({}, def.design.corner, isObj(s.design.corner) ? s.design.corner : {}, { show: true });
 }
+
+/** 13 Oct main countdown: the operator's own video soundtrack (a woman's voice "Ten … One, GO!" with its music and effects).
+    Each number appears on the TV the moment the voice says it: times in ms from the start of the countdown screen. */
+const CD_VOICE = { id: 'asset:cd-voice', at: [500, 2100, 3600, 5130, 6730, 8300, 9870, 11400, 13070, 14670], go: 16230 };
+let cdVoiceHas = null;
+function cdVoiceOn(s) {
+  if (cdVoiceHas === null && typeof document !== 'undefined') cdVoiceHas = !!document.getElementById('asset-cd-voice');
+  return !!(cdVoiceHas && s && s.show && s.show.scene === 'MAIN_COUNTDOWN' && s.audio.cdVoice !== false && s.settings.countdownFrom === 10);
+}
+/** How many numbers have gone by (0 → "10" on the screen … countdownFrom → GO!). */
+function cdStepAt(s, ms) {
+  if (cdVoiceOn(s)) { if (ms >= CD_VOICE.go) return 10; let j = 0; for (let k = 1; k < CD_VOICE.at.length; k++) if (ms >= CD_VOICE.at[k]) j = k; return j; }
+  return Math.floor(ms / s.settings.countdownStepMs);
+}
+function cdTotalMs(s) { return cdVoiceOn(s) ? CD_VOICE.go : s.settings.countdownFrom * s.settings.countdownStepMs; }
 
 function normalizeState(raw) {
   // Older saves kept one set of question/option/title sizes; carry them into the per-element styles.

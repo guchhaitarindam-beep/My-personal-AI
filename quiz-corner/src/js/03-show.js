@@ -98,7 +98,7 @@ const Show = {
       case 'DRAW': Draw.ensure(); play('transition'); break;
       case 'TEAM_INTRO': case 'FINALIST_INTRO': play('teamintro'); if (s.speech.announceTeam) { const t = Sel.team(p.teamId); if (t) Speech.say(t.name + (t.school ? '। ' + t.school : ''), 'team'); } break;
       case 'MAIN_TITLE': play('round'); { const at = s.show.startedAt; setTimeout(() => { if (Store.state.show.startedAt === at) Cue.play('ding'); }, 1400); } break; // stinger, then a soft chime as the gold light passes
-      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); break; // the countdown clock emits its own beeps
+      case 'PRELIM_COUNTDOWN': case 'MAIN_COUNTDOWN': if (override) play(); if (cdVoiceOn(s)) { VoicePlayer.clipRules = true; VoicePlayer.play(CD_VOICE.id); } break; // the countdown clock emits its own beeps (or the recording plays)
       case 'PRELIM_Q': play(s.prelim.drone ? 'drone' : 'delivery'); if (s.speech.autoQuestion) setTimeout(() => Speech.readQuestion(false), s.prelim.drone ? this.droneMs() : 600); break;
       case 'ROUND_INTRO': if (override) play(); { const n = s.rounds.filter((x) => x.enabled).findIndex((x) => x.id === p.roundId) + 1; if (!override) Cue.play('roundintro', { n }); } { const r = Sel.round(p.roundId); if (r && r.voiceIntro) Speech.say(r.name + '। ' + r.label, 'round'); if (r && r.design.music) Cue.music('background', 'play', r.design.music); else if (s.audio.themeSting) { Cue.music('theme', 'play'); const at = Store.state.show.startedAt; clearTimeout(this.stingT); this.stingT = setTimeout(() => { Cue.music('theme', 'stop'); void at; }, 6500); } } break;
       case 'QUESTION': if (s.live.qid !== p.qid) Game.load(p.qid, Game.turnFor(p.roundId)); else if (override) play(); break;

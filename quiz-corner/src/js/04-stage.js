@@ -10,6 +10,8 @@ function firstGrapheme(t) {
   return t.charAt(0);
 }
 /** Main-round screens that carry the JUNIOR GENIUS SEASON 4 title in their header. */
+/** Screens that keep their own, bigger entrance animation. */
+const BIG_MOMENTS = ['MAIN_TITLE', 'ROUND_INTRO', 'DRAW', 'FINAL', 'TOP3', 'WINNER', 'END', 'THEME', 'LOGO'];
 const MAIN_BRAND_SCENES = ['ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3'];
 const H = {
   photo(mediaId, name, cls = '', color, label) {
@@ -348,7 +350,8 @@ const Scenes = {
       html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>') +
         '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (6.2 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +
-        (dr.delivered ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')),
+        (dr.delivered ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')) +
+        (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(q.image) + '" alt="">', 'q-zoom') : ''),
     };
   },
   standingsRows(s, rows, rid, revealFrom = 0, titles = false) {
@@ -424,6 +427,10 @@ class StageView {
     this.ro = new ResizeObserver(() => { this.layout(); this.fitAll(); });
     new ResizeObserver(() => this.layout()).observe(host);
     this.ro.observe(this.stage);
+    // fit the words again once a screen has finished arriving and its pictures have loaded: the final size never depends on timing
+    const refit = () => { if (this.refitQ) return; this.refitQ = requestAnimationFrame(() => { this.refitQ = 0; this.fitAll(); }); };
+    this.stage.addEventListener('animationend', (e) => { if (e.target.classList && e.target.classList.contains('layer')) refit(); });
+    this.stage.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') refit(); }, true);
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
   }
@@ -438,7 +445,7 @@ class StageView {
       sc = { key: 'ERR', html: H.part('body', Scenes.brand(s, false), 'center-col') }; // audience sees the logo, never an error
     }
     const fx = s.sceneFx && s.sceneFx[s.show.scene];
-    if (fx) { if (fx.anim) sc.anim = fx.anim; if (fx.bg) sc.bg = fx.bg; }
+    if (fx) { if (fx.anim) { sc.anim = fx.anim; sc.fxAnim = true; } if (fx.bg) sc.bg = fx.bg; }
     safe('stage-render', () => this.apply(sc, s));
   }
   apply(sc, s) {
@@ -454,7 +461,9 @@ class StageView {
       const layer = document.createElement('div');
       layer.className = 'layer enter' + (sc.bare ? ' bare' : '') + (wipe === 'sweep' ? ' after-wipe' : '');
       if (sc.bare) layer.style.padding = '0';
-      layer.dataset.anim = s.design.motion ? (sc.anim || s.design.anim) : 'none';
+      // one calm broadcast entrance everywhere, the big moments keep their own (and the Scene Engine still overrides)
+      const own = sc.fxAnim || sc.anim === 'none' || BIG_MOMENTS.includes(s.show.scene);
+      layer.dataset.anim = s.design.motion ? (own ? (sc.anim || s.design.anim) : 'bcast') : 'none';
       layer.setAttribute('style', (sc.bare ? 'padding:0;' : '') + (sc.style || ''));
       Array.from(tpl.content.children).forEach((c) => { c._src = c.outerHTML; layer.appendChild(c); });
       this.layers.appendChild(layer);
@@ -654,11 +663,11 @@ class StageView {
   drawCountdown(s) {
     const el = $('[data-countdown]', this.stage);
     if (!el) return;
-    const from = s.settings.countdownFrom; const stepMs = s.settings.countdownStepMs;
+    const from = s.settings.countdownFrom;
     const elapsed = now() - s.show.startedAt;
-    const step = Math.floor(elapsed / stepMs);
+    const step = cdStepAt(s, elapsed); // with the recorded voice each number comes when the voice says it
     const prog = $('.cd-prog', el);
-    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / (from * stepMs)) * 1000)));
+    if (prog) prog.setAttribute('stroke-dashoffset', String(Math.round(Math.min(1, elapsed / cdTotalMs(s)) * 1000)));
     if (step === this.cdStep) return;
     this.cdStep = step;
     const d = $('.cd-digit, .cd-final', el);
