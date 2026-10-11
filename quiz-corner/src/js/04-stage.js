@@ -673,7 +673,7 @@ class StageView {
     $$('[data-timer]', this.stage).forEach((el) => {
       const ring = $('.ring', el); const dg = $('.digits', el); const md = $('.mode', el);
       if (ring) { ring.setAttribute('stroke-dashoffset', String(Math.round((1 - frac) * 1000))); ring.setAttribute('stroke-width', String(s.design.ringWidth)); }
-      const txt = t.expired ? '০' : bn(fmtTime(rem));
+      const txt = t.expired ? '0' : fmtTime(rem); // English digits on the TV timer (13 Oct), like the countdown
       if (dg && dg.textContent !== txt) dg.textContent = txt;
       const mtxt = t.expired ? "TIME'S UP" : waiting ? 'READY' : t.running ? mode : rem < t.duration ? 'PAUSED' : mode;
       if (md && md.textContent !== mtxt) md.textContent = mtxt;

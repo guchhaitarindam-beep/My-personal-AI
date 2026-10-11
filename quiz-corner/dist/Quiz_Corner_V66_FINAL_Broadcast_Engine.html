@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261012-0309 -->
+<!-- QC-BUILD: 20261012-0330 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 03:09</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 03:30</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -4969,7 +4969,7 @@ class StageView {
     $$('[data-timer]', this.stage).forEach((el) => {
       const ring = $('.ring', el); const dg = $('.digits', el); const md = $('.mode', el);
       if (ring) { ring.setAttribute('stroke-dashoffset', String(Math.round((1 - frac) * 1000))); ring.setAttribute('stroke-width', String(s.design.ringWidth)); }
-      const txt = t.expired ? '০' : bn(fmtTime(rem));
+      const txt = t.expired ? '0' : fmtTime(rem); // English digits on the TV timer (13 Oct), like the countdown
       if (dg && dg.textContent !== txt) dg.textContent = txt;
       const mtxt = t.expired ? "TIME'S UP" : waiting ? 'READY' : t.running ? mode : rem < t.duration ? 'PAUSED' : mode;
       if (md && md.textContent !== mtxt) md.textContent = mtxt;
@@ -7908,6 +7908,7 @@ const SelfTest = {
         const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
+      T('TV timer and countdown in English digits (1:00, 45 … 0)', () => fmtTime(60000) === '1:00' && fmtTime(45000) === '45' && /^[0-9:]+$/.test(fmtTime(9000)) && !/[০-৯]/.test(Scenes.MAIN_COUNTDOWN(s()).html.replace(/<[^>]+>/g, '').replace(/MAIN ROUND STARTS IN/, '')));
       T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
       // ---- text fitting with long Bengali ----

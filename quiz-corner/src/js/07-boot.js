@@ -584,6 +584,7 @@ const SelfTest = {
         const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
+      T('TV timer and countdown in English digits (1:00, 45 … 0)', () => fmtTime(60000) === '1:00' && fmtTime(45000) === '45' && /^[0-9:]+$/.test(fmtTime(9000)) && !/[০-৯]/.test(Scenes.MAIN_COUNTDOWN(s()).html.replace(/<[^>]+>/g, '').replace(/MAIN ROUND STARTS IN/, '')));
       T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
       // ---- text fitting with long Bengali ----
