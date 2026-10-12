@@ -570,7 +570,8 @@ const Game = {
       st.live.result = kind; st.live.resultAt = now(); st.live.lastPoints = pts; st.live.resultTeam = team;
       // In a challenge round the answer stays hidden after the team answers, so another team can still buzz and challenge.
       // (round 1: the challenge opens only after a wrong answer — a correct one shows the answer at once)
-      const holdForChallenge = r0 && r0.features.challenge && r0.type !== 'rapid' && !(r0.features.challengeAfterWrong && kind === 'correct');
+      // (round 1, 13 Oct: no challenge after a wrong answer with only 2 options left — the other one would be the answer; it shows at once)
+      const holdForChallenge = r0 && r0.features.challenge && r0.type !== 'rapid' && !(r0.features.challengeAfterWrong && kind === 'correct') && !(r0.features.noChallengeOnTwo && st.live.eliminated.length >= 2);
       if (kind === 'correct' && st.settings.autoRevealOnCorrect && !holdForChallenge) st.live.revealed = true;
       if (kind === 'wrong' && r0) {
         // Rapid Fire: the buzzing team's wrong answer finishes the question.
@@ -590,6 +591,7 @@ const Game = {
     if (!l.qid || !Sel.team(teamId)) return false;
     if (r && !r.features.challenge) { UI.toast('No hand-raise / Challenge in this round', 'err'); return false; }
     if (teamId === l.active) { UI.toast('The answering team cannot raise its own hand', 'err'); return false; }
+    if (r && r.features.noChallengeOnTwo && l.eliminated.length >= 2 && !l.hands.includes(teamId)) { UI.toast('Round 1: no challenge when the team played with 2 options', 'err'); return false; }
     if (r && r.features.challengeAfterWrong && l.result !== 'wrong' && !l.hands.includes(teamId)) { UI.toast('Round 1: a challenge opens only after a wrong answer (press Wrong first)', 'err'); return false; }
     if (l.handsJudged[teamId]) { UI.toast("This team's raised hand has already been judged", 'err'); return false; }
     const on = l.hands.includes(teamId);
