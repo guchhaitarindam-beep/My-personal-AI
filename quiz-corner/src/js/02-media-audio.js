@@ -470,7 +470,8 @@ const Cue = {
    through the loud music bus; the background music ducks under it.
    ===================================================================== */
 /** Built-in voice-over that plays by itself when a round's rules screen opens (round id -> embedded audio). */
-const RULES_VOICE = { R1: 'asset:rules-r1', R2: 'asset:rules-r2', R3: 'asset:rules-r3' };
+// Round 1's recording (rules-r1.mp3) still reads the old pass rule — it stays silent until the new rule is recorded (13 Oct: no pass, challenge 10 / 5 / 3).
+const RULES_VOICE = { R2: 'asset:rules-r2', R3: 'asset:rules-r3' };
 const VoicePlayer = {
   el: null,
   clipRules: false,

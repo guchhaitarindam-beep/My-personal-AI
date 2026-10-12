@@ -82,15 +82,20 @@ let before = await ctl.evaluate(() => window.QC.Sel.score(window.QC.Store.state.
 await ctl.keyboard.press('Shift+' + wrongKey.toUpperCase()); await stage.waitForTimeout(1400); c = await cues(); await shot('13-option-wrong');
 st = await ctl.evaluate(() => ({ r: window.QC.Store.state.live.result, sc: window.QC.Sel.score(window.QC.Store.state.live.active) }));
 step(st.r === 'wrong' && st.sc === before && c.includes('wrong'), 'ভুল বিকল্প: ভুলের সাউন্ড, নম্বর ০', JSON.stringify(st) + ' ' + c.join(','));
-await ctl.keyboard.press('p'); await stage.waitForTimeout(1500); await shot('14-pass');
-st = await ctl.evaluate(() => { const s = window.QC.Store.state; return { flow: s.live.flow, team: window.QC.Sel.code(window.QC.Sel.team(s.live.active)), t: s.timer.duration, run: s.timer.running }; });
-step(st.flow === 'pass' && st.t === 45000 && st.run, 'P: পরের দলে পাস, ৪৫ সেকেন্ড চালু', JSON.stringify(st));
+// round 1 (13 Oct): no pass — after the wrong answer another team buzzes and challenges, worth what A / 1 played for (4 options: 5)
+await ctl.keyboard.press('p'); await stage.waitForTimeout(500);
+st = await ctl.evaluate(() => ({ flow: window.QC.Store.state.live.flow, rev: window.QC.Store.state.live.revealed }));
+step(st.flow === 'direct' && !st.rev, 'রাউন্ড ১: পাস নেই — P টিপলেও পাস হয় না, উত্তর লুকোনো থাকে (চ্যালেঞ্জের সুযোগ)', JSON.stringify(st));
+const r1Ch = await ctl.evaluate(() => window.QC.Sel.finalistIds()[1]);
+await ctl.keyboard.press('Shift+Digit2'); await stage.waitForTimeout(1500); await shot('14-challenge');
+st = await ctl.evaluate(() => ({ hands: window.QC.Store.state.live.hands, val: window.QC.Game.challengeValue() }));
+step(st.hands.includes(r1Ch) && st.val === 5, 'Shift+2: B / 2 বাজার টিপে চ্যালেঞ্জ — মান ৫ (চারটি বিকল্পে খেলা হয়েছিল)', JSON.stringify(st));
 const pcard = await stage.evaluate(() => document.querySelector('.layer:not(.exiting) .q-side').innerText.replace(/\s+/g, ' '));
-step(pcard.includes('PASS TO') && pcard.includes('TEAM ' + st.team), 'পাস হলে নতুন দলের ছবি, কোড ও স্কোর কোণে', pcard.slice(0, 80));
-before = await ctl.evaluate(() => window.QC.Sel.score(window.QC.Store.state.live.active));
-await ctl.keyboard.press('Shift+' + 'abcd'[ans].toUpperCase()); await stage.waitForTimeout(2200); c = await cues(); await shot('15-pass-correct');
-st = await ctl.evaluate(() => ({ r: window.QC.Store.state.live.result, sc: window.QC.Sel.score(window.QC.Store.state.live.active), rev: window.QC.Store.state.live.revealed }));
-step(st.r === 'correct' && st.sc === before + 5 && c.includes('correct') && c.includes('applause') && st.rev, 'পাসে সঠিক বিকল্প: +৫, সঠিকের সাউন্ড ও হাততালি, উত্তর প্রকাশ', JSON.stringify(st) + ' ' + c.join(','));
+step(pcard.includes('CHALLENGE'), 'চ্যালেঞ্জে দুই দলের ছবি, কোড ও স্কোর কোণে', pcard.slice(0, 80));
+before = await ctl.evaluate((id) => window.QC.Sel.score(id), r1Ch);
+await ctl.click('[data-act="judgeHand"][data-arg="' + r1Ch + '|1"]'); await stage.waitForTimeout(2200); c = await cues(); await shot('15-challenge-correct');
+st = await ctl.evaluate((id) => ({ sc: window.QC.Sel.score(id), rev: window.QC.Store.state.live.revealed }), r1Ch);
+step(st.sc === before + 5 && c.includes('correct') && c.includes('applause') && st.rev, 'চ্যালেঞ্জে সঠিক: +৫, সঠিকের সাউন্ড ও হাততালি, উত্তর প্রকাশ', JSON.stringify(st) + ' ' + c.join(','));
 // next question by the board: B / 2's turn, direct answer
 await ctl.keyboard.press('Escape'); await ctl.keyboard.press('ArrowRight'); await stage.waitForTimeout(1500);
 st = await ctl.evaluate(() => { const s = window.QC.Store.state; return { scene: s.show.scene, turn: window.QC.Sel.code(window.QC.Sel.team(window.QC.Game.turnFor('R1'))) }; });

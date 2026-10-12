@@ -104,8 +104,13 @@ await ctl.keyboard.press('Control+z');
 check('Ctrl+Z undoes score', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b, before));
 await ctl.keyboard.press('x');
 await ctl.keyboard.press('p');
+const noPass = await ctl.evaluate(() => ({ flow: window.QC.Store.state.live.flow, revealed: window.QC.Store.state.live.revealed }));
+check('Round 1: Wrong then P does not pass (no pass; the answer waits for a challenge)', noPass.flow === 'direct' && !noPass.revealed, JSON.stringify(noPass));
+await ctl.evaluate(() => { const QC = window.QC; const st = QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.roundId === 'R2'); QC.Show.go(st); });
+await ctl.keyboard.press('x');
+await ctl.keyboard.press('p');
 const passState = await ctl.evaluate(() => ({ flow: window.QC.Store.state.live.flow, mode: window.QC.Store.state.timer.mode, dur: window.QC.Store.state.timer.duration, running: window.QC.Store.state.timer.running }));
-check('Wrong then P passes with 45s timer', passState.flow === 'pass' && passState.dur === 45000 && passState.running, JSON.stringify(passState));
+check('Round 2: Wrong then P passes with 45s timer', passState.flow === 'pass' && passState.dur === 45000 && passState.running, JSON.stringify(passState));
 await stage.waitForTimeout(900);
 await stage.screenshot({ path: path.join(shots, '91-pass.png') });
 // challenge in R4
@@ -165,8 +170,8 @@ check('Office toolbar: italic/underline/right/size reach the stage', await stage
 await ctl.click('[data-act="textReset"]');
 await openPage('colors');
 await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.design.colors.text = '#ffee00'; s.design.colors.bg = '#101010'; s.design.box.width = 0.6; }));
-await stage.waitForTimeout(300);
-check('Text/background colour and border width are editable', await stage.evaluate(() => { const cs = getComputedStyle(document.documentElement); return cs.getPropertyValue('--text').trim() === '#ffee00' && cs.getPropertyValue('--bg').trim() === '#101010' && cs.getPropertyValue('--box-w').trim() === '0.6'; }));
+// the stage applies new colours on its next sync: wait for it (up to 3 s) instead of a fixed pause
+check('Text/background colour and border width are editable', await stage.waitForFunction(() => { const cs = getComputedStyle(document.documentElement); return cs.getPropertyValue('--text').trim() === '#ffee00' && cs.getPropertyValue('--bg').trim() === '#101010' && cs.getPropertyValue('--box-w').trim() === '0.6'; }, null, { timeout: 3000 }).then(() => true).catch(() => false));
 await ctl.evaluate(() => window.QC.Actions.theme('broadcast'));
 await openPage('teams');
 await ctl.screenshot({ path: path.join(shots, '80-control-teams.png') });

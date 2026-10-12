@@ -122,7 +122,7 @@ const SelfTest = {
       Game.load(q1.id, a);
       Game.judge('correct');
       T('Score: direct correct +10', () => Sel.score(a) === 10);
-      Game.load(Sel.roundQuestions('R1')[1].id, b);
+      Game.load(Sel.roundQuestions('R2')[1].id, b);
       Game.judge('wrong');
       Game.pass();
       T('Pass: goes to the next team with 45 s', () => s().live.flow === 'pass' && s().live.active === c && s().timer.mode === 'pass');
@@ -186,15 +186,14 @@ const SelfTest = {
       const sa2 = Sel.score(a);
       Game.bonus();
       T('Manual bonus only once', () => Sel.score(a) === sa2 + 5 && Game.bonus() === false);
-      // auto reveal when options were taken in a round without pass-after-options
-      // latest rules: in round 1 a wrong answer after the options still passes to the next team
+      // 13 Oct rule: round 1 has no pass — after a wrong answer (with or without options) the answer stays hidden for a challenge
       Game.load(Sel.roundQuestions('R1')[4].id, a); Game.showOptions(); Game.judge('wrong');
-      T('Round 1: pass stays open after a wrong answer even with options', () => s().live.revealed === false && Game.pass() === true && s().live.flow === 'pass');
-      // a round set to "no pass after options" reveals the answer by itself
-      Sel.round('R1').features.passAfterOptions = false;
-      Game.load(Sel.roundQuestions('R1')[6].id, a); Game.showOptions(); Game.judge('wrong');
-      T('Wrong after options (no-pass round): answer reveals itself', () => s().live.revealed === true);
-      Sel.round('R1').features.passAfterOptions = true;
+      T('Round 1: no pass; a wrong answer with options waits for a challenge', () => s().live.revealed === false && Game.pass() === false);
+      // a round with options but no pass after them (and no challenge) reveals the answer by itself
+      { const r2 = Sel.round('R2'); const keep = clone(r2.features); Object.assign(r2.features, { options: true, passAfterOptions: false });
+        Game.load(Sel.roundQuestions('R2')[6].id, a); Game.showOptions(); Game.judge('wrong');
+        T('Wrong after options (no-pass round): answer reveals itself', () => s().live.revealed === true);
+        r2.features = keep; }
       T('Cannot score correct twice on the same question', () => { Game.load(Sel.roundQuestions('R1')[5].id, a); Game.judge('correct'); return Game.judge('correct') === false; });
       // rapid: wrong closes
       Game.load(Sel.roundQuestions('R5')[1].id, b); Game.judge('wrong');
@@ -234,12 +233,13 @@ const SelfTest = {
       const R = (id) => Sel.round(id);
       T('Rules: names of the 3 main-stage rounds', () => R('R1').name === 'মজার মিশেল' && R('R2').name === 'চিন্তা ও চয়েস' && R('R3').name === 'বুদ্ধির টক্কর');
       T('Rules: rounds 1–3 enabled, 4–7 in the file but disabled', () => ['R1', 'R2', 'R3'].every((id) => R(id).enabled) && ['R4', 'R5', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled));
-      T('Rules: rule text says 60 and 45 seconds', () => ['R1', 'R2'].every((id) => R(id).rules.includes('৬০ সেকেন্ড') && R(id).rules.includes('৪৫ সেকেন্ড')));
+      T('Rules: rule text says 60 seconds (round 2 also 45 for the pass)', () => ['R1', 'R2', 'R3'].every((id) => R(id).rules.includes('৬০ সেকেন্ড')) && R('R2').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: no old 30/15 seconds anywhere', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
-      T('Rules: round 1 — next team gets 5 after a pass, wrong 0', () => R('R1').scoring.pass === 5 && R('R1').scoring.wrong === 0);
-      T('Rules: round 1 — options exist, judged on the option the team names, pass still allowed', () => R('R1').features.options && R('R1').features.judgeOptions && R('R1').features.passAfterOptions);
-      T('Rules: rounds 1 and 2 — no challenge', () => !R('R1').features.challenge && !R('R2').features.challenge);
+      T('Rules: round 1 — no pass; one team buzzes to challenge; correct = what the team played for (10 / 5 / 3), wrong 0', () => !R('R1').features.pass && !R('R1').features.passAfterOptions && R('R1').features.challenge && R('R1').features.singleChallenger && R('R1').scoring.challengeAsPlayed && R('R1').scoring.challengeWrong === 0 && R('R1').scoring.wrong === 0);
+      T('Rules: round 1 — options exist, judged on the option the team names', () => R('R1').features.options && R('R1').features.judgeOptions);
+      T('Rules: round 1 text — no pass, challenge 10 / 5 / 3, wrong 0', () => R('R1').rules.includes('কোনো পাস নেই') && R('R1').rules.includes('চ্যালেঞ্জ') && R('R1').rules.includes('কোনো নম্বর কাটা যাবে না') && !R('R1').rules.includes('৪৫ সেকেন্ড'));
+      T('Rules: round 2 — no challenge', () => !R('R2').features.challenge);
       T('Rules: round 2 — no options', () => R('R2').features.options === false);
       T('Rules: round 3 — direct 10 only, no options, no pass', () => R('R3').scoring.direct === 10 && R('R3').scoring.wrong === 0 && !R('R3').features.options && !R('R3').features.pass && !R('R3').features.lifelines);
       T('Rules: round 3 — one team buzzes to challenge, correct +10, wrong −5', () => R('R3').features.challenge && R('R3').features.singleChallenger && R('R3').scoring.challengeRight === 10 && R('R3').scoring.challengeWrong === -5);
@@ -273,8 +273,21 @@ const SelfTest = {
           T('Game: round 1 — cutting to 2 options does not use a lifeline', () => s().live.eliminated.length === 2 && JSON.stringify(s().lifelines) === lifeBefore && !s().live.eliminated.includes(q2.answer));
           T('Game: round 1 — correct with 2 options = 3', () => Game.pointsFor('correct') === 3);
           const bad = [0, 1, 2, 3].find((i) => i !== q2.answer && !s().live.eliminated.includes(i));
+          T('Game: round 1 — no challenge before the team has answered wrong', () => Game.raiseHand(tb) === false && !s().live.hands.length);
           const sb = Sel.score(ta); Game.pick(bad);
-          T('Game: round 1 — wrong option gives 0, question can pass to the next team', () => Sel.score(ta) === sb && s().live.result === 'wrong' && !s().live.revealed && Game.pass() === true && Game.pointsFor('correct') === 5);
+          T('Game: round 1 — wrong option gives 0, no pass, answer stays hidden for a challenge', () => Sel.score(ta) === sb && s().live.result === 'wrong' && !s().live.revealed && Game.pass() === false);
+          const cb = Sel.score(tb);
+          T('Game: round 1 — challenge after 2 options is worth 3', () => Game.challengeValue() === 3 && Game.raiseHand(tb) === true && Game.raiseHand(tc) === false);
+          Game.judgeHand(tb, true);
+          T('Game: round 1 — challenge correct +3 (2 options), answer shown', () => Sel.score(tb) === cb + 3 && s().live.revealed);
+          // direct: 10; 4 options: 5; a wrong challenge: 0
+          Game.load(Sel.roundQuestions('R1')[3].id, ta); Game.judge('wrong');
+          const cb2 = Sel.score(tb); Game.raiseHand(tb); Game.judgeHand(tb, true);
+          T('Game: round 1 — challenge after a direct answer is worth 10', () => Sel.score(tb) === cb2 + 10);
+          Game.load(Sel.roundQuestions('R1')[5].id, ta); Game.showOptions(); Game.judge('wrong');
+          const cc = Sel.score(tc); T('Game: round 1 — challenge after 4 options is worth 5', () => Game.challengeValue() === 5);
+          Game.raiseHand(tc); Game.judgeHand(tc, false);
+          T('Game: round 1 — wrong challenge 0 (nothing taken away)', () => Sel.score(tc) === cc);
           void wrongIdx;
         }
         Game.load(Sel.roundQuestions('R2')[0].id, ta);
@@ -299,7 +312,7 @@ const SelfTest = {
         Game.load(Sel.roundQuestions('R3')[3].id, ta);
         Actions.setActive(tb);
         T('Game: round 3 — pressing another team number buzzes (challenge)', () => s().live.hands.includes(tb) && s().live.active === ta);
-        Game.load(Sel.roundQuestions('R1')[8].id, ta); Game.judge('wrong');
+        Game.load(Sel.roundQuestions('R2')[8].id, ta); Game.judge('wrong');
         const target = Sel.finalistIds()[4];
         Actions.setActive(target);
         T('Game: after a wrong answer, pressing a team number passes to that team', () => s().live.active === target && s().live.flow === 'pass' && s().timer.duration === 45000);
@@ -378,7 +391,7 @@ const SelfTest = {
       }
       T('Old save: 12 empty "Team N" → 8 teams A / 1 … H / 8', () => { const old = defaultState(); delete old.rulesVersion; old.teams = Array.from({ length: 12 }, (_, i) => Object.assign(defaultTeam(i), { name: 'দল ' + bn(i + 1) })); const n = normalizeState(old); return n.teams.length === 8 && n.teams[7].name === 'H / 8'; });
       T('New save: operator’s own rule edits kept', () => { const cur = defaultState(); cur.rounds[0].label = 'আমার লেখা'; return normalizeState(cur).rounds[0].label === 'আমার লেখা'; });
-      T('Rules: round 1 side label has no challenge', () => !R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
+      T('Rules: round 1 side label — options and challenge', () => R('R1').label.includes('চ্যালেঞ্জ') && R('R1').label.includes('বিকল্প'));
       T('Bulk media: round and question from file name', () => { const a = bulkMediaTarget('R1-5.jpg'); const b = bulkMediaTarget('r2_10.png'); const c = bulkMediaTarget('রাউন্ড৩-প্রশ্ন৭.mp3'); const d = bulkMediaTarget('holiday photo.jpg'); return a.round === 1 && a.n === 5 && b.round === 2 && b.n === 10 && c.round === 3 && c.n === 7 && d === null; });
       T('Recording: question / options / answer / clip from file name', () => { const a = bulkMediaTarget('R1-5.mp3'); const b = bulkMediaTarget('R1-5-বিকল্প.mp3'); const c = bulkMediaTarget('r2_3-উত্তর.m4a'); const d = bulkMediaTarget('R3-7-clip.mp3'); const e = bulkMediaTarget('R1-5-opt.mp3'); const f = bulkMediaTarget('R2-4 ans.wav'); return a.voice === 'q' && b.voice === 'opt' && b.n === 5 && c.voice === 'ans' && c.round === 2 && c.n === 3 && d.voice === 'clip' && e.voice === 'opt' && f.voice === 'ans'; });
       T('Recording: empty slots in old saves, kept in new ones', () => { const q = questionFromSeed({ voiceQ: 'm_x', voiceAns: 'm_y' }, 0); const old = mergeDefaults(questionFromSeed({}, 0), { id: 'Q', text: 'ক' }); return q.voiceQ === 'm_x' && q.voiceAns === 'm_y' && q.voiceOpt === '' && old.voiceQ === '' && old.voiceOpt === ''; });
@@ -479,12 +492,12 @@ const SelfTest = {
       {
         const ids = Sel.finalistIds();
         Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
-        // a played round: A/1 direct +10, B/2 wrong then C/3 on the pass +5, D/4 via 2 options +3
+        // a played round: A/1 direct +10, B/2 wrong then C/3 challenges correctly +10, D/4 via 2 options +3
         const qs = Sel.roundQuestions('R1');
         Game.load(qs[0].id, ids[0]); Game.judge('correct');
-        Game.load(qs[1].id, ids[1]); Game.judge('wrong'); Game.pass(ids[2]); Game.judge('correct');
+        Game.load(qs[1].id, ids[1]); Game.judge('wrong'); Game.raiseHand(ids[2]); Game.judgeHand(ids[2], true);
         Game.load(qs[2].id, ids[3]); Game.twoOptions(); Game.pick(Sel.liveQuestion().answer);
-        T('Tally: A/1 = 10, B/2 = 0, C/3 = 5, D/4 = 3, total = 18', () => Sel.score(ids[0]) === 10 && Sel.score(ids[1]) === 0 && Sel.score(ids[2]) === 5 && Sel.score(ids[3]) === 3 && ids.reduce((t, id) => t + Sel.score(id), 0) === 18);
+        T('Tally: A/1 = 10, B/2 = 0, C/3 = 10 (challenge), D/4 = 3, total = 23', () => Sel.score(ids[0]) === 10 && Sel.score(ids[1]) === 0 && Sel.score(ids[2]) === 10 && Sel.score(ids[3]) === 3 && ids.reduce((t, id) => t + Sel.score(id), 0) === 23);
         T('Tally: round scores separate and match the total', () => ids.every((id) => Sel.roundScore(id, 'R1') === Sel.score(id)));
         T('Tally: every score in the ledger with before/after', () => s().ledger.every((e) => e.after === e.before + e.delta));
         const sbStep = Show.rundown().find((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R1'); Show.go(sbStep);
@@ -514,7 +527,7 @@ const SelfTest = {
         Game.load(qid3, x); Game.raiseHand(y);
         const html = Scenes.QUESTION(s(), { qid: qid3 }).html;
         T('Round 3: on buzz, challenger and answering team — both photos, codes and scores', () => html.includes('CHALLENGE') && html.includes(Sel.code(Sel.team(x))) && html.includes(Sel.code(Sel.team(y))) && (html.match(/class="mscore"/g) || []).length === 2);
-        Game.load(Sel.roundQuestions('R1')[9].id, x); Game.judge('wrong'); Game.pass();
+        Game.load(Sel.roundQuestions('R2')[9].id, x); Game.judge('wrong'); Game.pass();
         T('On a pass the new team photo, code and score appear in the corner', () => { const h = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return h.includes('PASS TO') && h.includes('TEAM ' + Sel.code(Sel.team(s().live.active))) && h.includes('class="tscore"'); });
       }
       T('Default: applause on correct, theme sting at round start, soft music during questions', () => s().settings.autoApplause && s().audio.themeSting && s().audio.bgm.questionLevel > 0 && s().audio.bgm.questionLevel < 1);
@@ -550,7 +563,7 @@ const SelfTest = {
         return ok && steps === '0,1,2,9,10' && plain === '0,0,1,10|10000';
       });
       T('Question picture: Z shows it full screen on the TV, a new question starts without it', () => { const def = emptyLive(); return def.zoomPic === false && typeof Actions.zoomPic === 'function'; });
-      T('Rules recordings: rounds 1, 2, 3 each have their own built-in reading of the rules', () => ['R1', 'R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
+      T('Rules recordings: rounds 2 and 3 read their rules; round 1 (rule changed: no pass, challenge) stays silent until re-recorded', () => !RULES_VOICE.R1 && ['R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
       T('Round 1 recordings: all 10 in order', () => {
         const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
         return qs.length === 10 && qs.every((q) => q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg'));

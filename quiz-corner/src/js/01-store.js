@@ -531,7 +531,7 @@ const Game = {
     const sc = r.scoring;
     const mult = clamp(int(r.multiplier, 1), 1, 5);
     if (r.type === 'rapid') return kind === 'correct' ? sc.rapidRight * mult : sc.rapidWrong;
-    if (l.flow === 'challenge') return kind === 'correct' ? sc.challengeRight : sc.challengeWrong;
+    if (l.flow === 'challenge') return kind === 'correct' ? this.challengeValue() : sc.challengeWrong;
     if (kind !== 'correct') return l.passChain.length ? sc.passWrong : sc.wrong;
     const base = q && q.points != null ? q.points : sc.direct;
     // Audio-visual ladder: the value grows by bonusStep (× multiplier) for every pass.
@@ -539,6 +539,16 @@ const Game = {
     if (l.flow === 'pass') return sc.pass * mult;
     if (l.optionsShown) return (l.eliminated.length >= 2 ? sc.options2 : sc.options4) * mult;
     return base * mult;
+  },
+  /** What a correct challenge earns: a fixed value, or (round 1) what the answering team played for — 10 direct, 5 with 4 options, 3 with 2. */
+  challengeValue() {
+    const s = Store.state; const l = s.live; const r = Sel.round(l.roundId) || Sel.currentRound(); const q = Sel.liveQuestion();
+    if (!r) return 0;
+    const sc = r.scoring;
+    if (!sc.challengeAsPlayed) return sc.challengeRight;
+    const mult = clamp(int(r.multiplier, 1), 1, 5);
+    const base = q && q.points != null ? q.points : sc.direct;
+    return (l.optionsShown ? (l.eliminated.length >= 2 ? sc.options2 : sc.options4) : base) * mult;
   },
   /** A locked question refuses scoring changes until the operator unlocks it. */
   guard() { if (Store.state.live.audience) { UI.toast('Audience question — no team plays it and nobody gets points', 'err'); return false; } if (Store.state.live.locked) { UI.toast('Question is locked — unlock it first (L)', 'err'); return false; } return true; },
@@ -559,7 +569,8 @@ const Game = {
       this.addEntry(st, team, pts, label + ' • ' + this.flowName(st.live.flow), { kind, flow: st.live.flow });
       st.live.result = kind; st.live.resultAt = now(); st.live.lastPoints = pts; st.live.resultTeam = team;
       // In a challenge round the answer stays hidden after the team answers, so another team can still buzz and challenge.
-      const holdForChallenge = r0 && r0.features.challenge && r0.type !== 'rapid';
+      // (round 1: the challenge opens only after a wrong answer — a correct one shows the answer at once)
+      const holdForChallenge = r0 && r0.features.challenge && r0.type !== 'rapid' && !(r0.features.challengeAfterWrong && kind === 'correct');
       if (kind === 'correct' && st.settings.autoRevealOnCorrect && !holdForChallenge) st.live.revealed = true;
       if (kind === 'wrong' && r0) {
         // Rapid Fire: the buzzing team's wrong answer finishes the question.
@@ -579,6 +590,7 @@ const Game = {
     if (!l.qid || !Sel.team(teamId)) return false;
     if (r && !r.features.challenge) { UI.toast('No hand-raise / Challenge in this round', 'err'); return false; }
     if (teamId === l.active) { UI.toast('The answering team cannot raise its own hand', 'err'); return false; }
+    if (r && r.features.challengeAfterWrong && l.result !== 'wrong' && !l.hands.includes(teamId)) { UI.toast('Round 1: a challenge opens only after a wrong answer (press Wrong first)', 'err'); return false; }
     if (l.handsJudged[teamId]) { UI.toast("This team's raised hand has already been judged", 'err'); return false; }
     const on = l.hands.includes(teamId);
     if (!on && r && r.features.singleChallenger && l.hands.length) { UI.toast('In this round only the first team to buzz can challenge', 'err'); return false; }
@@ -590,7 +602,7 @@ const Game = {
     if (!this.guard()) return false;
     const s = Store.state; const l = s.live; const r = Sel.round(l.roundId);
     if (!l.hands.includes(teamId) || l.handsJudged[teamId] || !r) return false;
-    const pts = right ? r.scoring.challengeRight : r.scoring.challengeWrong;
+    const pts = right ? this.challengeValue() : r.scoring.challengeWrong;
     Store.commit('hand-' + (right ? 'right' : 'wrong'), (st) => {
       this.addEntry(st, teamId, pts, (right ? 'Hand-raise correct' : 'Hand-raise wrong'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
       st.live.handsJudged = Object.assign({}, st.live.handsJudged, { [teamId]: right ? 'right' : 'wrong' });
