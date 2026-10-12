@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261012-2120 -->
+<!-- QC-BUILD: 20261012-2146 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 21:20</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 21:46</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -2616,6 +2616,9 @@ const Sel = {
     return this.prelimRanking().slice(0, n).map((r) => r.team.id);
   },
   finalists() { return this.finalistIds().map((id) => this.team(id)).filter(Boolean); },
+  /** The finalists in team-code order A / 1 … H / 8 (the place in the team list) — the order the turns and passes follow,
+      whatever order the prelim ranking or a manual confirmation left them in. */
+  finalistsByCode() { const s = Store.state; return this.finalistIds().slice().sort((a, b) => s.teams.findIndex((t) => t.id === a) - s.teams.findIndex((t) => t.id === b)); },
 
   /** Standings with competition ranking (1,1,3) and movement since the last scoreboard. */
   standings(ids = this.finalistIds(), rid = '') {
@@ -2674,10 +2677,10 @@ const Sel = {
   },
   lifelineUsed(tid, kind) { return !!(Store.state.lifelines[tid] && Store.state.lifelines[tid][kind]); },
   turnTeam(round) {
-    const ids = this.finalistIds();
+    const ids = this.finalistsByCode();
     if (!ids.length) return '';
     if (!round) return ids[0];
-    // one turn per team per round, in the round's order (A→H or H→A); after the 8th team the rest are audience questions ('')
+    // one turn per team per round, by team code: round 1 and 3 A / 1 → H / 8, round 2 H / 8 → A / 1; after the 8th team the rest are audience questions ('')
     const taken = arr(round.turnsTaken);
     const seq = round.turnOrder === 'reverse' ? ids.slice().reverse() : ids;
     return seq.find((id) => !taken.includes(id)) || '';
@@ -2983,7 +2986,7 @@ const Game = {
   /** Next team in finalist order that has not yet tried this question. */
   nextPassTeam() {
     const s = Store.state;
-    const ids = Sel.finalistIds();
+    const ids = Sel.finalistsByCode();
     const tried = new Set(s.live.passChain.concat([s.live.active]));
     const start = Math.max(0, ids.indexOf(s.live.active));
     for (let k = 1; k <= ids.length; k++) { const id = ids[(start + k) % ids.length]; if (!tried.has(id)) return id; }
@@ -8230,6 +8233,11 @@ const SelfTest = {
         Show.next(); Show.next();
         T('Board: with only audience numbers left, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
         T('Turn order: round 2 runs anti-clockwise, H / 8 first; round 3 starts again at A / 1', () => Game.turnFor('R2') === ids[ids.length - 1] && Game.turnFor('R3') === ids[0]);
+        // the turns follow the team codes even when the finalists are listed in prelim-rank order (no podium lottery)
+        { const keep = s().finalists.slice(); s().finalists = [ids[3], ids[0], ids[7], ids[1], ids[6], ids[2], ids[5], ids[4]].filter(Boolean); // a prelim-rank order, not A … H
+          const code = (id) => Sel.code(Sel.team(id));
+          T('Turn order by team code, not by prelim rank: round 2 H / 8 first, round 3 A / 1 first', () => code(Game.turnFor('R2')) === 'H / 8' && code(Game.turnFor('R3')) === 'A / 1', code(Game.turnFor('R2')) + ' / ' + code(Game.turnFor('R3')));
+          s().finalists = keep; }
         Store.state = normalizeState(defaultState()); Show._rd = null;
       }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });

@@ -277,6 +277,9 @@ const Sel = {
     return this.prelimRanking().slice(0, n).map((r) => r.team.id);
   },
   finalists() { return this.finalistIds().map((id) => this.team(id)).filter(Boolean); },
+  /** The finalists in team-code order A / 1 … H / 8 (the place in the team list) — the order the turns and passes follow,
+      whatever order the prelim ranking or a manual confirmation left them in. */
+  finalistsByCode() { const s = Store.state; return this.finalistIds().slice().sort((a, b) => s.teams.findIndex((t) => t.id === a) - s.teams.findIndex((t) => t.id === b)); },
 
   /** Standings with competition ranking (1,1,3) and movement since the last scoreboard. */
   standings(ids = this.finalistIds(), rid = '') {
@@ -335,10 +338,10 @@ const Sel = {
   },
   lifelineUsed(tid, kind) { return !!(Store.state.lifelines[tid] && Store.state.lifelines[tid][kind]); },
   turnTeam(round) {
-    const ids = this.finalistIds();
+    const ids = this.finalistsByCode();
     if (!ids.length) return '';
     if (!round) return ids[0];
-    // one turn per team per round, in the round's order (A→H or H→A); after the 8th team the rest are audience questions ('')
+    // one turn per team per round, by team code: round 1 and 3 A / 1 → H / 8, round 2 H / 8 → A / 1; after the 8th team the rest are audience questions ('')
     const taken = arr(round.turnsTaken);
     const seq = round.turnOrder === 'reverse' ? ids.slice().reverse() : ids;
     return seq.find((id) => !taken.includes(id)) || '';
@@ -644,7 +647,7 @@ const Game = {
   /** Next team in finalist order that has not yet tried this question. */
   nextPassTeam() {
     const s = Store.state;
-    const ids = Sel.finalistIds();
+    const ids = Sel.finalistsByCode();
     const tried = new Set(s.live.passChain.concat([s.live.active]));
     const start = Math.max(0, ids.indexOf(s.live.active));
     for (let k = 1; k <= ids.length; k++) { const id = ids[(start + k) % ids.length]; if (!tried.has(id)) return id; }

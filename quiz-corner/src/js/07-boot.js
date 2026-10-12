@@ -484,6 +484,11 @@ const SelfTest = {
         Show.next(); Show.next();
         T('Board: with only audience numbers left, Next → the round scoreboard', () => s().show.scene === 'SCOREBOARD' && s().show.params.roundId === rid);
         T('Turn order: round 2 runs anti-clockwise, H / 8 first; round 3 starts again at A / 1', () => Game.turnFor('R2') === ids[ids.length - 1] && Game.turnFor('R3') === ids[0]);
+        // the turns follow the team codes even when the finalists are listed in prelim-rank order (no podium lottery)
+        { const keep = s().finalists.slice(); s().finalists = [ids[3], ids[0], ids[7], ids[1], ids[6], ids[2], ids[5], ids[4]].filter(Boolean); // a prelim-rank order, not A … H
+          const code = (id) => Sel.code(Sel.team(id));
+          T('Turn order by team code, not by prelim rank: round 2 H / 8 first, round 3 A / 1 first', () => code(Game.turnFor('R2')) === 'H / 8' && code(Game.turnFor('R3')) === 'A / 1', code(Game.turnFor('R2')) + ' / ' + code(Game.turnFor('R3')));
+          s().finalists = keep; }
         Store.state = normalizeState(defaultState()); Show._rd = null;
       }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });
