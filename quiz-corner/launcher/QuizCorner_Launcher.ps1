@@ -8,9 +8,9 @@
 # and the event data stays in one place.  With no TV both windows open side by side on the laptop.
 # A log of every start is kept in %LOCALAPPDATA%\QuizCorner\launcher_log.txt.
 
-# QC-LAUNCHER: 20261012-0700
+# QC-LAUNCHER: 20261012-2000
 $ErrorActionPreference = 'Continue'
-$LauncherStamp = '20261012-0700'
+$LauncherStamp = '20261012-2000'
 # Bengali messages are kept as UTF-8 Base64 so this file is plain ASCII and reads the same in every Windows PowerShell
 function T($b) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b)) }
 $myPs1 = $MyInvocation.MyCommand.Path
@@ -200,6 +200,8 @@ public static class QCWin {
   [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
   [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
   [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+  [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
 
   public static void DpiAware() {
     try { if (SetProcessDpiAwarenessContext(new IntPtr(-4))) return; } catch { }
@@ -475,7 +477,86 @@ try {
 if ($script:wrongFile) {
   [void](Box ((T '4Kav4KeHIOCmleCngeCmh+CmnCDgpqvgpr7gpofgprLgpp/gpr8g4Kas4KeH4Kab4KeHIOCmqOCnh+Cmk+Cmr+CmvOCmviDgprngpq/gprzgp4fgppvgpr/gprIsIOCmuOCnh+Cmn+CmvyDgppbgp4HgprLgp4fgppvgp4cg4Kas4Kay4KeHIOCmruCmqOCnhyDgprngpprgp43gppvgp4cg4Kao4Ka+4KWkIOCmuOCmrCBRdWl6IENvcm5lciDgpongpofgpqjgp43gpqHgp4sg4Kas4Kao4KeN4KanIOCmleCmsOCnhyBTVEFSVF9RVUlaX0NPUk5FUi5iYXQg4KaG4Kas4Ka+4KawIOCmmuCmvuCmsuCmvuCmqOClpA==') + "`n`n" + $html.FullName) 'OK' 'Warning')
 }
+# --- the guard: during the whole show the control stays on the laptop and the stage full screen on the TV ---
+# Windows moves windows about when the TV wakes up, changes input or is plugged in again, and a window can be dragged
+# or put on the wrong screen by a key press. Every 2 seconds this puts them back. It ends by itself when the quiz is closed.
+$lapKey = MonKey $laptop
+$intKeys = @()
+try { $intKeys = @(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorConnectionParams -ErrorAction Stop | Where-Object { $v = [uint32]$_.VideoOutputTechnology; $v -eq [uint32]2147483648 -or $v -eq 11 -or $v -eq 13 } | ForEach-Object { ($_.InstanceName -replace '_\d+$', '').ToUpper() }) } catch { }
+function PickScreens($ms) {
+  # the same choice as at the start: the laptop chosen then (by its hardware id), else its own panel, else the main display
+  $l = $ms | Where-Object { (MonKey $_) -eq $lapKey } | Select-Object -First 1
+  if (-not $l) { foreach ($m in $ms) { $p = ($m.DevId -replace '^\\\\\?\\', '') -split '#'; if ($p.Count -ge 3 -and $intKeys -contains (($p[0] + '\' + $p[1] + '\' + $p[2]).ToUpper())) { $l = $m; break } } }
+  if (-not $l) { $l = $ms | Where-Object { $_.Primary } | Select-Object -First 1 }
+  if (-not $l) { $l = $ms[0] }
+  $t = $ms | Where-Object { $_.Device -ne $l.Device } | Sort-Object { $_.W * $_.H } -Descending | Select-Object -First 1
+  return @($l, $t)
+}
+function QuizWins() { @([QCWin]::BrowserWindows() | Where-Object { $t = [QCWin]::Title($_); $t -like '*Broadcast Engine*' -or $t -like '*Quiz Corner*STAGE*' }) }
+function IsStageWin($h) { return ([QCWin]::Title($h) -like '*STAGE*') }
+function CtlToLaptop($h, $lap) {
+  if ([QCWin]::IsFull($h)) { [void](Fullscreen $h $false) }
+  [void][QCWin]::ShowWindow($h, 9)
+  [void][QCWin]::SetWindowPos($h, [IntPtr]::Zero, $lap.WL + 20, $lap.WT + 20, [Math]::Max(800, $lap.WW - 40), [Math]::Max(560, $lap.WH - 40), 0x0040)
+  Start-Sleep -Milliseconds 300
+  [void][QCWin]::ShowWindow($h, 3)
+}
+function StageToTv($h, $scr) {
+  if ([QCWin]::IsFull($h)) { [void](Fullscreen $h $false) }
+  [void][QCWin]::ShowWindow($h, 9)
+  [void][QCWin]::SetWindowPos($h, [IntPtr]::Zero, $scr.L, $scr.T, $scr.W, $scr.H, 0x0040)
+  Start-Sleep -Milliseconds 700
+  [void](Fullscreen $h $true)
+}
+
 Write-Host ''
-Say ('Ready: build ' + (Human $build) + '. This window closes by itself.')
-Start-Sleep -Seconds 2
+Say ('Ready: build ' + (Human $build) + '.')
+Write-Host ''
+Write-Host '  KEEP THIS WINDOW OPEN (it goes to the taskbar by itself).' -ForegroundColor Black -BackgroundColor Yellow
+Write-Host '  It keeps the CONTROL on the laptop and the STAGE on the TV for the whole show.'
+Write-Host '  It ends by itself when the quiz windows are closed.'
+Start-Sleep -Seconds 3
+try { $cw = [QCWin]::GetConsoleWindow(); if ($cw -ne [IntPtr]::Zero) { [void][QCWin]::ShowWindow($cw, 6) } } catch { }
+if ($ctl -ne [IntPtr]::Zero) { [void][QCWin]::Front($ctl) }
+
+$gone = 0; $lastFix = Get-Date '2000-01-01'
+while ($true) {
+  Start-Sleep -Milliseconds 2000
+  try {
+    $wins = QuizWins
+    if (-not $wins.Count) { $gone++; if ($gone -ge 3) { Say 'Quiz windows closed - the guard stops.'; break }; continue }
+    $gone = 0
+    $ms = Mons
+    if ($ms.Count -lt 2) { continue } # no TV right now (sleeping, unplugged): nothing to put right
+    $pair = PickScreens $ms; $lap = $pair[0]; $tvNow = $pair[1]
+    if (-not $tvNow) { continue }
+    $stages = @($wins | Where-Object { IsStageWin $_ }); $ctls = @($wins | Where-Object { -not (IsStageWin $_) })
+    foreach ($c in $ctls) {
+      if ([QCWin]::ScreenOf($c) -eq $tvNow.Device) {
+        if ($ctls.Count -gt 1 -and -not $stages.Count) {
+          # a stage window that lost its "#stage" and shows the control: close it and open the stage again
+          Say 'GUARD: a control panel was showing on the TV (a lost stage window) - opening the stage again'
+          [void][QCWin]::PostMessage($c, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
+          Start-Sleep -Milliseconds 800
+          $script:before = @([QCWin]::BrowserWindows())
+          Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url#stage", '--new-window'))
+          $ns = NewWin '*STAGE*' @() 10
+          if ($ns -ne [IntPtr]::Zero) { StageToTv $ns $tvNow }
+        } else {
+          Say 'GUARD: the control panel was on the TV - moved back to the laptop'
+          CtlToLaptop $c $lap
+        }
+        $lastFix = Get-Date
+      }
+    }
+    foreach ($st in $stages) {
+      if ([QCWin]::ScreenOf($st) -ne $tvNow.Device) {
+        Say 'GUARD: the stage was not on the TV - moved back, full screen'
+        StageToTv $st $tvNow
+        $c0 = $ctls | Select-Object -First 1; if ($c0) { [void][QCWin]::Front($c0) }
+        $lastFix = Get-Date
+      }
+    }
+  } catch { Say ('GUARD: ' + $_.Exception.Message) }
+}
 exit 0

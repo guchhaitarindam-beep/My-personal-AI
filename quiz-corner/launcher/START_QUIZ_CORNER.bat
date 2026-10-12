@@ -1,5 +1,5 @@
 @echo off
-rem QC-LAUNCHER: 20261012-0700
+rem QC-LAUNCHER: 20261012-2000
 rem Quiz Corner - double-click to start.
 rem Laptop: control window.  TV (HDMI, Windows+P = Extend): the stage, full screen.  No TV: laptop only (practice).
 rem Always opens the quiz file with the NEWEST build stamp (also one in Downloads, Desktop, Documents or WhatsApp),

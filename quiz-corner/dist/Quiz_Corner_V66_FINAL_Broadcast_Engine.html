@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261012-1920 -->
+<!-- QC-BUILD: 20261012-2120 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 19:20</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 12-10-2026 21:20</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -1890,8 +1890,19 @@ const RULES_VERSION = 24;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
-const MODE = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage'
-  : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : 'control';
+/** Which window this is. A window that started as the TV stage stays the stage even when it reloads without "#stage"
+    (F5, a crash-restore, a lost address): the mark is kept in the window's own session storage and its window name,
+    so the TV never turns into a second control panel. */
+const MODE = (() => {
+  const want = /(^|[#&?])stage\b/.test(location.hash + location.search) ? 'stage' : /(^|[#&?])host\b/.test(location.hash + location.search) ? 'host' : '';
+  let kept = '';
+  try { kept = sessionStorage.getItem('qc66.window') || ''; } catch (e) { /* storage off: the address decides */ }
+  if (!kept && window.name === 'qc66-stage') kept = 'stage';
+  const m = want || (kept === 'stage' || kept === 'host' ? kept : 'control');
+  try { sessionStorage.setItem('qc66.window', m); } catch (e) { /* no storage: nothing to keep */ }
+  if (m === 'stage') { window.name = 'qc66-stage'; if (!/stage/.test(location.hash)) { try { history.replaceState(null, '', location.pathname + location.search + '#stage'); } catch (e) { /* file page: keep going */ } } }
+  return m;
+})();
 const LS_KEY = 'qc66.state';
 const LS_REH = 'qc66.rehearsal';
 const LS_PREF = 'qc66.prefs';
