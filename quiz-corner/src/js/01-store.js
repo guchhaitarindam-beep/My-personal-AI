@@ -531,7 +531,7 @@ const Game = {
     const sc = r.scoring;
     const mult = clamp(int(r.multiplier, 1), 1, 5);
     if (r.type === 'rapid') return kind === 'correct' ? sc.rapidRight * mult : sc.rapidWrong;
-    if (l.flow === 'challenge') return kind === 'correct' ? this.challengeValue() : sc.challengeWrong;
+    if (l.flow === 'challenge') return kind === 'correct' ? this.challengeValue() : this.challengePenalty();
     if (kind !== 'correct') return l.passChain.length ? sc.passWrong : sc.wrong;
     const base = q && q.points != null ? q.points : sc.direct;
     // Audio-visual ladder: the value grows by bonusStep (× multiplier) for every pass.
@@ -549,6 +549,13 @@ const Game = {
     const mult = clamp(int(r.multiplier, 1), 1, 5);
     const base = q && q.points != null ? q.points : sc.direct;
     return (l.optionsShown ? (l.eliminated.length >= 2 ? sc.options2 : sc.options4) : base) * mult;
+  },
+  /** What a wrong challenge costs: fixed, or (round 1) −5 when the team played direct, −3 when it played with the options. */
+  challengePenalty() {
+    const l = Store.state.live; const r = Sel.round(l.roundId) || Sel.currentRound();
+    if (!r) return 0;
+    const sc = r.scoring;
+    return sc.challengeAsPlayed && l.optionsShown && sc.challengeWrongOptions != null ? sc.challengeWrongOptions : sc.challengeWrong;
   },
   /** A locked question refuses scoring changes until the operator unlocks it. */
   guard() { if (Store.state.live.audience) { UI.toast('Audience question — no team plays it and nobody gets points', 'err'); return false; } if (Store.state.live.locked) { UI.toast('Question is locked — unlock it first (L)', 'err'); return false; } return true; },
@@ -604,7 +611,7 @@ const Game = {
     if (!this.guard()) return false;
     const s = Store.state; const l = s.live; const r = Sel.round(l.roundId);
     if (!l.hands.includes(teamId) || l.handsJudged[teamId] || !r) return false;
-    const pts = right ? this.challengeValue() : r.scoring.challengeWrong;
+    const pts = right ? this.challengeValue() : this.challengePenalty();
     Store.commit('hand-' + (right ? 'right' : 'wrong'), (st) => {
       this.addEntry(st, teamId, pts, (right ? 'Hand-raise correct' : 'Hand-raise wrong'), { kind: right ? 'challenge' : 'cwrong', flow: 'hands' });
       st.live.handsJudged = Object.assign({}, st.live.handsJudged, { [teamId]: right ? 'right' : 'wrong' });

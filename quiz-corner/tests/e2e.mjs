@@ -296,9 +296,10 @@ await ctl.evaluate(() => window.QC.Game.reveal());
 await stage.waitForTimeout(400);
 check('Answer reaches the TV once revealed', await stage.evaluate(() => window.QC.Sel.liveQuestion().answer >= 0));
 await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.display.calib = 'bars'; s.display.aspect = '4:3'; }, { undo: false }));
-await stage.waitForTimeout(500);
-check('Calibration bars show on TV', await stage.evaluate(() => !document.querySelector('.calib').hidden && document.querySelector('.calib').classList.contains('bars')));
-check('Screen shape 4:3 letterboxes the stage', await stage.evaluate(() => { const r = document.querySelector('.stage').getBoundingClientRect(); return Math.abs(r.width / r.height - 4 / 3) < 0.02; }));
+// wait for the stage's next sync (up to 3 s) instead of a fixed pause
+const waitStage = (fn) => stage.waitForFunction(fn, null, { timeout: 3000 }).then(() => true).catch(() => false);
+check('Calibration bars show on TV', await waitStage(() => { const c = document.querySelector('.calib'); return !!c && !c.hidden && c.classList.contains('bars'); }));
+check('Screen shape 4:3 letterboxes the stage', await waitStage(() => { const r = document.querySelector('.stage').getBoundingClientRect(); return Math.abs(r.width / r.height - 4 / 3) < 0.02; }));
 await stage.screenshot({ path: path.join(shots, '98-calibration-4x3.png') });
 await ctl.evaluate(() => window.QC.Store.commit('t', (s) => { s.display.calib = 'off'; s.display.aspect = '16:9'; }, { undo: false }));
 check('Two checksummed save slots exist', await ctl.evaluate(() => { const a = JSON.parse(localStorage.getItem('qc66.state.A') || 'null'); const b = JSON.parse(localStorage.getItem('qc66.state.B') || 'null'); return !!(a && b && a.f === 'QC66' && b.f === 'QC66' && a.sum && b.sum); }));

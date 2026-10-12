@@ -236,9 +236,9 @@ const SelfTest = {
       T('Rules: rule text says 60 seconds (round 2 also 45 for the pass)', () => ['R1', 'R2', 'R3'].every((id) => R(id).rules.includes('৬০ সেকেন্ড')) && R('R2').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: no old 30/15 seconds anywhere', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
-      T('Rules: round 1 — no pass; one team buzzes to challenge; correct = what the team played for (10 / 5 / 3), wrong 0', () => !R('R1').features.pass && !R('R1').features.passAfterOptions && R('R1').features.challenge && R('R1').features.singleChallenger && R('R1').scoring.challengeAsPlayed && R('R1').scoring.challengeWrong === 0 && R('R1').scoring.wrong === 0);
+      T('Rules: round 1 — no pass; one team buzzes to challenge; correct +10 / +5, wrong −5 / −3', () => !R('R1').features.pass && !R('R1').features.passAfterOptions && R('R1').features.challenge && R('R1').features.singleChallenger && R('R1').scoring.challengeAsPlayed && R('R1').scoring.challengeWrong === -5 && R('R1').scoring.challengeWrongOptions === -3 && R('R1').scoring.wrong === 0);
       T('Rules: round 1 — options exist, judged on the option the team names', () => R('R1').features.options && R('R1').features.judgeOptions);
-      T('Rules: round 1 text — no pass, challenge 10 / 5 / 3, wrong 0', () => R('R1').rules.includes('কোনো পাস নেই') && R('R1').rules.includes('চ্যালেঞ্জ') && R('R1').rules.includes('কোনো নম্বর কাটা যাবে না') && R('R1').rules.includes('দুটি বিকল্পে চ্যালেঞ্জ নেই') && !R('R1').rules.includes('৪৫ সেকেন্ড') && R('R1').features.noChallengeOnTwo);
+      T('Rules: round 1 text — no pass, challenge +10 / +5, wrong −5 / −3', () => R('R1').rules.includes('কোনো পাস নেই') && R('R1').rules.includes('চ্যালেঞ্জ') && R('R1').rules.includes('সরাসরি প্রশ্নে −৫, চারটি বিকল্পে −৩') && R('R1').rules.includes('দুটি বিকল্পে চ্যালেঞ্জ নেই') && !R('R1').rules.includes('৪৫ সেকেন্ড') && R('R1').features.noChallengeOnTwo);
       T('Rules: round 2 — no challenge', () => !R('R2').features.challenge);
       T('Rules: round 2 — no options', () => R('R2').features.options === false);
       T('Rules: round 3 — direct 10 only, no options, no pass', () => R('R3').scoring.direct === 10 && R('R3').scoring.wrong === 0 && !R('R3').features.options && !R('R3').features.pass && !R('R3').features.lifelines);
@@ -280,12 +280,16 @@ const SelfTest = {
           // direct: 10; 4 options: 5; a wrong challenge: 0
           Game.load(Sel.roundQuestions('R1')[3].id, ta); Game.judge('wrong');
           T('Game: round 1 — wrong direct answer stays hidden for a challenge', () => !s().live.revealed && Game.pass() === false);
+          T('Game: round 1 — after a direct answer the challenge is +10 / −5', () => Game.challengeValue() === 10 && Game.challengePenalty() === -5);
           const cb2 = Sel.score(tb); Game.raiseHand(tb); Game.judgeHand(tb, true);
           T('Game: round 1 — challenge after a direct answer is worth 10', () => Sel.score(tb) === cb2 + 10);
+          Game.load(Sel.roundQuestions('R1')[6].id, ta); Game.judge('wrong');
+          const cd = Sel.score(tc); Game.raiseHand(tc); Game.judgeHand(tc, false);
+          T('Game: round 1 — wrong challenge after a direct answer −5', () => Sel.score(tc) === cd - 5);
           Game.load(Sel.roundQuestions('R1')[5].id, ta); Game.showOptions(); Game.judge('wrong');
-          const cc = Sel.score(tc); T('Game: round 1 — challenge after 4 options is worth 5', () => Game.challengeValue() === 5);
+          const cc = Sel.score(tc); T('Game: round 1 — challenge after 4 options is +5 / −3', () => Game.challengeValue() === 5 && Game.challengePenalty() === -3);
           Game.raiseHand(tc); Game.judgeHand(tc, false);
-          T('Game: round 1 — wrong challenge 0 (nothing taken away)', () => Sel.score(tc) === cc);
+          T('Game: round 1 — wrong challenge after 4 options −3', () => Sel.score(tc) === cc - 3);
           void wrongIdx;
         }
         Game.load(Sel.roundQuestions('R2')[0].id, ta);
