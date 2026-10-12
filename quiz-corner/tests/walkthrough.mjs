@@ -111,11 +111,11 @@ st = await ctl.evaluate(() => ({ sc: window.QC.Sel.score(window.QC.Store.state.l
 step(st.sc === before + 10 && c.includes('applause'), 'সরাসরি সঠিক: +১০ ও হাততালি', JSON.stringify(st) + ' ' + c.join(','));
 const strip = await stage.evaluate(() => document.querySelectorAll('.layer:not(.exiting) .scell').length);
 step(strip === 8, 'নিচে ৮ দলের স্কোরের পট্টি', String(strip));
-// two options
+// round 1 (13 Oct): only the 4 options — no cutting to two
 await ctl.evaluate(() => window.QC.Actions.gotoGrid()); await stage.waitForTimeout(1200); await ctl.keyboard.press('3'); await stage.waitForTimeout(2500);
-await ctl.keyboard.press('Shift+V'); await stage.waitForTimeout(1200); await shot('17-two-options');
-st = await ctl.evaluate(() => ({ elim: window.QC.Store.state.live.eliminated.length, pts: window.QC.Game.pointsFor('correct') }));
-step(st.elim === 2 && st.pts === 3, 'Shift+V: দুই বিকল্পে নামে, মান ৩', JSON.stringify(st));
+await ctl.keyboard.press('Shift+V'); await stage.waitForTimeout(1200); await shot('17-no-two-options');
+st = await ctl.evaluate(() => ({ elim: window.QC.Store.state.live.eliminated.length, pts: window.QC.Game.pointsFor('correct'), btn: !!document.querySelector('[data-act="twoOptions"]') }));
+step(st.elim === 0 && st.pts === 10 && !st.btn, 'রাউন্ড ১: দুটি বিকল্পে নামানো যায় না (Shift+V কাজ করে না, বোতামও নেই) — মান ১০ থাকে', JSON.stringify(st));
 // last ten seconds
 await ctl.evaluate(() => window.QC.Timer.start('direct', 9)); await stage.waitForTimeout(1200);
 const l10 = await stage.evaluate(() => document.querySelector('.stage').classList.contains('last10')); step(l10, 'শেষ ১০ সেকেন্ডে লাল আভা'); await shot('18-last10');

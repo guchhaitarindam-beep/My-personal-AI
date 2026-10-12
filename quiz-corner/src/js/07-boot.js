@@ -128,6 +128,8 @@ const SelfTest = {
       T('Pass: goes to the next team with 45 s', () => s().live.flow === 'pass' && s().live.active === c && s().timer.mode === 'pass');
       Game.judge('correct');
       T('Score: correct on pass +5', () => Sel.score(c) === 5 && Sel.score(b) === 0);
+      // the lifelines themselves (not used on 13 Oct: round 1 has them switched off) — tried with them switched on for a moment
+      Sel.round('R1').features.lifelines = true;
       Game.load(Sel.roundQuestions('R1')[2].id, a);
       Game.showOptions();
       T('Score: worth 5 with 4 options', () => Game.pointsFor('correct') === 5);
@@ -140,6 +142,7 @@ const SelfTest = {
       const before = s().live.qid;
       Game.useLifeline('flip');
       T('Flip: swaps to a reserve question', () => s().live.qid !== before && Sel.question(s().live.qid).roundId === s().flipPool);
+      Sel.round('R1').features.lifelines = false;
       Game.load(Sel.roundQuestions('R4')[0].id, a);
       Game.challenge(b);
       Game.judge('wrong');
@@ -238,7 +241,7 @@ const SelfTest = {
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
       T('Rules: round 1 — no pass; one team buzzes to challenge; correct +10 / +5, wrong −5 / −3', () => !R('R1').features.pass && !R('R1').features.passAfterOptions && R('R1').features.challenge && R('R1').features.singleChallenger && R('R1').scoring.challengeAsPlayed && R('R1').scoring.challengeWrong === -5 && R('R1').scoring.challengeWrongOptions === -3 && R('R1').scoring.wrong === 0);
       T('Rules: round 1 — options exist, judged on the option the team names', () => R('R1').features.options && R('R1').features.judgeOptions);
-      T('Rules: round 1 text — no pass, challenge +10 / +5, wrong −5 / −3', () => R('R1').rules.includes('কোনো পাস নেই') && R('R1').rules.includes('চ্যালেঞ্জ') && R('R1').rules.includes('সরাসরি প্রশ্নে −৫, চারটি বিকল্পে −৩') && R('R1').rules.includes('দুটি বিকল্পে চ্যালেঞ্জ নেই') && !R('R1').rules.includes('৪৫ সেকেন্ড') && R('R1').features.noChallengeOnTwo);
+      T('Rules: round 1 text — no pass, challenge +10 / +5, wrong −5 / −3', () => R('R1').rules.includes('কোনো পাস নেই') && R('R1').rules.includes('চ্যালেঞ্জ') && R('R1').rules.includes('সঠিক উত্তরে +১০, ভুল উত্তরে −৫') && R('R1').rules.includes('সঠিক উত্তরে +৫, ভুল উত্তরে −৩') && R('R1').rules.includes('বিকল্প কমিয়ে দুটি করা হবে না') && !R('R1').features.lifelines && R('R1').features.cutToTwo === false && !R('R1').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: round 2 — no challenge', () => !R('R2').features.challenge);
       T('Rules: round 2 — no options', () => R('R2').features.options === false);
       T('Rules: round 3 — direct 10 only, no options, no pass', () => R('R3').scoring.direct === 10 && R('R3').scoring.wrong === 0 && !R('R3').features.options && !R('R3').features.pass && !R('R3').features.lifelines);
@@ -260,24 +263,17 @@ const SelfTest = {
         T('Game: round 1 direct correct = 10', () => Game.pointsFor('correct') === 10);
         Game.showOptions();
         T('Game: round 1 with 4 options = 5', () => Game.pointsFor('correct') === 5);
-        Game.useLifeline('fifty');
-        T('Game: round 1 with 2 options = 3', () => Game.pointsFor('correct') === 3);
+        T('Game: round 1 — no 50:50 and no cutting to 2 options (only the 4 options)', () => Game.useLifeline('fifty') === false && Game.twoOptions() === false && s().live.eliminated.length === 0 && Game.pointsFor('correct') === 5);
         {
           const q1 = Sel.question(s().live.qid); const sa = Sel.score(ta);
           const wrongIdx = [0, 1, 2, 3].find((i) => i !== q1.answer && q1.options[i]);
           Game.load(Sel.roundQuestions('R1')[1].id, ta); Game.showOptions();
           const qq = Sel.liveQuestion(); Game.pick(qq.answer);
           T('Game: round 1 — picking the correct option of 4 gives +5 at once', () => Sel.score(ta) === sa + 5 && s().live.result === 'correct');
-          const lifeBefore = JSON.stringify(s().lifelines); Game.load(Sel.roundQuestions('R1')[2].id, ta); Game.twoOptions();
-          const q2 = Sel.liveQuestion();
-          T('Game: round 1 — cutting to 2 options does not use a lifeline', () => s().live.eliminated.length === 2 && JSON.stringify(s().lifelines) === lifeBefore && !s().live.eliminated.includes(q2.answer));
-          T('Game: round 1 — correct with 2 options = 3', () => Game.pointsFor('correct') === 3);
-          const bad = [0, 1, 2, 3].find((i) => i !== q2.answer && !s().live.eliminated.includes(i));
-          T('Game: round 1 — no challenge before the team has answered wrong', () => Game.raiseHand(tb) === false && !s().live.hands.length);
-          const sb = Sel.score(ta); Game.pick(bad);
-          const cb = Sel.score(tb);
-          T('Game: round 1 — wrong with 2 options gives 0, no pass, no challenge, answer shown at once', () => Sel.score(ta) === sb && s().live.result === 'wrong' && s().live.revealed && Game.pass() === false && Game.raiseHand(tb) === false && Sel.score(tb) === cb);
-          // direct: 10; 4 options: 5; a wrong challenge: 0
+          // like round 3: after the answer (right or wrong) the answer stays hidden; the first team to buzz may challenge
+          Game.load(Sel.roundQuestions('R1')[2].id, ta); Game.judge('correct');
+          T('Game: round 1 — like round 3, the answer is not shown at once even when correct', () => !s().live.revealed && s().live.result === 'correct');
+          // direct: +10 / −5; 4 options: +5 / −3
           Game.load(Sel.roundQuestions('R1')[3].id, ta); Game.judge('wrong');
           T('Game: round 1 — wrong direct answer stays hidden for a challenge', () => !s().live.revealed && Game.pass() === false);
           T('Game: round 1 — after a direct answer the challenge is +10 / −5', () => Game.challengeValue() === 10 && Game.challengePenalty() === -5);
@@ -494,12 +490,12 @@ const SelfTest = {
       {
         const ids = Sel.finalistIds();
         Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
-        // a played round: A/1 direct +10, B/2 wrong then C/3 challenges correctly +10, D/4 via 2 options +3
+        // a played round: A/1 direct +10, B/2 wrong then C/3 challenges correctly +10, D/4 with the 4 options +5
         const qs = Sel.roundQuestions('R1');
         Game.load(qs[0].id, ids[0]); Game.judge('correct');
         Game.load(qs[1].id, ids[1]); Game.judge('wrong'); Game.raiseHand(ids[2]); Game.judgeHand(ids[2], true);
-        Game.load(qs[2].id, ids[3]); Game.twoOptions(); Game.pick(Sel.liveQuestion().answer);
-        T('Tally: A/1 = 10, B/2 = 0, C/3 = 10 (challenge), D/4 = 3, total = 23', () => Sel.score(ids[0]) === 10 && Sel.score(ids[1]) === 0 && Sel.score(ids[2]) === 10 && Sel.score(ids[3]) === 3 && ids.reduce((t, id) => t + Sel.score(id), 0) === 23);
+        Game.load(qs[2].id, ids[3]); Game.showOptions(); Game.pick(Sel.liveQuestion().answer);
+        T('Tally: A/1 = 10, B/2 = 0, C/3 = 10 (challenge), D/4 = 5, total = 25', () => Sel.score(ids[0]) === 10 && Sel.score(ids[1]) === 0 && Sel.score(ids[2]) === 10 && Sel.score(ids[3]) === 5 && ids.reduce((t, id) => t + Sel.score(id), 0) === 25);
         T('Tally: round scores separate and match the total', () => ids.every((id) => Sel.roundScore(id, 'R1') === Sel.score(id)));
         T('Tally: every score in the ledger with before/after', () => s().ledger.every((e) => e.after === e.before + e.delta));
         const sbStep = Show.rundown().find((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R1'); Show.go(sbStep);

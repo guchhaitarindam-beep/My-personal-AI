@@ -704,6 +704,7 @@ const Game = {
     const s = Store.state; const q = Sel.liveQuestion(); const r = Sel.round(s.live.roundId);
     if (!q) { UI.toast('No question is active', 'err'); return false; }
     if (r && !r.features.options) { UI.toast('No Options in this round (round rule)', 'err'); return false; }
+    if (r && r.features.cutToTwo === false) { UI.toast('No cutting to 2 options in this round — only the 4 options (round rule)', 'err'); return false; }
     const wrong = this.wrongIndexes(q);
     if (wrong.length < 2) { UI.toast('Two-option mode needs four Options', 'err'); return false; }
     if (s.live.eliminated.length >= 2) return false;
@@ -732,6 +733,8 @@ const Game = {
     const team = s.live.active;
     if (!q) { UI.toast('No question is active', 'err'); return false; }
     if (team && Sel.lifelineUsed(team, kind)) { UI.toast('This team has already used this lifeline', 'err'); return false; }
+    const lr = Sel.round(s.live.roundId);
+    if (lr && lr.features.lifelines === false) { UI.toast('No lifelines in this round (round rule)', 'err'); return false; }
     if (kind === 'fifty') {
       const wrong = this.wrongIndexes(q);
       if (wrong.length < 2) { UI.toast('50:50 needs four Options', 'err'); return false; }

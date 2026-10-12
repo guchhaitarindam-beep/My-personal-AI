@@ -95,11 +95,15 @@ const before = await ctl.evaluate(() => window.QC.Sel.score(window.QC.Store.stat
 await ctl.click('[data-act="judge"][data-arg="correct"]');
 check('Correct button +10', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b + 10, before));
 await stage.waitForTimeout(600);
-check('Stage shows answer after correct', await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .answer-bar')));
+// round 1 works like round 3 (13 Oct): after a correct answer the answer waits (a team may still challenge); R shows it
+check('Round 1: answer waits after correct (chance to challenge)', await ctl.evaluate(() => !window.QC.Store.state.live.revealed));
 await stage.screenshot({ path: path.join(shots, '90-correct-reveal.png') });
 check('Coach card guides the operator', await ctl.evaluate(() => /answer/i.test((document.querySelector('.coach-t') || {}).textContent || '')));
 check('Action announced for screen readers', await ctl.evaluate(() => /সঠিক/.test(document.querySelector('#announce').textContent)));
 check('Coach makes the right buttons glow', await ctl.evaluate(() => document.querySelectorAll('#live .btn.glow').length > 0));
+await ctl.keyboard.press('r');
+check('Stage shows answer after correct + R', await stage.waitForFunction(() => !!document.querySelector('.layer:not(.exiting) .answer-bar'), null, { timeout: 3000 }).then(() => true).catch(() => false));
+await ctl.evaluate(() => window.QC.Store.undo()); // take the reveal back, so Ctrl+Z below undoes the score
 await ctl.keyboard.press('Control+z');
 check('Ctrl+Z undoes score', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b, before));
 await ctl.keyboard.press('x');
