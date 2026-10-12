@@ -297,7 +297,7 @@ function defaultState() {
     settings: {
       drone: { main: false, speed: 1, path: 'left' }, countdownFrom: 10, countdownStepMs: 1000, warnAt: 10, critAt: 5,
       autoTimer: false, autoPassTimer: true, autoRevealOnCorrect: true, showLifelines: false, operatorRole: 'controller',
-      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, giftScenes: false, autoApplause: true,
+      operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, giftScenes: false, autoApplause: true, photoFix: true,
     },
     ledger: [],
     show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },

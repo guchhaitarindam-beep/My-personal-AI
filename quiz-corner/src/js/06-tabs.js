@@ -91,18 +91,19 @@ const TabRender = {
 
   /* ---------------- TEAMS ---------------- */
   teams(s) {
+    const locked = TeamLock.on();
     const ed = s.teams.map((t, i) => {
       const r = 'teams.' + i;
       const fin = Sel.finalistIds().includes(t.id);
       return '<div class="team-editor" style="--team:' + esc(t.color) + '"><header><span class="thumb" style="--team:' + esc(t.color) + '">' + (t.photo ? '<img data-media="' + esc(t.photo) + '" alt="">' : String(i + 1)) + '</span><b style="flex:1"><span class="tcode-chip">' + esc(Sel.code(t)) + '</span> ' + esc(t.name === Sel.code(t) ? '' : t.name) + (fin ? ' <span class="status-pill ok">Finalist</span>' : '') + '</b><span class="pts gold">' + Sel.score(t.id) + ' points</span>' +
-        F.btn('teamIntroNow', '▶ Intro', 'sm', t.id) + F.btn('teamMove', '↑', 'sm', t.id + '|-1') + F.btn('teamMove', '↓', 'sm', t.id + '|1') + F.btn('teamDel', '🗑', 'sm bad', t.id) + '</header>' +
-        '<div class="g3">' + F.text(r + '.name', 'Team name', t.name) + F.text(r + '.school', 'School', t.school) + F.color(r + '.color', 'Team colour', t.color) + F.text(r + '.captain', 'Member 1 (captain)', t.captain) + F.text(r + '.players.0', 'Member 2', t.players[0]) + F.text(r + '.players.1', 'Extra member', t.players[1]) + F.text(r + '.players.2', 'Extra member', t.players[2]) + '</div>' +
-        '<div class="g4">' + F.media(r + '.photo', 'Team photo', t.photo) + F.media(r + '.captainPhoto', 'Member 1 photo', t.captainPhoto) + F.media(r + '.playerPhotos.0', 'Member 2 photo', t.playerPhotos[0]) + F.media(r + '.playerPhotos.1', 'Extra 1', t.playerPhotos[1]) + F.media(r + '.playerPhotos.2', 'Extra 2', t.playerPhotos[2]) + '</div>' +
+        F.btn('teamIntroNow', '▶ Intro', 'sm', t.id) + (locked ? '<span class="status-pill lock-pill">🔒</span>' : F.btn('teamMove', '↑', 'sm', t.id + '|-1') + F.btn('teamMove', '↓', 'sm', t.id + '|1') + F.btn('teamDel', '🗑', 'sm bad', t.id)) + '</header>' +
+        '<fieldset class="lockset"' + (locked ? ' disabled' : '') + '><div class="g3">' + F.text(r + '.name', 'Team name', t.name) + F.text(r + '.school', 'School', t.school) + F.color(r + '.color', 'Team colour', t.color) + F.text(r + '.captain', 'Member 1 (captain)', t.captain) + F.text(r + '.players.0', 'Member 2', t.players[0]) + F.text(r + '.players.1', 'Extra member', t.players[1]) + F.text(r + '.players.2', 'Extra member', t.players[2]) + '</div>' +
+        '<div class="g4">' + F.media(r + '.photo', 'Team photo', t.photo) + F.media(r + '.captainPhoto', 'Member 1 photo', t.captainPhoto) + F.media(r + '.playerPhotos.0', 'Member 2 photo', t.playerPhotos[0]) + F.media(r + '.playerPhotos.1', 'Extra 1', t.playerPhotos[1]) + F.media(r + '.playerPhotos.2', 'Extra 2', t.playerPhotos[2]) + '</div></fieldset>' +
         '<div class="g3">' + F.select(r + '.gift.category', 'Special presentation — category', s.giftCategories.concat(s.giftCategories.includes(t.gift.category) || !t.gift.category ? [] : [t.gift.category]), t.gift.category) + F.text(r + '.gift.item', 'Subject (e.g. mango, Rabindranath)', t.gift.item) + F.media(r + '.gift.image', 'Subject picture', t.gift.image) + '</div>' +
         '<div class="row">' + F.media(r + '.emblem', 'Logo / emblem', t.emblem) + '<div class="field" style="flex:2"><span>Lifelines</span><div class="row">' + ['fifty', 'poll', 'flip'].map((k) => '<span class="status-pill ' + (Sel.lifelineUsed(t.id, k) ? 'bad' : 'ok') + '">' + { fifty: '50:50', poll: 'Poll', flip: 'Flip' }[k] + (Sel.lifelineUsed(t.id, k) ? ' used' : ' available') + '</span>').join('') + F.btn('lifelineReset', 'Reset', 'sm', t.id) + '</div></div></div></div>';
     }).join('');
     const ledger = s.ledger.slice(-60).reverse().map((e) => '<div class="li"><span class="n" style="color:' + (e.delta >= 0 ? 'var(--correct)' : 'var(--wrong)') + '">' + signed(e.delta) + '</span><div class="t"><b>' + esc((Sel.team(e.team) || {}).name || e.team) + '</b> — ' + esc(e.reason) + '<small class="muted" style="color:var(--muted);font-weight:400">' + esc((Sel.round(e.round) || {}).name || '') + ' • ' + new Date(e.t).toLocaleTimeString() + '</small></div><div class="acts">' + F.btn('ledgerDel', 'Delete', 'sm bad', e.id) + '</div></div>').join('');
-    return UI.photoDeck(s, true) + F.card('Team registration', '<div class="row">' + F.btn('teamAdd', '+ New team', 'primary') + '<span class="muted">' + s.teams.length + ' teams in total • Photos: copy them from the phone to the laptop, then press "Add" (JPG/PNG/WEBP)</span></div>') +
+    return UI.photoDeck(s, true) + F.card('Team registration', '<div class="row">' + (locked ? '<span class="status-pill lock-pill">🔒 Locked for today</span>' : F.btn('teamAdd', '+ New team', 'primary')) + '<span class="muted">' + s.teams.length + ' teams in total • Photos: copy them from the phone to the laptop, then press "Add" (JPG/PNG/WEBP)</span></div>') +
       '<div class="list">' + ed + '</div>' +
       F.card('Special presentation categories', '<div class="row">' + s.giftCategories.map((c, i) => '<span class="status-pill">' + esc(c) + ' <button class="btn sm ghost" data-act="giftCatDel" data-arg="' + i + '" aria-label="Delete">✕</button></span>').join('') + '</div><div class="row" style="margin-top:.5rem"><input type="text" id="newCat" placeholder="New category"><button class="btn sm primary" data-act="giftCatAdd">Add</button></div>') +
       F.card('Scores & stats', '<div class="row">' + F.btn('tab', '🏆 View scores, ties & score history', 'primary', 'scores') + '</div>');
@@ -295,10 +296,12 @@ const TabRender = {
 Object.assign(Actions, {
   async setMedia(arg) {
     const [path, accept, kind] = String(arg).split('|');
+    if (TeamLock.guards(path)) return TeamLock.refuse();
+    if (/^teams\.\d+\.(captainPhoto|playerPhotos)/.test(path)) return Actions.memPhoto(path);
     const id = await pickMedia(accept || 'image/*', kind || 'image');
     if (id) Store.commit('media:' + path, (s) => setPath(s, path, id));
   },
-  clearMedia(path) { Store.commit('media-clear:' + path, (s) => setPath(s, path, '')); },
+  clearMedia(path) { if (TeamLock.guards(path)) return TeamLock.refuse(); Store.commit('media-clear:' + path, (s) => setPath(s, path, '')); },
   prelimCount(n) { Store.commit('prelim-count', (s) => { s.prelim.count = int(n, 20); }); },
   prelimQAdd() { Store.commit('prelim-add', (s) => { s.prelim.questions.push({ id: uid('P'), text: '', answer: '', star: (s.prelim.questions.length + 1) % 3 === 0, image: '', source: '' }); if (s.prelim.count < s.prelim.questions.length) s.prelim.count = s.prelim.questions.length; }); },
   prelimQDel(i) { if (!confirm('Delete question ' + (int(i) + 1) + '?')) return; Store.commit('prelim-del', (s) => { s.prelim.questions.splice(int(i), 1); s.teams.forEach((t) => { if (Array.isArray(t.prelim.marks)) t.prelim.marks.splice(int(i), 1); }); }); },
@@ -312,9 +315,9 @@ Object.assign(Actions, {
   },
   finalistMove(arg) { const [id, d] = arg.split('|'); Store.commit('finalist-move', (s) => { const list = s.finalists.length ? s.finalists : Sel.finalistIds(); const i = list.indexOf(id); const j = i + int(d); if (i < 0 || j < 0 || j >= list.length) return false; [list[i], list[j]] = [list[j], list[i]]; s.finalists = list; }); },
   clearFinalists() { Store.commit('finalists-auto', (s) => { s.finalists = []; s.finalistsLocked = false; }); },
-  teamAdd() { Store.commit('team-add', (s) => { const n = s.teams.length; const t = defaultTeam(n); let k = n + 1; while (s.teams.some((x) => x.id === t.id)) t.id = 'T' + (++k); s.teams.push(t); }); },
-  teamDel(id) { const t = Sel.team(id); if (!t || !confirm('Delete team "' + t.name + '"? (The score history is kept.)')) return; Store.commit('team-del', (s) => { s.teams = s.teams.filter((x) => x.id !== id); s.finalists = s.finalists.filter((x) => x !== id); }); },
-  teamMove(arg) { const [id, d] = arg.split('|'); Store.commit('team-move', (s) => { const i = s.teams.findIndex((t) => t.id === id); const j = i + int(d); if (i < 0 || j < 0 || j >= s.teams.length) return false; [s.teams[i], s.teams[j]] = [s.teams[j], s.teams[i]]; }); },
+  teamAdd() { if (TeamLock.on()) return TeamLock.refuse(); Store.commit('team-add', (s) => { const n = s.teams.length; const t = defaultTeam(n); let k = n + 1; while (s.teams.some((x) => x.id === t.id)) t.id = 'T' + (++k); s.teams.push(t); }); },
+  teamDel(id) { if (TeamLock.on()) return TeamLock.refuse(); const t = Sel.team(id); if (!t || !confirm('Delete team "' + t.name + '"? (The score history is kept.)')) return; Store.commit('team-del', (s) => { s.teams = s.teams.filter((x) => x.id !== id); s.finalists = s.finalists.filter((x) => x !== id); }); },
+  teamMove(arg) { if (TeamLock.on()) return TeamLock.refuse(); const [id, d] = arg.split('|'); Store.commit('team-move', (s) => { const i = s.teams.findIndex((t) => t.id === id); const j = i + int(d); if (i < 0 || j < 0 || j >= s.teams.length) return false; [s.teams[i], s.teams[j]] = [s.teams[j], s.teams[i]]; }); },
   teamIntroNow(id) { const fin = Sel.finalistIds().includes(id) && Store.state.show.scene !== 'TEAM_INTRO'; const n = (fin ? Sel.finalistIds().indexOf(id) : Sel.teamIndex(id)) + 1; Show.jump(fin ? 'FINALIST_INTRO' : 'TEAM_INTRO', { key: id, teamId: id, n }); },
   lifelineReset(id) { Store.commit('lifeline-reset', (s) => { delete s.lifelines[id]; }); },
   resetLifelines() { Store.commit('lifelines-reset', (s) => { s.lifelines = {}; }); },

@@ -81,6 +81,7 @@ const Show = {
       }
     });
     this.onEnter(step);
+    if (step.scene === 'MAIN_COUNTDOWN') TeamLock.auto();
     return true;
   },
   onEnter(step) {

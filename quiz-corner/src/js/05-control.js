@@ -144,6 +144,7 @@ const UI = {
       const el = e.target;
       if (!el.dataset || !el.dataset.bind) return;
       const path = el.dataset.bind;
+      if (TeamLock.guards(path)) { const was = getPath(Store.state, path); if (el.type === 'checkbox') el.checked = !!was; else el.value = was == null ? '' : was; TeamLock.refuse(); return; }
       let v;
       if (el.type === 'checkbox') v = el.checked;
       else if (el.dataset.type === 'num') v = num(el.value, 0);
@@ -157,11 +158,16 @@ const UI = {
     };
     document.addEventListener('input', (e) => { if (e.target.type === 'range' || e.target.type === 'color') onBind(e); });
     const dropOf = (e) => (e.target && e.target.closest ? e.target.closest('[data-drop]') : null);
-    document.addEventListener('dragover', (e) => { const z = dropOf(e); if (z) { e.preventDefault(); z.classList.add('over'); } });
-    document.addEventListener('dragleave', (e) => { const z = dropOf(e); if (z) z.classList.remove('over'); });
+    const trayOf = (e) => (e.target && e.target.closest ? e.target.closest('[data-tray-drop]') : null);
+    document.addEventListener('dragstart', (e) => { const t = e.target && e.target.closest ? e.target.closest('[data-tray]') : null; if (t && e.dataTransfer) { e.dataTransfer.setData('text/qc-tray', t.dataset.tray); e.dataTransfer.effectAllowed = 'copy'; } });
+    document.addEventListener('dragover', (e) => { const z = dropOf(e) || trayOf(e); if (z) { e.preventDefault(); z.classList.add('over'); } });
+    document.addEventListener('dragleave', (e) => { const z = dropOf(e) || trayOf(e); if (z) z.classList.remove('over'); });
     document.addEventListener('drop', (e) => {
-      const z = dropOf(e); if (!z) return;
+      const z = dropOf(e);
+      if (!z) { const tz = trayOf(e); if (tz) { e.preventDefault(); tz.classList.remove('over'); Tray.add((e.dataTransfer && e.dataTransfer.files) || []); } return; }
       e.preventDefault(); z.classList.remove('over');
+      const tk = e.dataTransfer && e.dataTransfer.getData('text/qc-tray');
+      if (tk) { const f = Tray.take(tk); if (f) Actions.memPhotoFile(z.dataset.drop, f); return; }
       const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find((x) => /^image\//.test(x.type) || /\.(jpe?g|png|webp|gif)$/i.test(x.name));
       if (f) Actions.memPhotoFile(z.dataset.drop, f); else UI.toast('Drag in an image file (JPG/PNG/WEBP)', 'err');
     });
@@ -344,7 +350,7 @@ const UI = {
     const rows = ids.map((id, i) => {
       const ti = Sel.teamIndex(id); const t = s.teams[ti]; if (!t) return '';
       const tag = Sel.codeHidden(t) || (s.draw.on && !Sel.drawDone() && !Sel.drawPicked(id)) ? 'Prelim ' + (i + 1) : Sel.code(t);
-      return '<div class="school-row" style="--team:' + esc(t.color) + '"><span class="sr-tag">' + esc(tag) + '</span><input type="text" data-bind="teams.' + ti + '.school" value="' + esc(t.school) + '" placeholder="Enter school name" aria-label="' + esc(tag) + ' school"><input type="number" data-bind="teams.' + ti + '.prelim.manual" data-type="nullnum" value="' + (t.prelim.manual == null ? '' : esc(t.prelim.manual)) + '" placeholder="Points" title="Prelim round points" aria-label="' + esc(tag) + ' prelim points"></div>';
+      return '<div class="school-row" style="--team:' + esc(t.color) + '"><span class="sr-tag">' + esc(tag) + '</span><input type="text" data-bind="teams.' + ti + '.school"' + (TeamLock.on() ? ' disabled' : '') + ' value="' + esc(t.school) + '" placeholder="Enter school name" aria-label="' + esc(tag) + ' school"><input type="number" data-bind="teams.' + ti + '.prelim.manual" data-type="nullnum" value="' + (t.prelim.manual == null ? '' : esc(t.prelim.manual)) + '" placeholder="Points" title="Prelim round points" aria-label="' + esc(tag) + ' prelim points"></div>';
     }).join('');
     return '<div class="card"><h3>🏫 Finalist schools and prelim points <span class="hint">Edit here — type and press Tab to update the TV at once; you can also edit in the Teams tab</span></h3><div class="school-list">' + rows + '</div></div>';
   },
@@ -354,18 +360,23 @@ const UI = {
     const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(s.show.scene);
     const open = always || (this.photosOpen == null ? auto : this.photosOpen);
     const filled = s.teams.reduce((n, t) => n + (t.captainPhoto ? 1 : 0) + (t.playerPhotos[0] ? 1 : 0), 0);
-    let h = '<div class="card"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Teams: school, names & photos (' + filled + ' / ' + (s.teams.length * 2) + ' photos)</button><button class="btn sm" data-act="memBulk">⇪ Many photos at once</button></div>';
+    const locked = TeamLock.on();
+    let h = '<div class="card' + (locked ? ' deck-locked' : '') + '"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Teams: school, names & photos (' + filled + ' / ' + (s.teams.length * 2) + ' photos)</button>' +
+      (locked ? '<span class="status-pill lock-pill">🔒 Locked for today</span><button class="btn sm ghost" data-act="teamUnlock">Unlock…</button>' : '<button class="btn sm" data-act="memBulk">⇪ Many photos at once</button><button class="btn sm gold" data-act="teamLock" title="After this nothing about the teams can change by mistake today; it unlocks by itself tomorrow">🔒 Lock for today</button>') + '</div>';
     if (open) {
-      h += '<p class="muted" style="margin:.4rem 0">Type the school and the two names • photo: <b>📸 laptop camera</b>, click the circle for a file, drag a file onto it, or copy an image, hover and press <kbd>Ctrl</kbd>+<kbd>V</kbd> — it appears on the TV at once</p><div class="mem-grid">';
+      h += locked ? '<p class="lock-note">🔒 Schools, names and photos are locked for today, so nothing can change by mistake during the show. Tomorrow they are editable again by themselves. (Our organisers\' page is not locked.)</p><div class="mem-grid">'
+        : '<p class="muted" style="margin:.4rem 0">Type the school and the two names • photo: pick it in the tray below and click the circle, drag a file onto the circle, <b>📸 laptop camera</b>, or copy an image, hover and press <kbd>Ctrl</kbd>+<kbd>V</kbd> — phone photos are cut to a portrait and brightened by themselves, and appear on the TV at once</p>' + Tray.html() + '<div class="mem-grid">';
       h += s.teams.map((t, i) => {
         const cur = (s.show.scene === 'TEAM_INTRO' || s.show.scene === 'FINALIST_INTRO') && s.show.params.teamId === t.id;
         const slot = (k) => {
           const path = k === 0 ? 'teams.' + i + '.captainPhoto' : 'teams.' + i + '.playerPhotos.0';
           const npath = k === 0 ? 'teams.' + i + '.captain' : 'teams.' + i + '.players.0';
           const id = k === 0 ? t.captainPhoto : t.playerPhotos[0]; const nm = k === 0 ? t.captain : t.players[0];
-          return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Member ' + (k + 1) + ' — click / drag a file / Ctrl+V">' + (id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>Member ' + (k + 1) + '</small></span>') + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="Member ' + (k + 1) + (k === 0 ? ' (captain)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts"><button class="btn sm cam" data-act="memCam" data-arg="' + esc(path) + '" title="Take the photo with the laptop camera">📸</button>' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="Remove photo">✕</button>' : '') + '</span></div>';
+          const face = id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>Member ' + (k + 1) + '</small></span>';
+          if (locked) return '<div class="mslot"><span class="mthumb' + (id ? ' has' : '') + '">' + face + '</span><input type="text" value="' + esc(nm) + '" disabled aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts">🔒</span></div>';
+          return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + (Tray.armed ? ' wants' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Member ' + (k + 1) + ' — click / drag a file / Ctrl+V">' + face + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="Member ' + (k + 1) + (k === 0 ? ' (captain)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts"><button class="btn sm cam" data-act="memCam" data-arg="' + esc(path) + '" title="Take the photo with the laptop camera">📸</button>' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="Remove photo">✕</button>' : '') + '</span></div>';
         };
-        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><input class="mt-school" type="text" data-bind="teams.' + i + '.school" value="' + esc(t.school) + '" placeholder="School / বিদ্যালয়ের নাম" aria-label="' + esc(Sel.code(t)) + ' school"></div>' + slot(0) + slot(1) + '</div>';
+        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><input class="mt-school" type="text"' + (locked ? ' disabled' : ' data-bind="teams.' + i + '.school"') + ' value="' + esc(t.school) + '" placeholder="School / বিদ্যালয়ের নাম" aria-label="' + esc(Sel.code(t)) + ' school"></div>' + slot(0) + slot(1) + '</div>';
       }).join('');
       h += '</div>';
     }
@@ -484,6 +495,54 @@ const pageInfo = (k) => { for (const g of SETTINGS_GROUPS) for (const r of g[1])
    ===================================================================== */
 /** The laptop camera while a member's photo is being taken. */
 const Cam = { stream: null, path: '', shot: null };
+/** 🗂 Photo tray: the photos sent from the phone wait here as thumbnails (picked files, dropped files, or a watched folder
+    that is checked every few seconds). Click one, then the member's circle — or drag it onto the circle. */
+const Tray = {
+  items: [], // newest first: { key, file, url, used }
+  armed: '',
+  dir: null, dirName: '', timer: 0,
+  isImg(f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif)$/i.test(f.name); },
+  add(files, quiet) {
+    let n = 0;
+    Array.from(files || []).filter((f) => this.isImg(f)).sort((a, b) => a.lastModified - b.lastModified).forEach((f) => {
+      const key = f.name + '|' + f.size + '|' + f.lastModified;
+      if (this.items.some((x) => x.key === key)) return;
+      this.items.unshift({ key, file: f, url: URL.createObjectURL(f), used: false }); n += 1;
+    });
+    this.items.splice(40).forEach((x) => URL.revokeObjectURL(x.url));
+    if (n) { if (!quiet || this.dir) UI.toast(n + ' new photo' + (n > 1 ? 's' : '') + ' in the tray', 'ok'); this.refresh(); }
+    return n;
+  },
+  get(key) { return this.items.find((x) => x.key === key) || null; },
+  take(key) { const it = this.get(key || this.armed); this.armed = ''; if (!it) { this.refresh(); return null; } it.used = true; this.refresh(); return it.file; },
+  refresh() { UI.liveSig = ''; safe('tray-live', () => UI.renderLive()); if (UI.tab === 'teams') UI.renderTab(); },
+  async watch() {
+    if (!window.showDirectoryPicker) { UI.toast('This browser cannot watch a folder — use "＋ Photos" instead', 'err'); return; }
+    let h; try { h = await window.showDirectoryPicker({ id: 'qc-phone-photos', mode: 'read' }); } catch (e) { if (e && e.name !== 'AbortError') UI.toast('That folder cannot be used (Windows keeps Downloads / Desktop themselves private) — make a folder inside it, e.g. Downloads\\QuizPhotos, and choose that', 'err'); return; }
+    this.stop(true); this.dir = h; this.dirName = h.name; await this.scan(true);
+    this.timer = setInterval(() => this.scan(), 2500);
+    UI.toast('📂 Watching "' + h.name + '" — photos saved there appear in the tray by themselves', 'ok'); this.refresh();
+  },
+  stop(quiet) { clearInterval(this.timer); this.timer = 0; this.dir = null; this.dirName = ''; if (!quiet) this.refresh(); },
+  async scan(first) {
+    if (!this.dir || this.scanning) return; this.scanning = true;
+    try {
+      const out = [];
+      for await (const h of this.dir.values()) { if (h.kind === 'file' && /\.(jpe?g|png|webp|gif)$/i.test(h.name)) { try { out.push(await h.getFile()); } catch (e) { /* still being copied */ } } }
+      out.sort((a, b) => b.lastModified - a.lastModified);
+      this.add(out.slice(0, first ? 24 : 40), first);
+    } catch (e) { Log.err('tray-scan', e); this.stop(); UI.toast('The watched folder cannot be read any more — choose it again', 'err'); }
+    this.scanning = false;
+  },
+  html() {
+    const strip = this.items.length ? this.items.map((x) => '<button class="tray-it' + (x.key === this.armed ? ' armed' : '') + (x.used ? ' used' : '') + '" data-act="trayArm" data-arg="' + esc(x.key) + '" data-tray="' + esc(x.key) + '" draggable="true" title="' + esc(x.file.name) + ' — click, then click the member\'s circle (or drag it there)"><img src="' + esc(x.url) + '" alt="">' + (x.used ? '<i>✓</i>' : '') + '</button>').join('') : '<span class="muted tray-empty">Photos from the phone appear here — drop them here, press ＋, or watch the folder they arrive in</span>';
+    return '<div class="tray" data-tray-drop="1"><div class="row tray-bar"><b>🗂 Photo tray</b><button class="btn sm primary" data-act="trayAdd">＋ Photos from the phone…</button>' +
+      (this.dir ? '<span class="status-pill ok">📂 Watching: ' + esc(this.dirName) + '</span><button class="btn sm ghost" data-act="trayStop">Stop</button>' : (window.showDirectoryPicker ? '<button class="btn sm" data-act="trayWatch">📂 Watch a folder</button>' : '')) +
+      (this.items.length ? '<button class="btn sm ghost" data-act="trayClear">Clear tray</button>' : '') +
+      '<label class="check" title="Phone photos: cut to a portrait around the face, colour and light corrected, sharpened"><input type="checkbox" data-bind="settings.photoFix"' + (Store.state.settings.photoFix !== false ? ' checked' : '') + '> ✨ Auto touch-up</label>' +
+      '<span class="muted">' + (this.armed ? '<b class="tray-hint">Now click the member\'s circle ▸</b>' : 'Click a photo, then the member\'s circle — or drag it onto the circle') + '</span></div><div class="tray-strip">' + strip + '</div></div>';
+  },
+};
 const Actions = {
   closeModal() { UI.closeModal(); },
   tab(k) { UI.tab = pageInfo(k) ? k : ''; UI.savePref('tab', UI.tab); UI.renderTabs(); UI.renderTab(true); const t = $('#tabs'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start' }); },
@@ -575,12 +634,25 @@ const Actions = {
   timerRaise() { const r = Sel.currentRound(); Timer.start('raise', (r && r.timers.raise) || 5); },
   timerPreset(v) { Timer.start(Store.state.timer.mode === 'pass' ? 'pass' : 'direct', int(v, 30)); },
   photosToggle() { const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(Store.state.show.scene); UI.photosOpen = !(UI.photosOpen == null ? auto : UI.photosOpen); UI.liveSig = ''; UI.renderLive(); },
-  async memPhoto(path) { const id = await pickMedia('image/*', 'image'); if (id) Store.commit('media:' + path, (s) => setPath(s, path, id)); },
+  /** A member's circle: with a photo picked in the tray it goes straight in, otherwise the file chooser opens. */
+  memPhoto(path) {
+    if (TeamLock.guards(path)) return TeamLock.refuse();
+    if (Tray.armed) { const f = Tray.take(); if (f) { Actions.memPhotoFile(path, f); return; } }
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) Actions.memPhotoFile(path, f); };
+    inp.click();
+  },
+  /** every member photo comes in here: the day lock is checked, a phone photo is cropped to a portrait, brightened and sharpened */
   async memPhotoFile(path, file) {
-    try { const id = await Media.add(file, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.toast('Photo added ✓', 'ok'); } catch (e) { UI.toast(e.message || 'Could not add the photo', 'err'); Log.err('photo', e); }
+    if (TeamLock.guards(path)) return TeamLock.refuse();
+    try {
+      const fixed = Store.state.settings.photoFix !== false && /(captainPhoto|playerPhotos)/.test(path) ? await PhotoFix.portrait(file).catch((e) => { Log.err('photofix', e); return file; }) : file;
+      const id = await Media.add(fixed, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.toast('Photo added ✓', 'ok'); return id;
+    } catch (e) { UI.toast(e.message || 'Could not add the photo', 'err'); Log.err('photo', e); }
   },
   /** 📸 Take a member's photo with the laptop camera: live preview, 3-2-1, retake or use; saved straight into that place. */
   async memCam(path) {
+    if (TeamLock.guards(path)) return TeamLock.refuse();
     const stop = () => { if (Cam.stream) Cam.stream.getTracks().forEach((t) => t.stop()); Cam.stream = null; };
     stop(); Cam.path = path; Cam.shot = null;
     const parts = String(path).split('.'); const t = Store.state.teams[int(parts[1])]; const who = t ? Sel.code(t) + ' • ' + (parts[2] === 'captainPhoto' ? 'Member 1' : 'Member 2') : '';
@@ -614,18 +686,29 @@ const Actions = {
     const c = Cam.shot; const path = Cam.path; if (!c || !path) { UI.toast('Take the photo first', 'err'); return; }
     c.toBlob(async (blob) => {
       if (!blob) return;
-      try { const f = new File([blob], 'camera-' + path.replace(/\W+/g, '-') + '.jpg', { type: 'image/jpeg' }); const id = await Media.add(f, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.closeModal(); UI.toast('Photo saved — it is on the TV now', 'ok'); }
+      try { const f = new File([blob], 'camera-' + path.replace(/\W+/g, '-') + '.jpg', { type: 'image/jpeg' }); const id = await Actions.memPhotoFile(path, f); if (id) { UI.closeModal(); UI.toast('Photo saved — it is on the TV now', 'ok'); } }
       catch (e) { UI.toast(e.message || 'Could not save the photo', 'err'); }
     }, 'image/jpeg', 0.92);
   },
   /** Many pictures at once: they fill the empty member slots in order (A / 1 member 1, member 2, B / 2 …). */
+  teamLock() { if (TeamLock.lock()) { UI.liveSig = ''; UI.renderLive(); UI.renderTab(true); } },
+  teamUnlock() {
+    if (!confirm('Unlock the teams?\n\nNames, schools and photos can then be changed again — during the show a wrong click could change them on the TV.\n\nUnlock only to correct a mistake, then press 🔒 Lock for today again.')) return;
+    TeamLock.unlock(); UI.toast('Teams unlocked — lock them again when the correction is done', 'ok'); UI.liveSig = ''; UI.renderLive(); UI.renderTab(true);
+  },
+  trayAdd() { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true; inp.onchange = () => Tray.add(inp.files); inp.click(); },
+  trayWatch() { Tray.watch(); },
+  trayStop() { Tray.stop(); },
+  trayClear() { Tray.items.forEach((x) => URL.revokeObjectURL(x.url)); Tray.items = []; Tray.armed = ''; Tray.refresh(); },
+  trayArm(key) { Tray.armed = Tray.armed === key ? '' : key; Tray.refresh(); },
   memBulk() {
+    if (TeamLock.on()) return TeamLock.refuse();
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
     inp.onchange = async () => {
       const files = Array.from(inp.files || []); if (!files.length) return;
       const slots = []; Store.state.teams.forEach((t, i) => { if (!t.captainPhoto) slots.push('teams.' + i + '.captainPhoto'); if (!t.playerPhotos[0]) slots.push('teams.' + i + '.playerPhotos.0'); });
       let n = 0;
-      for (const f of files) { const path = slots[n]; if (!path) break; try { const id = await Media.add(f, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); n += 1; } catch (e) { UI.toast(e.message, 'err'); } }
+      for (const f of files) { const path = slots[n]; if (!path) break; if (await Actions.memPhotoFile(path, f)) n += 1; }
       UI.toast(n + ' photo(s) added' + (files.length > n ? ' • ' + (files.length - n) + ' left over (no empty slots)' : ''), n ? 'ok' : 'err');
     };
     inp.click();

@@ -71,6 +71,7 @@ const Store = {
     this.state.rev += 1;
     this.state.updatedAt = Date.now();
     if (this.sandbox) return;
+    TeamLock.enforce(this.state);
     this.schedulePersist();
     Bus.emit('change', { label, rev: this.state.rev });
   },
@@ -154,6 +155,65 @@ const Store = {
     this.touch('rehearsal-off');
     Bus.emit('rehearsal', false);
   },
+};
+
+/** 🔒 Day lock — once the teams' schools, names and photos are in place they stay exactly so for the rest of that day:
+    no click, drop, undo, backup or import can change them. It is kept apart from the event (its own localStorage key),
+    so nothing in the event can undo it, and it ends by itself at midnight, so the next day everything is editable again.
+    Only the teams are locked — the organisers' own page (crew, logos, texts) stays editable. */
+const TeamLock = {
+  KEY: 'qc66.teamlock',
+  OFF_KEY: 'qc66.teamlock.off',
+  FIELDS: ['name', 'school', 'color', 'captain', 'players', 'photo', 'captainPhoto', 'playerPhotos', 'emblem'],
+  today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); },
+  read() {
+    if (MODE !== 'control') return null;
+    try { const v = JSON.parse(localStorage.getItem(this.KEY) || 'null'); return v && v.day === this.today() && Array.isArray(v.teams) ? v : null; } catch (e) { return null; }
+  },
+  on() { return !Store.sandbox && !!this.read(); },
+  /** a state path (teams.3.school, teams.0.playerPhotos.0 …) that the lock protects */
+  guards(path) { return /^teams\.\d+\.(name|school|color|captain|players|photo|captainPhoto|playerPhotos|emblem)(\.|$)/.test(String(path)) && this.on(); },
+  /** the toast + false, for actions that would change a locked team */
+  refuse() { UI.toast('🔒 Teams are locked for today — names, schools and photos cannot change. (Teams page ▸ Unlock)', 'err'); return false; },
+  snap(s) { return s.teams.map((t) => { const o = { id: t.id }; this.FIELDS.forEach((k) => { o[k] = clone(t[k]); }); return o; }); },
+  lock(silent) {
+    try { localStorage.setItem(this.KEY, JSON.stringify({ day: this.today(), at: Date.now(), teams: this.snap(Store.state) })); localStorage.removeItem(this.OFF_KEY); } catch (e) { UI.toast('Could not lock: ' + e.message, 'err'); return false; }
+    Log.add('INFO', 'Teams locked for ' + this.today());
+    if (!silent) UI.toast('🔒 Teams locked for today — they cannot change by mistake. Unlocks by itself tomorrow.', 'ok');
+    Bus.emit('teamlock', true);
+    return true;
+  },
+  unlock() {
+    try { localStorage.removeItem(this.KEY); localStorage.setItem(this.OFF_KEY, this.today()); } catch (e) { /* nothing locked then */ }
+    Log.add('INFO', 'Teams unlocked by the operator');
+    Bus.emit('teamlock', false);
+  },
+  /** the show has started (main countdown): lock by itself, unless the operator unlocked today or this is a rehearsal */
+  auto() {
+    if (MODE !== 'control' || Store.rehearsal || Store.sandbox || this.read()) return;
+    try { if (localStorage.getItem(this.OFF_KEY) === this.today()) return; } catch (e) { return; }
+    if (!Store.state.teams.some((t) => t.captainPhoto || t.playerPhotos[0] || str(t.school).trim())) return;
+    this.lock(true);
+    UI.toast('🔒 The show has started — team names, schools and photos are now locked for today', 'ok');
+  },
+  /** put any locked field that changed (undo, restore, import, a missed button …) back the way it was locked */
+  enforce(s) {
+    const L = this.read(); if (!L || !s || !Array.isArray(s.teams)) return false;
+    let fixed = false;
+    L.teams.forEach((x) => {
+      const t = s.teams.find((y) => y.id === x.id); if (!t) return;
+      this.FIELDS.forEach((k) => { if (x[k] !== undefined && JSON.stringify(t[k]) !== JSON.stringify(x[k])) { t[k] = clone(x[k]); fixed = true; } });
+    });
+    // the order of the teams (A / 1 … H / 8) is part of who is who
+    const order = L.teams.map((x) => x.id);
+    if (s.teams.every((t) => order.includes(t.id)) && s.teams.map((t) => t.id).join() !== order.filter((id) => s.teams.some((t) => t.id === id)).join()) {
+      s.teams.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); fixed = true;
+    }
+    if (fixed) Log.add('INFO', 'Day lock kept the teams unchanged');
+    return fixed;
+  },
+  /** media files the lock keeps (they cannot be deleted today) */
+  keeps(id) { const L = this.read(); return !!(L && id && JSON.stringify(L.teams).includes('"' + id + '"')); },
 };
 
 /* =====================================================================

@@ -96,6 +96,7 @@ const Media = {
     return id;
   },
   async remove(id) {
+    if (TeamLock.keeps(id)) { TeamLock.refuse(); return false; }
     await this.ready;
     if (this.db) await new Promise((resolve) => { const r = this.tx('readwrite').delete(id); r.onsuccess = resolve; r.onerror = resolve; });
     this.memory.delete(id);
@@ -188,6 +189,86 @@ function pickMedia(accept = 'image/*', kind) {
     inp.click();
   });
 }
+
+/** 📱 Phone photo → a clean, bright TV portrait: turned the right way up, cut to 3 : 4 around the face,
+    colour cast and dim light corrected, gently sharpened, saved as a sharp 1080 × 1440 JPEG. Never fails the upload:
+    any trouble and the original is used. */
+const PhotoFix = {
+  W: 1080, H: 1440,
+  async bitmap(file) {
+    if ('createImageBitmap' in window) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* <img> below */ } }
+    return Media.decode(file);
+  },
+  /** the 3 : 4 frame: around the largest face when the browser can find faces, else the middle with the head in the upper part */
+  async frame(src, w0, h0) {
+    let cw, ch; if (w0 / h0 > 3 / 4) { ch = h0; cw = Math.round(h0 * 3 / 4); } else { cw = w0; ch = Math.round(w0 * 4 / 3); }
+    let fx = w0 / 2; let fy = h0 * 0.42; let face = null;
+    if ('FaceDetector' in window) {
+      try { const f = await new window.FaceDetector({ fastMode: true, maxDetectedFaces: 4 }).detect(src); face = f.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height)[0] || null; } catch (e) { face = null; }
+    }
+    if (face) {
+      const b = face.boundingBox; fx = b.x + b.width / 2; fy = b.y + b.height / 2;
+      // a small face far away: come closer, so the face is about 40 % of the picture's width (never closer than half the frame)
+      const k = clamp((b.width / 0.4) / cw, 0.5, 1); cw = Math.round(cw * k); ch = Math.round(cw * 4 / 3);
+      return { x: clamp(Math.round(fx - cw / 2), 0, w0 - cw), y: clamp(Math.round(fy - ch * 0.4), 0, h0 - ch), w: cw, h: ch };
+    }
+    return { x: clamp(Math.round(fx - cw / 2), 0, w0 - cw), y: clamp(Math.round((h0 - ch) * 0.3), 0, h0 - ch), w: cw, h: ch };
+  },
+  /** levels, white balance, light, colour — measured on the picture itself, with limits so it never looks overdone */
+  tone(ctx, W, H) {
+    const img = ctx.getImageData(0, 0, W, H); const d = img.data; const n = W * H;
+    const hist = new Uint32Array(256); let sr = 0, sg = 0, sb = 0;
+    for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], b = d[i + 2]; sr += r; sg += g; sb += b; hist[(r * 77 + g * 150 + b * 29) >> 8] += 1; }
+    const pct = (q) => { let acc = 0; for (let v = 0; v < 256; v += 1) { acc += hist[v]; if (acc >= n * q) return v; } return 255; };
+    const lo = Math.min(pct(0.005), 40); const hi = Math.max(pct(0.995), 200);
+    // grey-world white balance, half strength, gains kept between 0.88 and 1.15 (yellow hall lights, blue shade)
+    const mr = sr / n, mg = sg / n, mb = sb / n; const grey = (mr + mg + mb) / 3;
+    const gain = [mr, mg, mb].map((m) => clamp(1 + ((grey / Math.max(m, 1)) - 1) * 0.5, 0.88, 1.15));
+    // a dim photo is lifted (mid-tones), a bright one is left alone
+    let mean = 0; for (let v = 0; v < 256; v += 1) mean += hist[v] * clamp((v - lo) / Math.max(hi - lo, 1), 0, 1); mean /= n;
+    const gamma = mean < 0.46 ? clamp(Math.log(0.5) / Math.log(Math.max(mean, 0.05)), 0.7, 1) : 1;
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v += 1) { let x = clamp((v - lo) / Math.max(hi - lo, 1), 0, 1); x = Math.pow(x, gamma); x = x + 0.06 * Math.sin(Math.PI * (x - 0.5)) * x * (1 - x) * 4; lut[v] = Math.round(clamp(x, 0, 1) * 255); }
+    const sat = 1.1;
+    for (let i = 0; i < d.length; i += 4) {
+      let r = lut[clamp(Math.round(d[i] * gain[0]), 0, 255)], g = lut[clamp(Math.round(d[i + 1] * gain[1]), 0, 255)], b = lut[clamp(Math.round(d[i + 2] * gain[2]), 0, 255)];
+      const l = (r * 77 + g * 150 + b * 29) >> 8; r = l + (r - l) * sat; g = l + (g - l) * sat; b = l + (b - l) * sat;
+      d[i] = r; d[i + 1] = g; d[i + 2] = b;
+    }
+    ctx.putImageData(img, 0, 0);
+    return { lo, hi, gamma, gain };
+  },
+  /** unsharp mask: crisp eyes and hair without halos */
+  sharpen(canvas, amount = 0.55) {
+    const W = canvas.width, H = canvas.height; const ctx = canvas.getContext('2d');
+    const blur = document.createElement('canvas'); blur.width = W; blur.height = H; const bx = blur.getContext('2d');
+    if (!('filter' in bx)) return;
+    bx.filter = 'blur(1.1px)'; bx.drawImage(canvas, 0, 0);
+    const a = ctx.getImageData(0, 0, W, H); const b = bx.getImageData(0, 0, W, H); const d = a.data; const e = b.data;
+    for (let i = 0; i < d.length; i += 4) for (let c = 0; c < 3; c += 1) { const diff = d[i + c] - e[i + c]; if (diff > 2 || diff < -2) d[i + c] = d[i + c] + diff * amount; }
+    ctx.putImageData(a, 0, 0);
+  },
+  async portrait(file) {
+    const src = await this.bitmap(file);
+    const w0 = src.naturalWidth || src.width; const h0 = src.naturalHeight || src.height;
+    if (!w0 || !h0) throw new Error('empty image');
+    const f = await this.frame(src, w0, h0);
+    const W = Math.min(this.W, f.w); const H = Math.round(W * 4 / 3);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    // big phone photos shrink in two steps — sharper than one big jump
+    if (f.w > W * 2.2) {
+      const m = document.createElement('canvas'); m.width = W * 2; m.height = H * 2; const mx = m.getContext('2d'); mx.imageSmoothingQuality = 'high';
+      mx.drawImage(src, f.x, f.y, f.w, f.h, 0, 0, m.width, m.height); ctx.drawImage(m, 0, 0, W, H);
+    } else ctx.drawImage(src, f.x, f.y, f.w, f.h, 0, 0, W, H);
+    if (src.close) src.close();
+    this.last = this.tone(ctx, W, H);
+    this.sharpen(c);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.93));
+    if (!blob) throw new Error('could not save');
+    return new File([blob], String(file.name || 'photo').replace(/\.[^.]+$/, '') + '-tv.jpg', { type: 'image/jpeg' });
+  },
+};
 
 /* =====================================================================
    AUDIO DIRECTOR — synthesised broadcast cues (no audio files needed),
