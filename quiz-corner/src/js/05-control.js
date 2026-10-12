@@ -350,22 +350,22 @@ const UI = {
   },
   /** V100 quick photos: two members per team (16 for A / 1 … H / 8). Click, drop a file, or hover and press Ctrl+V.
       It opens by itself while the teams are being introduced. */
-  photoDeck(s) {
+  photoDeck(s, always = false) {
     const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(s.show.scene);
-    const open = this.photosOpen == null ? auto : this.photosOpen;
+    const open = always || (this.photosOpen == null ? auto : this.photosOpen);
     const filled = s.teams.reduce((n, t) => n + (t.captainPhoto ? 1 : 0) + (t.playerPhotos[0] ? 1 : 0), 0);
-    let h = '<div class="card"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Member photos — 2 per team (' + filled + ' / ' + (s.teams.length * 2) + ')</button><button class="btn sm" data-act="memBulk">⇪ Many photos at once</button></div>';
+    let h = '<div class="card"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Teams: school, names & photos (' + filled + ' / ' + (s.teams.length * 2) + ' photos)</button><button class="btn sm" data-act="memBulk">⇪ Many photos at once</button></div>';
     if (open) {
-      h += '<p class="muted" style="margin:.4rem 0">Click a photo slot • drag a file onto a slot • or copy an image, hover over the slot and press <kbd>Ctrl</kbd>+<kbd>V</kbd></p><div class="mem-grid">';
+      h += '<p class="muted" style="margin:.4rem 0">Type the school and the two names • photo: <b>📸 laptop camera</b>, click the circle for a file, drag a file onto it, or copy an image, hover and press <kbd>Ctrl</kbd>+<kbd>V</kbd> — it appears on the TV at once</p><div class="mem-grid">';
       h += s.teams.map((t, i) => {
         const cur = (s.show.scene === 'TEAM_INTRO' || s.show.scene === 'FINALIST_INTRO') && s.show.params.teamId === t.id;
         const slot = (k) => {
           const path = k === 0 ? 'teams.' + i + '.captainPhoto' : 'teams.' + i + '.playerPhotos.0';
           const npath = k === 0 ? 'teams.' + i + '.captain' : 'teams.' + i + '.players.0';
           const id = k === 0 ? t.captainPhoto : t.playerPhotos[0]; const nm = k === 0 ? t.captain : t.players[0];
-          return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Member ' + (k + 1) + ' — click / drag a file / Ctrl+V">' + (id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>Member ' + (k + 1) + '</small></span>') + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="Member ' + (k + 1) + (k === 0 ? ' (captain)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '">' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="Remove photo">✕</button>' : '') + '</div>';
+          return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Member ' + (k + 1) + ' — click / drag a file / Ctrl+V">' + (id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>Member ' + (k + 1) + '</small></span>') + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="Member ' + (k + 1) + (k === 0 ? ' (captain)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts"><button class="btn sm cam" data-act="memCam" data-arg="' + esc(path) + '" title="Take the photo with the laptop camera">📸</button>' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="Remove photo">✕</button>' : '') + '</span></div>';
         };
-        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><span class="mt-name">' + esc(t.name === Sel.code(t) ? '' : t.name) + '</span></div>' + slot(0) + slot(1) + '</div>';
+        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><input class="mt-school" type="text" data-bind="teams.' + i + '.school" value="' + esc(t.school) + '" placeholder="School / বিদ্যালয়ের নাম" aria-label="' + esc(Sel.code(t)) + ' school"></div>' + slot(0) + slot(1) + '</div>';
       }).join('');
       h += '</div>';
     }
@@ -482,6 +482,8 @@ const pageInfo = (k) => { for (const g of SETTINGS_GROUPS) for (const r of g[1])
 /* =====================================================================
    ACTIONS — every button and shortcut resolves to one of these.
    ===================================================================== */
+/** The laptop camera while a member's photo is being taken. */
+const Cam = { stream: null, path: '', shot: null };
 const Actions = {
   closeModal() { UI.closeModal(); },
   tab(k) { UI.tab = pageInfo(k) ? k : ''; UI.savePref('tab', UI.tab); UI.renderTabs(); UI.renderTab(true); const t = $('#tabs'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start' }); },
@@ -576,6 +578,45 @@ const Actions = {
   async memPhoto(path) { const id = await pickMedia('image/*', 'image'); if (id) Store.commit('media:' + path, (s) => setPath(s, path, id)); },
   async memPhotoFile(path, file) {
     try { const id = await Media.add(file, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.toast('Photo added ✓', 'ok'); } catch (e) { UI.toast(e.message || 'Could not add the photo', 'err'); Log.err('photo', e); }
+  },
+  /** 📸 Take a member's photo with the laptop camera: live preview, 3-2-1, retake or use; saved straight into that place. */
+  async memCam(path) {
+    const stop = () => { if (Cam.stream) Cam.stream.getTracks().forEach((t) => t.stop()); Cam.stream = null; };
+    stop(); Cam.path = path; Cam.shot = null;
+    const parts = String(path).split('.'); const t = Store.state.teams[int(parts[1])]; const who = t ? Sel.code(t) + ' • ' + (parts[2] === 'captainPhoto' ? 'Member 1' : 'Member 2') : '';
+    UI.modal('📸 Photo — ' + who, '<div class="cam-wrap"><video id="camVideo" autoplay playsinline muted></video><canvas id="camShot" hidden></canvas><div class="cam-guide"></div><div class="cam-count" id="camCount"></div></div><div class="row" style="margin-top:.6rem;gap:.5rem;flex-wrap:wrap"><select id="camSel" class="btn"></select><button class="btn lg primary" data-act="camSnap">📸 Take photo (3-2-1)</button><button class="btn lg" data-act="camSnap" data-arg="now">Now</button><button class="btn lg" data-act="camRetake">↺ Retake</button><button class="btn lg good" data-act="camUse">✔ Use this photo</button></div><p class="muted" id="camMsg">Look at the camera, face in the middle.</p>');
+    const back = $('.modal-back'); if (back) new MutationObserver((m, o) => { if (!back.isConnected) { stop(); o.disconnect(); } }).observe(document.body, { childList: true });
+    const start = async (deviceId) => {
+      stop();
+      try {
+        Cam.stream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: 'user' }, audio: false });
+        const v = $('#camVideo'); if (v) { v.srcObject = Cam.stream; v.hidden = false; } const c = $('#camShot'); if (c) c.hidden = true;
+        const sel = $('#camSel');
+        if (sel && !sel.options.length) { const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput'); sel.innerHTML = cams.map((d, k) => '<option value="' + esc(d.deviceId) + '">' + esc(d.label || 'Camera ' + (k + 1)) + '</option>').join(''); sel.hidden = cams.length < 2; sel.onchange = () => start(sel.value); }
+      } catch (e) { const m = $('#camMsg'); if (m) m.textContent = 'No camera found or not allowed — allow the camera (🎥 next to the address bar), or click the circle to choose a photo file.'; Log.err('cam', e); }
+    };
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { const m = $('#camMsg'); if (m) m.textContent = 'This browser cannot use the camera — click the circle to choose a photo file.'; return; }
+    start('');
+  },
+  camSnap(arg) {
+    const v = $('#camVideo'); if (!v || !v.videoWidth) { UI.toast('The camera is not ready yet', 'err'); return; }
+    const shoot = () => {
+      // a portrait (3 : 4) from the middle of the picture; the preview is a mirror, the saved photo is the right way round
+      const vw = v.videoWidth, vh = v.videoHeight; const h = vh; const w = Math.min(vw, Math.round(h * 3 / 4)); const x = Math.round((vw - w) / 2);
+      const c = $('#camShot'); c.width = w; c.height = h; c.getContext('2d').drawImage(v, x, 0, w, h, 0, 0, w, h);
+      c.hidden = false; v.hidden = true; Cam.shot = c; const m = $('#camMsg'); if (m) m.textContent = 'Good? Press ✔ Use this photo — or ↺ Retake.';
+    };
+    if (arg === 'now') { shoot(); return; }
+    const el = $('#camCount'); let n = 3; const tick = () => { if (!el) return; if (n === 0) { el.textContent = ''; shoot(); return; } el.textContent = String(n); n -= 1; setTimeout(tick, 800); }; tick();
+  },
+  camRetake() { const v = $('#camVideo'); const c = $('#camShot'); if (v) v.hidden = false; if (c) c.hidden = true; Cam.shot = null; },
+  camUse() {
+    const c = Cam.shot; const path = Cam.path; if (!c || !path) { UI.toast('Take the photo first', 'err'); return; }
+    c.toBlob(async (blob) => {
+      if (!blob) return;
+      try { const f = new File([blob], 'camera-' + path.replace(/\W+/g, '-') + '.jpg', { type: 'image/jpeg' }); const id = await Media.add(f, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.closeModal(); UI.toast('Photo saved — it is on the TV now', 'ok'); }
+      catch (e) { UI.toast(e.message || 'Could not save the photo', 'err'); }
+    }, 'image/jpeg', 0.92);
   },
   /** Many pictures at once: they fill the empty member slots in order (A / 1 member 1, member 2, B / 2 …). */
   memBulk() {

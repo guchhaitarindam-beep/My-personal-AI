@@ -1498,3 +1498,16 @@ body.fx-premium .stage .stamp { animation: stampIn .6s cubic-bezier(.2, 1.6, .4,
 .stage .tile.played > *:not(.t-by) { opacity: .2; filter: grayscale(1); }
 .stage .tile.played { background: color-mix(in srgb, var(--panel-solid, #0b2150) 40%, transparent); border-color: rgba(255, 255, 255, .12); box-shadow: none; }
 .stage .tile.played .t-by { bottom: auto; top: 50%; transform: translate(-50%, -50%); font-size: 3.4cqh; padding: .6cqh 1.4cqw; }
+
+/* ===== Teams: school, names and photos in one place; 📸 laptop camera ===== */
+.mt-head .mt-school { flex: 1; min-width: 0; font-weight: 700; }
+.mslot { grid-template-columns: 56px 1fr auto; }
+.mslot-acts { display: flex; gap: .25rem; align-items: center; }
+.mslot-acts .cam { font-size: 1.05rem; padding: .25rem .45rem; }
+.cam-wrap { position: relative; display: grid; place-items: center; background: #000; border-radius: 12px; overflow: hidden; min-height: 300px; }
+.cam-wrap video { width: 100%; max-height: 62vh; object-fit: contain; transform: scaleX(-1); }
+.cam-wrap canvas { max-width: 100%; max-height: 62vh; }
+.cam-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9rem; font-weight: 900; color: #fff; text-shadow: 0 0 30px rgba(0, 0, 0, .8); pointer-events: none; }
+/* camera: the 3:4 part that is saved, the rest dimmed */
+.cam-guide { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); aspect-ratio: 3 / 4; height: 100%; border: 3px dashed rgba(255, 214, 102, .9); border-radius: 10px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .45); pointer-events: none; }
+.cam-wrap video[hidden] ~ .cam-guide { display: none; }
