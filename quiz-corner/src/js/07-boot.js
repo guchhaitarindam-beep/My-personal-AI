@@ -125,9 +125,10 @@ const SelfTest = {
       Game.load(Sel.roundQuestions('R2')[1].id, b);
       Game.judge('wrong');
       Game.pass();
-      T('Pass: goes to the next team with 45 s', () => s().live.flow === 'pass' && s().live.active === c && s().timer.mode === 'pass');
+      // round 2 counts backwards (H / 8 → A / 1): B / 2's pass goes to A / 1
+      T('Pass: goes to the next team (round 2: backwards, B / 2 → A / 1) with 45 s', () => s().live.flow === 'pass' && s().live.active === a && s().timer.mode === 'pass');
       Game.judge('correct');
-      T('Score: correct on pass +5', () => Sel.score(c) === 5 && Sel.score(b) === 0);
+      T('Score: correct on pass +5', () => Sel.score(a) === 15 && Sel.score(b) === 0);
       // the lifelines themselves (not used on 13 Oct: round 1 has them switched off) — tried with them switched on for a moment
       Sel.round('R1').features.lifelines = true;
       Game.load(Sel.roundQuestions('R1')[2].id, a);
@@ -489,6 +490,12 @@ const SelfTest = {
           const code = (id) => Sel.code(Sel.team(id));
           T('Turn order by team code, not by prelim rank: round 2 H / 8 first, round 3 A / 1 first', () => code(Game.turnFor('R2')) === 'H / 8' && code(Game.turnFor('R3')) === 'A / 1', code(Game.turnFor('R2')) + ' / ' + code(Game.turnFor('R3')));
           s().finalists = keep; }
+        // round 2's passes count backwards too: F / 6 cannot answer → E / 5 → D / 4; A / 1 → H / 8
+        { const byCode = Sel.finalistsByCode(); const code = (id) => Sel.code(Sel.team(id)); const q2 = Sel.roundQuestions('R2');
+          Game.load(q2[0].id, byCode[5]); Game.judge('wrong'); const p1 = Game.nextPassTeam(); Game.pass(); Game.judge('wrong'); const p2 = Game.nextPassTeam();
+          Game.load(q2[1].id, byCode[0]); Game.judge('wrong'); const p3 = Game.nextPassTeam();
+          T('Round 2: a pass goes backwards — F / 6 → E / 5 → D / 4, A / 1 → H / 8', () => code(p1) === 'E / 5' && code(p2) === 'D / 4' && code(p3) === 'H / 8', [p1, p2, p3].map(code).join(', '));
+          Store.state = normalizeState(defaultState()); Show._rd = null; }
         Store.state = normalizeState(defaultState()); Show._rd = null;
       }
       T('Blackout shows a red alert and a restore button in control', () => { s().show.blackout = true; const h = UI.liveHtml(); s().show.blackout = false; return h.includes('blackout-alert') && h.includes('Show on TV again') && !UI.liveHtml().includes('blackout-alert'); });

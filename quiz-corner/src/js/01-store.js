@@ -644,13 +644,15 @@ const Game = {
   },
   flowName(f) { return { direct: 'Direct', pass: 'Pass', bonus: 'Bonus', challenge: 'Challenge' }[f] || f; },
 
-  /** Next team in finalist order that has not yet tried this question. */
+  /** Next team (by team code, in the round's direction) that has not yet tried this question. */
   nextPassTeam() {
     const s = Store.state;
     const ids = Sel.finalistsByCode();
     const tried = new Set(s.live.passChain.concat([s.live.active]));
     const start = Math.max(0, ids.indexOf(s.live.active));
-    for (let k = 1; k <= ids.length; k++) { const id = ids[(start + k) % ids.length]; if (!tried.has(id)) return id; }
+    // a pass goes the same way as the round's turns: round 2 (H / 8 → A / 1) counts backwards — F / 6 → E / 5 → D / 4 …
+    const r = Sel.round(s.live.roundId); const dir = r && r.turnOrder === 'reverse' ? -1 : 1; const n = ids.length;
+    for (let k = 1; k <= n; k++) { const id = ids[(((start + dir * k) % n) + n) % n]; if (!tried.has(id)) return id; }
     return '';
   },
   pass(toTeam) {
