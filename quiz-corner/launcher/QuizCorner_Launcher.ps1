@@ -8,10 +8,14 @@
 # and the event data stays in one place.  With no TV both windows open side by side on the laptop.
 # A log of every start is kept in %LOCALAPPDATA%\QuizCorner\launcher_log.txt.
 
+# QC-LAUNCHER: 20261012-0700
 $ErrorActionPreference = 'Continue'
+$LauncherStamp = '20261012-0700'
 # Bengali messages are kept as UTF-8 Base64 so this file is plain ASCII and reads the same in every Windows PowerShell
 function T($b) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b)) }
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$myPs1 = $MyInvocation.MyCommand.Path
+# the folder of START_QUIZ_CORNER.bat (the .bat passes it; started on its own, the folder of this file)
+$here = $(if ($env:QC_HERE) { $env:QC_HERE.Trim().TrimEnd('\', '/') } else { Split-Path -Parent $myPs1 })
 $qcHome = Join-Path $env:LOCALAPPDATA 'QuizCorner'
 New-Item -ItemType Directory -Force -Path $qcHome | Out-Null
 $logFile = Join-Path $qcHome 'launcher_log.txt'
@@ -25,7 +29,10 @@ function Box($text, $buttons, $icon) {
 }
 function Fail($bn, $en) { Say ('STOP: ' + $en); [void](Box ($bn + "`n`n" + $en) 'OK' 'Warning'); exit 1 }
 
-Say '----- start -----'
+Say ('----- start -----  launcher ' + $LauncherStamp + '  folder: ' + $here)
+# an unexpected error is written to the log and the start goes on (the .bat opens its own windows only when this script stops early)
+$script:opened = $false
+trap { Say ('ERROR: ' + $_.Exception.Message); continue }
 # Files downloaded from the internet carry a "blocked" mark; clear it for this folder.
 Get-ChildItem -Path $here -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 
@@ -33,44 +40,84 @@ Write-Host ''
 Write-Host '  ===  QUIZ CORNER  ===' -ForegroundColor Yellow
 Write-Host ''
 
-# --- the quiz file ---------------------------------------------------------
-# Always the NEWEST quiz file. Every quiz file carries its build time ("QC-BUILD: yyyyMMdd-HHmm") near the top.
-# A new download often lands in Downloads (or as "... (1).html") while the desktop shortcut still opens this folder,
-# so Downloads, Desktop and Documents are looked at too; a newer file found there is copied here and used,
-# and older copies in this folder are moved to "old_versions" so they can never open by mistake.
-function BuildOf($f) {
-  try { $r = New-Object System.IO.StreamReader($f.FullName); $buf = New-Object char[] 6000; $n = $r.Read($buf, 0, 6000); $r.Close()
-        $m = [regex]::Match((New-Object string($buf, 0, $n)), 'QC-BUILD:\s*(\d{8}-\d{4})'); if ($m.Success) { return $m.Groups[1].Value } } catch { }
+# --- stamps: every quiz file carries "QC-BUILD: yyyyMMdd-HHmm", every launcher file "QC-LAUNCHER: yyyyMMdd-n" near the top ---
+function StampIn($path, $tag) {
+  try { $r = New-Object System.IO.StreamReader($path); $buf = New-Object char[] 6000; $n = $r.Read($buf, 0, 6000); $r.Close()
+        $m = [regex]::Match((New-Object string($buf, 0, $n)), $tag + ':\s*(\d{8}-\d{1,4})'); if ($m.Success) { return $m.Groups[1].Value } } catch { }
   return '00000000-0000'
 }
-$places = @($here, (Join-Path $env:USERPROFILE 'Downloads'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('MyDocuments')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
-# files opened from WhatsApp Desktop are kept in its own folder
-$wa = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter '*WhatsApp*' -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName 'LocalState\shared\transfers' } | Where-Object { Test-Path $_ })
-$cands = @()
-foreach ($pl in @($places) + $wa) {
-  $depth = $(if ($pl -eq $here) { 0 } elseif ($wa -contains $pl) { 3 } else { 1 })
-  # every .html that is a quiz file: named Quiz_Corner*, or carrying the quiz's build stamp (a renamed copy)
-  $cands += @(Get-ChildItem -Path $pl -Filter '*.html' -File -Recurse -Depth $depth -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -notlike '*\old_versions\*' -and $_.Length -gt 1MB -and ($_.Name -like 'Quiz_Corner*' -or (BuildOf $_) -ne '00000000-0000') })
+function BuildOf($f) { return StampIn $f.FullName 'QC-BUILD' }
+function Human($b) { if ($b -match '^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})$') { return $Matches[3] + '-' + $Matches[2] + '-' + $Matches[1] + ' ' + $Matches[4] + ':' + $Matches[5] } return 'unknown (very old file)' }
+
+# --- the launcher itself: keep only the newest copy under the plain names ---------------------------
+# Files sent one by one (WhatsApp, e-mail) arrive as "START_QUIZ_CORNER (1).bat", "QuizCorner_Launcher (1).ps1" next to old ones;
+# the newest copy is written over the plain names, older copies go to "old_versions", and the desktop shortcut points here,
+# so whichever file is clicked next time, the newest launcher runs.
+$oldDir = Join-Path $here 'old_versions'
+function ToOld($f) {
+  try { New-Item -ItemType Directory -Force -Path $oldDir | Out-Null; Move-Item -LiteralPath $f -Destination (Join-Path $oldDir ((Get-Date -Format 'yyyyMMdd-HHmmss') + '_' + (Split-Path -Leaf $f))) -Force; Say ('  old copy moved to old_versions: ' + (Split-Path -Leaf $f)) } catch { }
 }
-$best = $cands | Sort-Object @{ Expression = { BuildOf $_ }; Descending = $true }, @{ Expression = { (Split-Path -Parent $_.FullName) -eq $here }; Descending = $true }, @{ Expression = { $_.LastWriteTime }; Descending = $true } | Select-Object -First 1
-if ($best) {
-  Say ('Newest quiz file found: ' + $best.FullName + '  [build ' + (BuildOf $best) + ']')
-  $mine = @(Get-ChildItem -Path $here -Filter '*.html' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -ne $best.FullName -and ($_.Name -like 'Quiz_Corner*' -or (BuildOf $_) -ne '00000000-0000') })
-  if ($mine.Count) {
-    $oldDir = Join-Path $here 'old_versions'; New-Item -ItemType Directory -Force -Path $oldDir | Out-Null
-    foreach ($o in $mine) { try { Move-Item -LiteralPath $o.FullName -Destination (Join-Path $oldDir ((Get-Date -Format 'yyyyMMdd-HHmmss') + '_' + $o.Name)) -Force; Say ('  older copy moved to old_versions: ' + $o.Name) } catch { Say ('  could not move ' + $o.Name) } }
+try {
+  $canonPs1 = Join-Path $here 'QuizCorner_Launcher.ps1'
+  $canonBat = Join-Path $here 'START_QUIZ_CORNER.bat'
+  # PowerShell has read this whole file already, so the plain-named copy may be overwritten even when it is the one running
+  if ($myPs1 -and $myPs1 -ne $canonPs1 -and (StampIn $canonPs1 'QC-LAUNCHER') -lt $LauncherStamp) { Copy-Item -LiteralPath $myPs1 -Destination $canonPs1 -Force; Say '  newest launcher copied to QuizCorner_Launcher.ps1' }
+  Get-ChildItem -Path $here -Filter 'QuizCorner_Launcher*.ps1' -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $canonPs1 -and $_.FullName -ne $myPs1 -and (StampIn $_.FullName 'QC-LAUNCHER') -le (StampIn $canonPs1 'QC-LAUNCHER') } | ForEach-Object { ToOld $_.FullName }
+  # a .bat is read line by line while it runs, so the running one is never overwritten or moved (older starters do not say which one runs: then it is the plain-named one)
+  $runBat = $(if ($env:QC_BAT) { $env:QC_BAT } else { $canonBat })
+  $bats = @(Get-ChildItem -Path $here -Filter 'START_QUIZ_CORNER*.bat' -File -ErrorAction SilentlyContinue | Sort-Object @{ Expression = { StampIn $_.FullName 'QC-LAUNCHER' }; Descending = $true })
+  $newBat = $bats | Select-Object -First 1
+  if ($newBat -and $newBat.FullName -ne $canonBat -and $runBat -ne $canonBat -and (StampIn $canonBat 'QC-LAUNCHER') -lt (StampIn $newBat.FullName 'QC-LAUNCHER')) { Copy-Item -LiteralPath $newBat.FullName -Destination $canonBat -Force; Say '  newest starter copied to START_QUIZ_CORNER.bat' }
+  $canonStamp = StampIn $canonBat 'QC-LAUNCHER'
+  $script:startBat = $(if ($newBat -and (StampIn $newBat.FullName 'QC-LAUNCHER') -gt $canonStamp) { $newBat.FullName } else { $canonBat })
+  $bats | Where-Object { $_.FullName -ne $canonBat -and $_.FullName -ne $runBat -and $_.FullName -ne $script:startBat } | ForEach-Object { ToOld $_.FullName }
+} catch { Say ('  launcher tidy-up skipped: ' + $_.Exception.Message) }
+
+# --- the quiz file ---------------------------------------------------------
+# Always the quiz file with the NEWEST build stamp - never the file date (a ZIP keeps old dates, a download gets today's date).
+# This folder, Downloads, Desktop, Documents and WhatsApp's own folder are searched; a newer file found elsewhere is copied here,
+# and older copies in this folder go to "old_versions" so they can never open by mistake.
+$dl = Join-Path $env:USERPROFILE 'Downloads'
+$places = @(
+  @{ p = $here; d = 0 }, @{ p = $dl; d = 2 },
+  @{ p = [Environment]::GetFolderPath('Desktop'); d = 1 }, @{ p = [Environment]::GetFolderPath('MyDocuments'); d = 1 }
+)
+# WhatsApp Desktop keeps the files it opens in its own folder
+foreach ($w in @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter '*WhatsApp*' -ErrorAction SilentlyContinue)) { $places += @{ p = (Join-Path $w.FullName 'LocalState'); d = 6 } }
+$seen = @{}; $cands = @(); $stamp = @{}
+foreach ($pl in $places) {
+  if (-not $pl.p -or -not (Test-Path -LiteralPath $pl.p)) { continue }
+  foreach ($f in @(Get-ChildItem -LiteralPath $pl.p -Filter '*.html' -File -Recurse -Depth $pl.d -ErrorAction SilentlyContinue)) {
+    if ($seen.ContainsKey($f.FullName) -or $f.Name -like '*LITE*' -or $f.FullName -like '*\old_versions\*' -or $f.Length -lt 1MB) { continue }
+    $seen[$f.FullName] = 1
+    $b = BuildOf $f
+    if ($f.Name -like 'Quiz_Corner*' -or $b -ne '00000000-0000') { $cands += $f; $stamp[$f.FullName] = $b }
   }
+}
+$sorted = @($cands | Sort-Object @{ Expression = { $stamp[$_.FullName] }; Descending = $true }, @{ Expression = { (Split-Path -Parent $_.FullName) -eq $here }; Descending = $true }, @{ Expression = { $_.LastWriteTime }; Descending = $true })
+Say ('Quiz files found: ' + $sorted.Count)
+$k = 0; foreach ($f in $sorted) { if ($k -ge 8) { break }; Say ($(if ($k -eq 0) { '  >> ' } else { '     ' }) + 'build ' + (Human $stamp[$f.FullName]) + '   ' + $f.FullName); $k++ }
+$best = $sorted | Select-Object -First 1
+if ($best) {
+  $bestBuild = $stamp[$best.FullName]
+  $mine = @(Get-ChildItem -Path $here -Filter '*.html' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*LITE*' -and $_.FullName -ne $best.FullName -and ($_.Name -like 'Quiz_Corner*' -or (BuildOf $_) -ne '00000000-0000') })
+  foreach ($o in $mine) { ToOld $o.FullName }
   if ((Split-Path -Parent $best.FullName) -ne $here) {
     $dest = Join-Path $here 'Quiz_Corner_V66_FINAL_Broadcast_Engine.html'
-    try { Copy-Item -LiteralPath $best.FullName -Destination $dest -Force; Say '  copied into this folder'; $best = Get-Item -LiteralPath $dest } catch { Say ('  could not copy - opening it where it is: ' + $_.Exception.Message) }
+    try { Copy-Item -LiteralPath $best.FullName -Destination $dest -Force; Say ('  copied into this folder from ' + (Split-Path -Parent $best.FullName)); $best = Get-Item -LiteralPath $dest } catch { Say ('  could not copy - opening it where it is: ' + $_.Exception.Message) }
   }
 }
 $html = $best
 if (-not $html) { Fail (T '4KaV4KeB4KaH4Kac4KeH4KawIEhUTUwg4Kar4Ka+4KaH4Kay4Kaf4Ka/IOCmj+CmhyDgpqvgp4vgprLgp43gpqHgpr7gprDgp4cg4Kaq4Ka+4KaT4Kav4Ka84Ka+IOCmr+CmvuCmr+CmvOCmqOCmv+ClpCBTVEFSVF9RVUlaX0NPUk5FUi5iYXQsIFF1aXpDb3JuZXJfTGF1bmNoZXIucHMxIOCmhuCmsCDgppXgp4Hgpofgppzgp4fgprAgSFRNTCDigJQg4Kak4Ka/4Kao4Kaf4KeHIOCmq+CmvuCmh+CmsiDgpo/gppXgpocg4Kar4KeL4Kay4KeN4Kah4Ka+4Kaw4KeHIOCmsOCmvuCmluCngeCmqOClpA==') 'The quiz HTML file is not in this folder.' }
 $url = ([System.Uri]$html.FullName).AbsoluteUri
 $build = BuildOf $html
-Say ('Quiz file : ' + $html.Name + '  [build ' + $build + ', ' + [int]($html.Length / 1MB) + ' MB]')
+Say ('Quiz file : ' + $html.FullName + '  [build ' + $build + ', ' + [int]($html.Length / 1MB) + ' MB]')
+Write-Host ''
+Write-Host ('  OPENING THE QUIZ FILE OF ' + (Human $build)) -ForegroundColor Black -BackgroundColor Yellow
+Write-Host ('  ' + $html.FullName)
+Write-Host ''
+# diagnosis only: show which file would open, then stop
+if ($env:QC_PICK_ONLY -eq '1') { Write-Output ('PICKED=' + $html.FullName + '|' + $build); exit 0 }
 
 # --- the browser: Google Chrome, else Microsoft Edge -----------------------
 $browsers = @(
@@ -220,6 +267,7 @@ public static class QCWin {
 
 # --- simple mode: Windows does not allow the helpers (strict security software) ---
 if (-not $native) {
+  $script:opened = $true
   Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url", '--start-maximized'))
   Start-Sleep -Seconds 3
   Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url#stage", '--new-window'))
@@ -299,8 +347,15 @@ function NewWin($want, $skip, $graceSec) {
 
 Say 'Opening the CONTROL window ...'
 Start-Process -FilePath $browser -ArgumentList ($common + @("--app=$url"))
+$script:opened = $true
 $ctl = NewWin '*Broadcast Engine*' @() 12
 if ($ctl -ne [IntPtr]::Zero) { Say ('  control window: "' + [QCWin]::Title($ctl) + '"') } else { Say '  control window not found' }
+# the window title carries the build time: check that the file that opened is the one chosen
+$script:wrongFile = $false
+if ($ctl -ne [IntPtr]::Zero -and $build -ne '00000000-0000') {
+  for ($i = 0; $i -lt 12 -and [QCWin]::Title($ctl) -notlike ('*' + (Human $build) + '*'); $i++) { Start-Sleep -Milliseconds 250 }
+  if ([QCWin]::Title($ctl) -notlike ('*' + (Human $build) + '*')) { $script:wrongFile = $true; Say ('  WARNING: the control window does not show build ' + (Human $build)) } else { Say ('  checked: build ' + (Human $build) + ' is open') }
+}
 
 Say 'Opening the STAGE window ...'
 Start-Sleep -Milliseconds 800
@@ -410,14 +465,17 @@ try {
   $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Quiz Corner START.lnk'
   $ws = New-Object -ComObject WScript.Shell
   $sc = $ws.CreateShortcut($lnk)
-  $sc.TargetPath = Join-Path $here 'START_QUIZ_CORNER.bat'
+  $sc.TargetPath = $(if ($script:startBat) { $script:startBat } else { Join-Path $here 'START_QUIZ_CORNER.bat' })
   $sc.WorkingDirectory = $here
   $sc.IconLocation = "$browser,0"
   $sc.Description = 'Quiz Corner - control on the laptop, stage on the TV'
   $sc.Save()
 } catch { }
 
+if ($script:wrongFile) {
+  [void](Box ((T '4Kav4KeHIOCmleCngeCmh+CmnCDgpqvgpr7gpofgprLgpp/gpr8g4Kas4KeH4Kab4KeHIOCmqOCnh+Cmk+Cmr+CmvOCmviDgprngpq/gprzgp4fgppvgpr/gprIsIOCmuOCnh+Cmn+CmvyDgppbgp4HgprLgp4fgppvgp4cg4Kas4Kay4KeHIOCmruCmqOCnhyDgprngpprgp43gppvgp4cg4Kao4Ka+4KWkIOCmuOCmrCBRdWl6IENvcm5lciDgpongpofgpqjgp43gpqHgp4sg4Kas4Kao4KeN4KanIOCmleCmsOCnhyBTVEFSVF9RVUlaX0NPUk5FUi5iYXQg4KaG4Kas4Ka+4KawIOCmmuCmvuCmsuCmvuCmqOClpA==') + "`n`n" + $html.FullName) 'OK' 'Warning')
+}
 Write-Host ''
-Say 'Ready. This window closes by itself.'
+Say ('Ready: build ' + (Human $build) + '. This window closes by itself.')
 Start-Sleep -Seconds 2
 exit 0

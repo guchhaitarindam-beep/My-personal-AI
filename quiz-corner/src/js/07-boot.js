@@ -5,7 +5,7 @@ const Stage = {
   view: null,
   init() {
     document.body.classList.add('mode-stage');
-    document.title = 'Quiz Corner — STAGE';
+    document.title = 'Quiz Corner — STAGE' + ((document.title.match(/ · [\d-]+ [\d:]+$/) || [''])[0]); // keeps the build time, so the launcher can check the right file is on the TV
     document.body.innerHTML = '<div id="stageRoot" style="position:fixed;inset:0;background:#000"></div>';
     this.view = new StageView($('#stageRoot'));
     Bus.on('change', () => { DesignSystem.apply(); AudioDirector.setBoost(); this.view.render(); this.audioGate(); });
