@@ -32,7 +32,8 @@ assets = [('logo', 'logo.jpg', 'image/jpeg'), ('crew0', 'photo_crew0.jpg', 'imag
           ('group', 'photo_group.jpg', 'image/jpeg'), ('Q01_bankim.jpg', 'qmedia_Q01_bankim.jpg', 'image/jpeg'),
           ('Q04_mega_kitchen.jpg', 'qmedia_Q04_mega_kitchen.jpg', 'image/jpeg')]
 # answer-safe illustrations for the main-stage questions (they never show the answer)
-assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jpeg') for f in sorted(glob.glob(os.path.join(A, 'qmedia_art_*.jpg')))]
+_used = {str((q.get('media') or {}).get('name', '')) for q in seed['questions'] + seed['testQuestions']}
+assets += [(os.path.basename(f)[len('qmedia_'):], os.path.basename(f), 'image/jpeg') for f in sorted(glob.glob(os.path.join(A, 'qmedia_art_*.jpg'))) if os.path.basename(f)[len('qmedia_'):] in _used]
 # podium lottery pictures: Microsoft Fluent UI Emoji, 3D style (MIT licence — assets/LICENSE_fluentui-emoji.txt)
 assets += [(os.path.basename(f), os.path.basename(f), 'image/png') for f in sorted(glob.glob(os.path.join(A, 'draw_*.png')))]
 # question-board subject pictures (same set; chosen so that none hints at an answer)

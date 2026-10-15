@@ -15,10 +15,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_telescope.png"
-    },
     "prevText": [
       "সম্প্রতি ২০২৬ সালের সেপ্টেম্বর মাসে ভারতের প্রথম LNG-চালিত ট্রেনটি কোন শহর থেকে উদ্বোধন করা হয়?",
       "পিতার কথা রাখতে চোদ্দো বছর বনবাসে গিয়েছিলেন এবং রাবণকে বধ করে সীতাকে উদ্ধার করেছিলেন রামায়ণের কোন নায়ক?",
@@ -45,10 +41,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_microscope.png"
-    },
     "subject": "মানবদেহ",
     "subjectIcon": "asset:topic_microscope.png",
     "answerText": "",
@@ -72,10 +64,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_open_book.png"
-    },
     "prevText": [
       "শরতে কাশফুল ফোটার সময় কলকাতার যে উৎসব ২০২১ সালে ইউনেস্কোর 'মানবতার অধরা সাংস্কৃতিক ঐতিহ্য'-এর তালিকায় স্থান পেয়েছে, তার নাম কী?",
       "শরতে কাশফুল ফোটার সময় কলকাতার যে উৎসব ২০২১ সালে ইউনেস্কোর বিশ্ব-ঐতিহ্যের (অধরা সাংস্কৃতিক ঐতিহ্য) তালিকায় স্থান পেয়েছে, তার নাম কী?"
@@ -100,10 +88,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_world_map.png"
-    },
     "prevText": [
       "মানবদেহের সবচেয়ে বড় অঙ্গ কোনটি?",
       "বৃষ্টির পর সূর্যের উল্টো দিকের আকাশে ধনুকের মতো বাঁকা যে সাত রঙের দৃশ্য দেখা যায়, তাকে কী বলে?",
@@ -130,10 +114,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_memo.png"
-    },
     "prevText": [
       "সব মৌলিক সংখ্যা বিজোড়, শুধু একজন ছাড়া, যে একসঙ্গে জোড় এবং মৌলিক। গণিতের এই একমাত্র ব্যতিক্রমী সংখ্যাটি কত?",
       "ফুটবলের ইতিহাসে একমাত্র খেলোয়াড় হিসেবে তিনবার বিশ্বকাপ জিতেছেন ব্রাজিলের যে কিংবদন্তি, যাঁকে আমরা 'কালো মানিক' নামে চিনি, তাঁর নাম কী?",
@@ -159,10 +139,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_chess_pawn.png"
-    },
     "prevText": [
       "এক টুকরো বর্গাকার রুটির প্রতিটি বাহু যদি দ্বিগুণ লম্বা করে দেওয়া হয়, তাহলে রুটিটির ক্ষেত্রফল আগের চেয়ে কত গুণ বেড়ে যাবে?",
       "ভারতের কোন রাজ্যে সবার আগে সূর্যোদয় হয়?",
@@ -189,10 +165,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_scroll.png"
-    },
     "prevText": [
       "সূর্যের যে আলো এই মুহূর্তে তোমার চোখে পড়ছে, সেই আলো সূর্য ছেড়ে পৃথিবীতে পৌঁছতে প্রায় কত সময় নিয়েছে?",
       "আমাদের সৌরজগতের সবচেয়ে বড় গ্রহ কোনটি?"
@@ -217,10 +189,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_rocket.png"
-    },
     "prevText": [
       "২০০৯ সালে ভারত সরকার কোন প্রাণীকে দেশের 'জাতীয় জলজ প্রাণী' হিসেবে ঘোষণা করে?",
       "আমাদের জাতীয় পতাকার মাঝখানে ২৪টি দণ্ডযুক্ত নীল রঙের চাকাটি সারনাথের সিংহস্তম্ভ থেকে নেওয়া। চাকাটির নাম কী?"
@@ -245,10 +213,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_satellite.png"
-    },
     "subject": "প্রযুক্তি",
     "subjectIcon": "asset:topic_satellite.png",
     "answerText": "",
@@ -273,10 +237,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_magnifying_glass_tilted_left.png"
-    },
     "prevText": [
       "রবীন্দ্রনাথ ঠাকুরের লেখা ও সুর দেওয়া 'জনগণমন' আমাদের জাতীয় সংগীত। তাঁরই লেখা 'আমার সোনার বাংলা' গানটি আমাদের কোন প্রতিবেশী দেশের জাতীয় সংগীত?",
       "রেড ক্রসের প্রতিষ্ঠাতা হেনরি ডুনান্টের জন্মদিন ৮ই মে কোন দিবস হিসেবে পালিত হয়?"
@@ -301,10 +261,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_test_tube.png"
-    },
     "prevText": [
       "মায়ের গর্ভে থাকার সময়েই চক্রব্যূহে ঢোকার কৌশল শিখেছিলেন, কিন্তু বেরোনোর কৌশল জানতেন না — মহাভারতের এই কিশোর বীর কে?",
       "কুরুক্ষেত্রের যুদ্ধে অর্জুনের রথের সারথি হয়ে কে তাঁকে গীতার উপদেশ দিয়েছিলেন?"
@@ -329,10 +285,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_telescope.png"
-    },
     "subject": "পদার্থবিদ্যা",
     "subjectIcon": "asset:topic_telescope.png",
     "answerText": "",
@@ -357,10 +309,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_world_map.png"
-    },
     "subject": "ভূগোল",
     "subjectIcon": "asset:topic_world_map.png",
     "answerText": "",
@@ -384,10 +332,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_world_map.png"
-    },
     "subject": "ভূগোল",
     "subjectIcon": "asset:topic_world_map.png",
     "answerText": "",
@@ -412,10 +356,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_books.png"
-    },
     "prevText": [
       "১৯৮৮ সালে দাবায় ভারতের প্রথম গ্র্যান্ডমাস্টার হয়েছিলেন কে?",
       "ক্রিকেটে ব্যাটারের মারা বল মাটি না ছুঁয়ে সরাসরি সীমানার বাইরে পড়লে কত রান হয়?",
@@ -441,10 +381,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_green_book.png"
-    },
     "subject": "সাহিত্য",
     "subjectIcon": "asset:topic_green_book.png",
     "answerText": "",
@@ -468,10 +404,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_soccer_ball.png"
-    },
     "subject": "খেলাধুলা",
     "subjectIcon": "asset:topic_soccer_ball.png",
     "answerText": "",
@@ -496,10 +428,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_sports_medal.png"
-    },
     "prevText": [
       "'ক্রেস্কোগ্রাফ' যন্ত্র আবিষ্কার করে গাছেরও যে প্রাণ আছে এবং আঘাতে সাড়া দেয়, তা প্রমাণ করেছিলেন কোন বাঙালি বিজ্ঞানী?",
       "মাত্র ১৮ বছর বয়সে হাসিমুখে ফাঁসির মঞ্চে প্রাণ দেওয়া বাংলার কিশোর বিপ্লবী কে?"
@@ -524,10 +452,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_feather.png"
-    },
     "subject": "প্রকৃতি",
     "subjectIcon": "asset:topic_feather.png",
     "answerText": "",
@@ -551,10 +475,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_paw_prints.png"
-    },
     "prevText": [
       "১৯৯৭ সালে মহাকাশে পাড়ি দেওয়া ভারতে জন্মগ্রহণকারী প্রথম মহিলা কে, যিনি ২০০৩ সালে 'কলম্বিয়া' মহাকাশযানের দুর্ঘটনায় প্রাণ হারান?",
       "১৮৯৩ সালে শিকাগোর বিশ্বধর্ম মহাসভায় 'আমেরিকাবাসী ভগিনী ও ভ্রাতৃগণ' সম্বোধন করে কে সবাইকে মুগ্ধ করেছিলেন?"
@@ -579,10 +499,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_telescope.png"
-    },
     "prevText": [
       "আমাদের বিদ্যালয়ে প্রার্থনার সময় আমরা 'বন্দে মাতরম' গানটি গেয়ে থাকি। বঙ্কিমচন্দ্র চট্টোপাধ্যায়ের লেখা এই গানটি তাঁর কোন উপন্যাসে রয়েছে?",
       "আমাদের বিদ্যালয়ে আমরা প্রার্থনা সংগীতে ‘বন্দে মাতরম’ গানটি গেয়ে থাকি। গানটি লিখেছেন বঙ্কিমচন্দ্র চট্টোপাধ্যায়, কিন্তু এই গানের সুর কে দিয়েছেন বলতো?"
@@ -607,10 +523,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_scroll.png"
-    },
     "subject": "ইতিহাস",
     "subjectIcon": "asset:topic_scroll.png",
     "answerText": "",
@@ -634,10 +546,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_memo.png"
-    },
     "prevText": [
       "নারকেল গাছের সারি, নদীতে ভাসমান হাউসবোট, আর নিজেকে 'ঈশ্বরের নিজের দেশ' বলে পরিচয় দেওয়া ভারতের রাজ্যটি কোনটি?",
       "সৌরজগতের কোন গ্রহে একটি দিন (নিজের অক্ষে একবার ঘুরতে লাগা সময়) তার একটি বছরের (সূর্যকে একবার প্রদক্ষিণের সময়) চেয়েও লম্বা?",
@@ -663,10 +571,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_deciduous_tree.png"
-    },
     "subject": "উদ্ভিদবিজ্ঞান",
     "subjectIcon": "asset:topic_deciduous_tree.png",
     "answerText": "",
@@ -690,10 +594,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_magnifying_glass_tilted_left.png"
-    },
     "subject": "বিজ্ঞানের ইতিহাস",
     "subjectIcon": "asset:topic_magnifying_glass_tilted_left.png",
     "answerText": "",
@@ -717,10 +617,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_rocket.png"
-    },
     "prevText": [
       "আমাদের মোবাইল বা কম্পিউটারের পর্দার ছবি হাজার হাজার ছোট রঙিন বিন্দু দিয়ে তৈরি। সেই ক্ষুদ্রতম বিন্দুটিকে কী বলা হয়?",
       "১৯৭৩ সালে হিমালয়ের গ্রামের মানুষ, বিশেষ করে মহিলারা, গাছ কাটা আটকাতে যে আন্দোলন করেছিলেন তার নাম 'চিপকো আন্দোলন'। 'চিপকো' কথাটির অর্থ অনুযায়ী তাঁরা গাছ বাঁচাতে কী করেছিলেন?",
@@ -746,10 +642,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_test_tube.png"
-    },
     "prevText": [
       "কোন পাখি নিজে বাসা বানায় না, কাকের বাসায় চুপিচুপি ডিম পেড়ে আসে, আর কাক-ই না জেনে তার ছানাদের বড় করে তোলে?",
       "ভারতের জাতীয় পাখি কোনটি?"
@@ -774,10 +666,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_spiral_calendar.png"
-    },
     "subject": "সাধারণ জ্ঞান",
     "subjectIcon": "asset:topic_spiral_calendar.png",
     "answerText": "",
@@ -801,10 +689,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_paw_prints.png"
-    },
     "subject": "প্রকৃতি",
     "subjectIcon": "asset:topic_paw_prints.png",
     "answerText": "",
@@ -828,10 +712,6 @@
     "explanation": "",
     "difficulty": "medium",
     "clue": "",
-    "media": {
-      "kind": "image",
-      "name": "topic_microscope.png"
-    },
     "prevText": [
       "প্রতি চার বছর অন্তর একটি বাড়তি দিন যোগ হয়ে যে বছরকে লিপ ইয়ার বানায়, বাড়তি সেই দিনটি বসে বছরের কোন মাসে?",
       "১৯৭৫ সালে মহাকাশে পাঠানো ভারতের প্রথম কৃত্রিম উপগ্রহটির নাম কোন প্রাচীন ভারতীয় গণিতবিদ ও জ্যোতির্বিদের নামে রাখা হয়েছিল?",

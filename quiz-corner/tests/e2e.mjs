@@ -76,9 +76,10 @@ await stage.waitForTimeout(1500);
 check('Built-in logo image renders on stage', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .logo-orb img'); return !!i && i.naturalWidth > 0; }));
 const hasSongs = await ctl.evaluate(() => !!document.getElementById('asset-theme'));
 if (hasSongs) check('Built-in theme + welcome songs resolve', await ctl.evaluate(async () => (await window.QC.Media.url('asset:theme')).startsWith('blob:') && (await window.QC.Media.url('asset:welcome')).startsWith('blob:')));
-await ctl.evaluate(() => { const QC = window.QC; QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); });
+// a question with a picture (the 13 Oct questions have none, so one is given for the test)
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img1', (s) => { s.questions.find((q) => q.id === 'Q01').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); });
 await stage.waitForTimeout(1500);
-check('Question image (V100 Q01) renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img'); return !!i && i.naturalWidth > 0; }));
+check('Question image renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img'); return !!i && i.naturalWidth > 0; }));
 check('Timer ring fully inside stage', await stage.evaluate(() => { const st = document.querySelector('.stage').getBoundingClientRect(); const c = document.querySelector('.layer:not(.exiting) .timer .ring').getBoundingClientRect(); return c.bottom <= st.bottom + 1 && c.right <= st.right + 1 && c.width > 50; }));
 check('Every scene type visited', [...want].every((s) => shot.has(s)), [...want].filter((s) => !shot.has(s)).join(','));
 check('Control → Stage sync on every step', syncIssues === 0, syncIssues + ' late');
@@ -379,12 +380,12 @@ check('Winner with long name: no overflow', sw.length === 0, sw.join(', '));
 await ctl.evaluate(() => window.QC.Store.undo());
 // the question text stays large: a picture beside it may not shrink the words
 const qFont = async () => { await stage.waitForTimeout(2600); return stage.evaluate(() => { const el = document.querySelector('.layer:not(.exiting) .q-text'); return el ? parseFloat(getComputedStyle(el).fontSize) : 0; }); };
-await ctl.evaluate(() => { const QC = window.QC; QC.Show.go(QC.Show.rundown().find((x) => x.scene === 'QUESTION' && x.params.qid === 'Q07')); });
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img', (s) => { s.questions.find((q) => q.id === 'Q07').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((x) => x.scene === 'QUESTION' && x.params.qid === 'Q07')); });
 const withImg = await qFont();
 const hasImg = await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .q-img img'));
 await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-noimg', (s) => { s.questions.find((q) => q.id === 'Q07').image = ''; }); });
 const noImg = await qFont();
-await ctl.evaluate(() => window.QC.Store.undo());
+await ctl.evaluate(() => { window.QC.Store.undo(); window.QC.Store.undo(); }); // the test picture goes again
 check('Question picture shows and the question text stays large (≥ 85% of text-only size)', hasImg && withImg >= noImg * 0.85, withImg.toFixed(1) + 'px with picture vs ' + noImg.toFixed(1) + 'px without');
 // the spinning badge is in the corner of every screen, first to last
 const noLogo = [];

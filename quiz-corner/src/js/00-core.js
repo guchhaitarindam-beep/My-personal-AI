@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 26;
+const RULES_VERSION = 27;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -199,7 +199,7 @@ function roundFromSeed(r, i) {
     },
     // challengeAsPlayed: a challenge is worth what the answering team played for — correct +10 / +5, wrong challengeWrong (direct) or challengeWrongOptions (with options)
     scoring: Object.assign(defaultScoring(), type === 'bonus' ? { direct: 10, pass: 10, bonusStep: 2 } : {}, p.challengeWrong != null ? { challengeWrong: int(p.challengeWrong, -5) } : {}, p.challengeAsPlayed ? { challengeAsPlayed: true } : {}, p.challengeWrongOpt != null ? { challengeWrongOptions: int(p.challengeWrongOpt, -5) } : {}),
-    timers: { direct: 60, pass: 45, raise: 5 },
+    timers: { direct: type === 'rapid' ? 15 : 60, pass: 45, raise: 5 }, // rapid fire: 15 seconds a question
     multiplier: 1,
     rulesImage: '',
     design: { primary: palette[0], secondary: palette[1], accent: palette[2], bg: '', anim: ROUND_ANIMS[i % ROUND_ANIMS.length], theme: '', titleFont: '', questionFont: '', optionFont: '', qScale: 1, music: '', timerStyle: 'ring' },
@@ -371,11 +371,13 @@ function upgradeRules(s, def, from = 0) {
     const d = isObj(q) && seedQ.get(q.id);
     if (!d) return q;
     const out = Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {});
-    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image || out.image, subject: d.subject, subjectIcon: d.subjectIcon, clue: d.clue, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
+    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image, subject: d.subject, subjectIcon: d.subjectIcon, clue: d.clue, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
     if ((prevExp.get(q.id) || []).includes(str(out.explanation))) out.explanation = d.explanation; // a corrected explanation the operator had not changed
     return out;
   });
+  // 15 Oct: the main-round questions show no picture (the words come first, readable from far away); the board keeps its subject pictures
+  s.questions.forEach((q) => { if (isObj(q) && /^asset:topic_/.test(str(q.image))) q.image = ''; });
   // the question board's subjects arrive in older saves — on questions whose wording is still the show's own
   // (spaces, line breaks and punctuation do not count, so a small touch-up of the wording keeps the picture)
   const same = (a, b) => { const k = (t) => str(t).replace(/[\s\u200c\u200d.,;:!?'"‘’“”।\-–—()]/g, ''); return k(a) === k(b); };
