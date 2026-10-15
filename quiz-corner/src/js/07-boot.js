@@ -156,6 +156,8 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: ±5', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
+      T('Rapid (buzzer round): no board, no turn, never an audience question — the TV says BUZZER / বাজার টিপুন!', () => { const rd = Show.rundown(); const q = Sel.roundQuestions('R5')[2]; Game.load(q.id); const html = Scenes.QUESTION(s(), { qid: q.id }).html; return !rd.some((x) => x.scene === 'GRID' && x.params.roundId === 'R5') && !s().live.active && !s().live.audience && Sel.turnTeam(Sel.round('R5')) === '' && html.includes('BUZZER') && html.includes('বাজার টিপুন'); });
+      Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: a two-option question shows both options — none is removed (that would give the answer away)', () => s().live.eliminated.length === 0 && Sel.liveQuestion().options.filter(Boolean).length === 2);
       Game.toggleLock();
       T('Lock: score does not change while locked', () => Game.judge('correct') === false && Game.pass() === false);

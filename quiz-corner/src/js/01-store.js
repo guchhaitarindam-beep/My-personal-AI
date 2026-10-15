@@ -341,6 +341,7 @@ const Sel = {
     const ids = this.finalistsByCode();
     if (!ids.length) return '';
     if (!round) return ids[0];
+    if (round.type === 'rapid') return ''; // buzzer round: no turns — the first team to buzz answers
     // one turn per team per round, by team code: round 1 and 3 A / 1 → H / 8, round 2 H / 8 → A / 1; after the 8th team the rest are audience questions ('')
     const taken = arr(round.turnsTaken);
     const seq = round.turnOrder === 'reverse' ? ids.slice().reverse() : ids;
@@ -802,8 +803,10 @@ const Game = {
     const r = Sel.round(q.roundId);
     const drone = Store.state.settings.drone.main;
     Store.commit('load-q', (s) => {
-      const owner = teamId || Sel.turnTeam(r);
-      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: owner, owner, audience: !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
+      // buzzer round: nobody's turn and never an audience question — the operator presses the number of the team that buzzed first
+      const rapid = !!(r && r.type === 'rapid');
+      const owner = rapid ? '' : (teamId || Sel.turnTeam(r));
+      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: rapid ? (teamId || '') : owner, owner, audience: !rapid && !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
       s.board.played[qid] = owner || true; // which team played it (true: an audience question) — the board shows the team's code
       // rapid fire plays with two options: a four-option question is cut to two; a question that has only two is never cut (that would leave only the answer)
       if (r && r.features.twoOptions) { const w = this.wrongIndexes(q); s.live.eliminated = q.options.filter(Boolean).length > 2 ? w.slice(0, Math.max(0, q.options.filter(Boolean).length - 2)) : []; }

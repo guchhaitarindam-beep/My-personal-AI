@@ -53,7 +53,8 @@ const Show = {
       if (!r.enabled) return;
       add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'Round ' + String(ri + 1) + ' • ' + r.name);
       if (r.rules) add('ROUND_RULES', { key: r.id, roundId: r.id }, 'Rules • ' + r.name);
-      add('GRID', { key: r.id, roundId: r.id }, 'Question board • ' + r.name);
+      // rapid fire (buzzer) has no board: its questions come one after another, 1 → 20
+      if (r.type !== 'rapid') add('GRID', { key: r.id, roundId: r.id }, 'Question board • ' + r.name);
       Sel.roundQuestions(r.id).forEach((q) => add('QUESTION', { key: q.id, roundId: r.id, qid: q.id }, r.name + ' • Question ' + String(q.number)));
       add('SCOREBOARD', { key: r.id, roundId: r.id }, 'Scoreboard • ' + r.name);
     });

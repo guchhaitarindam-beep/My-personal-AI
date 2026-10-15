@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261015-0619 -->
+<!-- QC-BUILD: 20261015-0634 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 15-10-2026 06:19</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 15-10-2026 06:34</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -2654,6 +2654,7 @@ const Sel = {
     const ids = this.finalistsByCode();
     if (!ids.length) return '';
     if (!round) return ids[0];
+    if (round.type === 'rapid') return ''; // buzzer round: no turns — the first team to buzz answers
     // one turn per team per round, by team code: round 1 and 3 A / 1 → H / 8, round 2 H / 8 → A / 1; after the 8th team the rest are audience questions ('')
     const taken = arr(round.turnsTaken);
     const seq = round.turnOrder === 'reverse' ? ids.slice().reverse() : ids;
@@ -3115,8 +3116,10 @@ const Game = {
     const r = Sel.round(q.roundId);
     const drone = Store.state.settings.drone.main;
     Store.commit('load-q', (s) => {
-      const owner = teamId || Sel.turnTeam(r);
-      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: owner, owner, audience: !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
+      // buzzer round: nobody's turn and never an audience question — the operator presses the number of the team that buzzed first
+      const rapid = !!(r && r.type === 'rapid');
+      const owner = rapid ? '' : (teamId || Sel.turnTeam(r));
+      s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: rapid ? (teamId || '') : owner, owner, audience: !rapid && !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
       s.board.played[qid] = owner || true; // which team played it (true: an audience question) — the board shows the team's code
       // rapid fire plays with two options: a four-option question is cut to two; a question that has only two is never cut (that would leave only the answer)
       if (r && r.features.twoOptions) { const w = this.wrongIndexes(q); s.live.eliminated = q.options.filter(Boolean).length > 2 ? w.slice(0, Math.max(0, q.options.filter(Boolean).length - 2)) : []; }
@@ -4236,7 +4239,8 @@ const Show = {
       if (!r.enabled) return;
       add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'Round ' + String(ri + 1) + ' • ' + r.name);
       if (r.rules) add('ROUND_RULES', { key: r.id, roundId: r.id }, 'Rules • ' + r.name);
-      add('GRID', { key: r.id, roundId: r.id }, 'Question board • ' + r.name);
+      // rapid fire (buzzer) has no board: its questions come one after another, 1 → 20
+      if (r.type !== 'rapid') add('GRID', { key: r.id, roundId: r.id }, 'Question board • ' + r.name);
       Sel.roundQuestions(r.id).forEach((q) => add('QUESTION', { key: q.id, roundId: r.id, qid: q.id }, r.name + ' • Question ' + String(q.number)));
       add('SCOREBOARD', { key: r.id, roundId: r.id }, 'Scoreboard • ' + r.name);
     });
@@ -4631,7 +4635,7 @@ const H = {
   /** The answering team in the corner: picture, TEAM code, name and score. Parts morph, so a score change
       updates only the number and the card does not fly in again. */
   teamCard(t, tag, score) {
-    if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">দল নির্বাচন করুন</div></div>';
+    if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">' + (tag === 'BUZZER' ? 'বাজার টিপুন!' : 'দল নির্বাচন করুন') + '</div></div>';
     const c = Sel.code(t); const nm = str(t.name).trim();
     return '<div class="team-card glass" data-part="team-' + esc(t.id) + '" data-morph style="' + H.teamVars(t) + '">' +
       '<div class="flowtag" data-part="tag">' + esc(tag) + '</div>' + '<div data-part="ph" class="tc-ph">' + H.tphoto(t) + '</div>' +
@@ -4894,7 +4898,7 @@ const Scenes = {
     const n = s.rounds.filter((x) => x.enabled).indexOf(r) + 1;
     const dr = Scenes.drone(l.deliverAt, !!l.drone);
     const active = Sel.team(l.active);
-    const flowTag = { direct: 'DIRECT', pass: 'PASS TO', bonus: 'BONUS TO', challenge: 'CHALLENGE' }[l.flow] || 'DIRECT';
+    const flowTag = r && r.type === 'rapid' ? 'BUZZER' : { direct: 'DIRECT', pass: 'PASS TO', bonus: 'BONUS TO', challenge: 'CHALLENGE' }[l.flow] || 'DIRECT';
     let side;
     if (l.flow === 'challenge' && l.challenger) {
       side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh"><div class="flowtag" style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--warn);color:#000">CHALLENGE</div><div class="vs-row">' + H.mini(Sel.team(l.challenger), 'CHALLENGER') + '<span class="vs">VS</span>' + H.mini(active, 'TARGET') + '</div></div>';
@@ -7882,6 +7886,8 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: ±5', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
+      T('Rapid (buzzer round): no board, no turn, never an audience question — the TV says BUZZER / বাজার টিপুন!', () => { const rd = Show.rundown(); const q = Sel.roundQuestions('R5')[2]; Game.load(q.id); const html = Scenes.QUESTION(s(), { qid: q.id }).html; return !rd.some((x) => x.scene === 'GRID' && x.params.roundId === 'R5') && !s().live.active && !s().live.audience && Sel.turnTeam(Sel.round('R5')) === '' && html.includes('BUZZER') && html.includes('বাজার টিপুন'); });
+      Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: a two-option question shows both options — none is removed (that would give the answer away)', () => s().live.eliminated.length === 0 && Sel.liveQuestion().options.filter(Boolean).length === 2);
       Game.toggleLock();
       T('Lock: score does not change while locked', () => Game.judge('correct') === false && Game.pass() === false);

@@ -64,7 +64,7 @@ const H = {
   /** The answering team in the corner: picture, TEAM code, name and score. Parts morph, so a score change
       updates only the number and the card does not fly in again. */
   teamCard(t, tag, score) {
-    if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">দল নির্বাচন করুন</div></div>';
+    if (!t) return '<div class="team-card glass" data-part="team"><div class="flowtag">' + esc(tag) + '</div><div class="tname">' + (tag === 'BUZZER' ? 'বাজার টিপুন!' : 'দল নির্বাচন করুন') + '</div></div>';
     const c = Sel.code(t); const nm = str(t.name).trim();
     return '<div class="team-card glass" data-part="team-' + esc(t.id) + '" data-morph style="' + H.teamVars(t) + '">' +
       '<div class="flowtag" data-part="tag">' + esc(tag) + '</div>' + '<div data-part="ph" class="tc-ph">' + H.tphoto(t) + '</div>' +
@@ -327,7 +327,7 @@ const Scenes = {
     const n = s.rounds.filter((x) => x.enabled).indexOf(r) + 1;
     const dr = Scenes.drone(l.deliverAt, !!l.drone);
     const active = Sel.team(l.active);
-    const flowTag = { direct: 'DIRECT', pass: 'PASS TO', bonus: 'BONUS TO', challenge: 'CHALLENGE' }[l.flow] || 'DIRECT';
+    const flowTag = r && r.type === 'rapid' ? 'BUZZER' : { direct: 'DIRECT', pass: 'PASS TO', bonus: 'BONUS TO', challenge: 'CHALLENGE' }[l.flow] || 'DIRECT';
     let side;
     if (l.flow === 'challenge' && l.challenger) {
       side = '<div class="glass" data-part="team" style="padding:1.6cqh;display:flex;flex-direction:column;gap:1cqh"><div class="flowtag" style="align-self:center;font-family:var(--font-en);font-weight:800;letter-spacing:.18em;font-size:2cqh;padding:.4cqh 1.4cqw;border-radius:99cqh;background:var(--warn);color:#000">CHALLENGE</div><div class="vs-row">' + H.mini(Sel.team(l.challenger), 'CHALLENGER') + '<span class="vs">VS</span>' + H.mini(active, 'TARGET') + '</div></div>';
