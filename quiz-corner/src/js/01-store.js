@@ -805,7 +805,8 @@ const Game = {
       const owner = teamId || Sel.turnTeam(r);
       s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: owner, owner, audience: !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
       s.board.played[qid] = owner || true; // which team played it (true: an audience question) — the board shows the team's code
-      if (r && r.features.twoOptions) s.live.eliminated = this.wrongIndexes(q).slice(0, 2);
+      // rapid fire plays with two options: a four-option question is cut to two; a question that has only two is never cut (that would leave only the answer)
+      if (r && r.features.twoOptions) { const w = this.wrongIndexes(q); s.live.eliminated = q.options.filter(Boolean).length > 2 ? w.slice(0, Math.max(0, q.options.filter(Boolean).length - 2)) : []; }
       if (r && (r.type === 'rapid' || (!r.features.judgeOptions && r.features.options && !r.features.challenge))) s.live.optionsShown = r.type === 'rapid';
       const d = ((q.timer || (r && r.timers.direct) || 60) * 1000);
       s.timer = { mode: 'direct', duration: d, base: d, remaining: d, startedAt: 0, running: false, token: (s.timer.token || 0) + 1, expired: false };

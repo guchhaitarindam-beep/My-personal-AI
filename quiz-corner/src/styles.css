@@ -1563,3 +1563,7 @@ fieldset.lockset[disabled] { opacity: .75; }
 .stage .mem-card .team-photo img { object-position: 50% 30%; }
 /* portrait photos in wide boxes: keep the head, not the middle of the shirt */
 .stage .team-tile .team-photo img, .stage .team-card .team-photo img, .stage .team-photo.duo img, .stage .intro-ph .team-photo img, .stage .pod-ph .team-photo img { object-position: 50% 22%; }
+/* a subject icon in place of a photo: small, so the long question keeps its large letters */
+.q-card .q-img.icon { flex-basis: 15%; max-height: 50%; }
+.q-card .q-img.icon.long { flex-basis: 12%; }
+.q-card .q-img.icon img { border: 0; border-radius: 0; box-shadow: none; filter: drop-shadow(0 1cqh 1.6cqh rgba(0, 0, 0, .45)); }

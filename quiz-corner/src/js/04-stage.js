@@ -224,7 +224,7 @@ const Scenes = {
     const q = qs[i];
     if (!q || !q.text) return { key: 'PQ:' + i, html: H.head(s, '<span class="round-tag">বাছাই পর্ব</span>', '<span class="qnum">প্রশ্ন ' + bn(i + 1) + '</span>') + H.part('body', '<div class="s-sub">প্রশ্ন ' + bn(i + 1) + ' এখনও লেখা হয়নি</div>', 'center-col') };
     const dr = Scenes.drone(s.prelimLive.deliverAt, s.prelim.drone);
-    const img = q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const img = q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
     const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + esc(q.answer) + '</div></div>', 'answer-bar') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: dr.style,
@@ -342,7 +342,7 @@ const Scenes = {
     const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + H.tn(t) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
-    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
     const opts = showOpts ? H.part('opts', q.options.map((o, i) => {
       if (!o) return '';

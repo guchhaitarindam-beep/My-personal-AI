@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 24;
+const RULES_VERSION = 26;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -371,7 +371,7 @@ function upgradeRules(s, def, from = 0) {
     const d = isObj(q) && seedQ.get(q.id);
     if (!d) return q;
     const out = Object.assign({}, q, { roundId: d.roundId, number: d.number }, !q.image && d.image ? { image: d.image } : {});
-    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image || out.image, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
+    if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image || out.image, subject: d.subject, subjectIcon: d.subjectIcon, clue: d.clue, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
     if ((prevExp.get(q.id) || []).includes(str(out.explanation))) out.explanation = d.explanation; // a corrected explanation the operator had not changed
     return out;

@@ -156,6 +156,7 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: ±5', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
+      T('Rapid: a two-option question shows both options — none is removed (that would give the answer away)', () => s().live.eliminated.length === 0 && Sel.liveQuestion().options.filter(Boolean).length === 2);
       Game.toggleLock();
       T('Lock: score does not change while locked', () => Game.judge('correct') === false && Game.pass() === false);
       Game.toggleLock();
@@ -230,13 +231,13 @@ const SelfTest = {
       T('Rundown: prelim questions skipped on the day (results only)', () => !rd.some((x) => /^PRELIM_(RULES|COUNTDOWN|Q)$/.test(x.scene)) && rd.some((x) => x.scene === 'PRELIM_RESULT'));
       T('Rundown: prelim questions return when switched on', () => { Store.state.prelim.onStage = true; const ok = ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q'].every((k) => Show.rundown().some((x) => x.scene === k)); Store.state.prelim.onStage = false; return ok && !Show.rundown().some((x) => x.scene === 'PRELIM_Q'); });
       T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
-      T('Rundown: the 3 main rounds for 13 October', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3');
+      T('Rundown: the 3 main rounds and the rapid-fire round', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3,R5');
 
       // ---- the latest rules (DOC-20261004-WA0002) for the 13 October main stage ----
       Store.state = normalizeState(defaultState());
       const R = (id) => Sel.round(id);
       T('Rules: names of the 3 main-stage rounds', () => R('R1').name === 'মজার মিশেল' && R('R2').name === 'চিন্তা ও চয়েস' && R('R3').name === 'বুদ্ধির টক্কর');
-      T('Rules: rounds 1–3 enabled, 4–7 in the file but disabled', () => ['R1', 'R2', 'R3'].every((id) => R(id).enabled) && ['R4', 'R5', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled));
+      T('Rules: rounds 1–3 and the rapid-fire round (R5, 20 two-option questions) enabled; 4, 6, 7 in the file but disabled', () => ['R1', 'R2', 'R3', 'R5'].every((id) => R(id).enabled) && ['R4', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled) && R('R5').type === 'rapid' && Sel.roundQuestions('R5').length === 20 && Sel.roundQuestions('R5').every((q) => q.options.filter(Boolean).length === 2 && q.options[q.answer]) && Sel.roundQuestions('R5').find((q) => q.number === 20).options[Sel.roundQuestions('R5').find((q) => q.number === 20).answer] === 'Au');
       T('Rules: rule text says 60 seconds (round 2 also 45 for the pass)', () => ['R1', 'R2', 'R3'].every((id) => R(id).rules.includes('৬০ সেকেন্ড')) && R('R2').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: no old 30/15 seconds anywhere', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
@@ -251,8 +252,8 @@ const SelfTest = {
       T('Rules: prelim — 15 questions, stars on 3/6/9/12/15', () => s().prelim.rules.includes('১৫টি') && Sel.prelimQuestions().map((q, i) => (q.star ? i + 1 : 0)).filter(Boolean).join() === '3,6,9,12,15');
       T('Questions: 10 each in rounds 1–3, numbered 1–10', () => ['R1', 'R2', 'R3'].every((id) => { const qs = Sel.roundQuestions(id); return qs.length === 10 && qs.map((q) => q.number).sort((x, y) => x - y).join() === '1,2,3,4,5,6,7,8,9,10'; }));
       // Round 1 opens with a current-affairs question (13 Oct, the organiser's choice); rounds 2 and 3 keep a mythology question
-      T('Questions: a mythology question in rounds 2 and 3', () => ['R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /রাম|রাবণ|রামায়ণ|মহাভারত|কুরুক্ষেত্র|গীতা|দুর্গা|অর্জুন/.test(q.text))));
-      T('Questions: at least one story/cartoon question per round', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).some((q) => /টুনটুনি|সুকুমার|খিচুড়ি|গুপী|বাঘা|প্রদোষচন্দ্র|মগজাস্ত্র|ঠাকুরমার/.test(q.text))));
+      T('Questions: rounds 1–3 are the final list of 50: R1 Q1 শুক্র, R2 Q1 পারদ, R3 Q10 হাইড্রোক্লোরিক অ্যাসিড', () => { const a = (rid, n) => { const q = Sel.roundQuestions(rid).find((x) => x.number === n); return q ? q.options[q.answer] : ''; }; return a('R1', 1) === 'শুক্র' && a('R2', 1) === 'পারদ' && a('R3', 10) === 'হাইড্রোক্লোরিক অ্যাসিড'; });
+      T('Questions: every main-round question has four options and an answer among them', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.options.filter(Boolean).length === 4 && q.options[q.answer])));
       T('Questions: every question in rounds 1–3 has a picture', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => /^asset:/.test(q.image))));
       T('Questions: old saves get new pictures, own pictures kept', () => { const old = defaultState(); delete old.rulesVersion; old.questions.forEach((q) => { q.image = ''; }); old.questions[1].image = 'm_mine'; const n = normalizeState(old); const d = defaultState(); return n.questions[0].image === d.questions[0].image && !!n.questions[0].image && n.questions[1].image === 'm_mine'; });
       T('Questions: none of the original 70 dropped (total ' + s().questions.length + ')', () => Array.from({ length: 70 }, (_, i) => 'Q' + String(i + 1).padStart(2, '0')).every((id) => Sel.question(id)) && new Set(s().questions.map((q) => q.id)).size === s().questions.length);
@@ -372,7 +373,7 @@ const SelfTest = {
         const na = n.questions.find((q) => q.id === seedOld.id);
         return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && na.voiceQ !== 'm_oldvoice' && na.voiceQ === d.questions.find((q) => q.id === seedOld.id).voiceQ && n.questions.find((q) => q.id === mine.id).text === 'আমার নিজের প্রশ্ন';
       });
-      T('Questions: every question in rounds 1–3 has a "good to know" fact', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => q.explanation && q.explanation.length > 10)));
+      T('Questions: no left-over "good to know" fact from the old questions in rounds 1–3', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => !q.explanation)));
       T('Old save: new questions added and changed prelim questions get new text', () => {
         const old = defaultState(); delete old.rulesVersion;
         old.questions = old.questions.filter((q) => !['Q71', 'Q72', 'Q73'].includes(q.id));
@@ -446,7 +447,7 @@ const SelfTest = {
       }
       T('Our team: Arindam Guchhait in the centre, then Subrata, Pradip, Chandan Paloi, Sanjay, Sourav — all with photos, no "captain"', () => { const c = defaultState().crew; return c.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালই|সঞ্জয় মণ্ডল|সৌরভ মাইতি' && !JSON.stringify(c).includes('অধিনায়ক') && !defaultState().event.credits.includes('অধিনায়ক') && !Scenes.CREW(defaultState(), { sub: 6 }).html.includes('অধিনায়ক') && c.every((x, i) => x.photo === 'asset:crew' + i) && c[5].role.includes('সহযোগিতা') && defaultState().event.credits.includes('সহযোগিতায়: সৌরভ মাইতি') && !defaultState().event.credits.includes('চন্দন পাল ও'); });
       T('Our team: old crew list in old saves becomes the new team, own edits kept', () => { const old = defaultState(); delete old.rulesVersion; old.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); old.event.credits = 'প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত\nপুরনো'; const n = normalizeState(old); const mine = defaultState(); delete mine.rulesVersion; mine.crew = [{ name: 'আমার লোক', role: '', about: '', photo: '' }]; const v7 = defaultState(); delete v7.rulesVersion; v7.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); v7.event.credits = 'পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত (অধিনায়ক)\nবাছাই পর্বের প্রশ্ন সংকলন: চন্দন পাল ও প্রদীপ ভূঁইয়া'; const n7 = normalizeState(v7); return n7.crew.length === 6 && n7.crew[3].name === 'চন্দন পালই' && n7.crew[5].photo === 'asset:crew5' && n7.event.credits.includes('সৌরভ') && n.crew.length === 6 && n.crew[2].photo === 'asset:crew2' && n.event.credits.includes('সঞ্জয় মণ্ডল') && n.event.credits.includes('টিকাশী গুচ্ছ সম্পদ কেন্দ্র') && normalizeState(mine).crew[0].name === 'আমার লোক'; });
-      T('Corrections: unchanged question / explanation in old saves gets the corrected text', () => { const o = defaultState(); delete o.rulesVersion; const q3 = o.questions.find((q) => q.id === 'Q03'); q3.text = arr(SEED.questions.find((q) => q.id === 'Q03').prevText).slice(-1)[0]; const q17 = o.questions.find((q) => q.id === 'Q17'); q17.explanation = SEED.questions.find((q) => q.id === 'Q17').prevExplanation[0]; const n = normalizeState(o); return n.questions.find((q) => q.id === 'Q03').text.includes('মানবতার অধরা সাংস্কৃতিক ঐতিহ্য') && n.questions.find((q) => q.id === 'Q17').explanation.includes('খুড়তুতো') && !n.questions.find((q) => q.id === 'Q04').explanation.includes('(খ)'); });
+      T('Corrections: an old save still holding an old question gets the new one (text, options, subject, picture), its old reading dropped', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R1' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], subject: 'সাম্প্রতিক ঘটনা', voiceQ: 'asset:voice_R1_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.text === sq.text && n.options[n.answer] === 'শুক্র' && n.subject === sq.subject && n.voiceQ === '' && n.image === 'asset:' + sq.media.name; });
       {
         Store.state.show.scene = 'QUESTION'; const q3 = Sel.roundQuestions('R3')[0]; Game.load(q3.id, Sel.finalistIds()[0]); Game.reveal();
         const h3 = Scenes.QUESTION(s(), s().show.params).html;
@@ -519,7 +520,7 @@ const SelfTest = {
         T('Scoreboard step 2: by rank (reveals bottom-up), no round-champion banner (13 Oct)', () => s().show.scene === 'SCOREBOARD' && h1.includes('reveal-up') && !h1.includes('round-champ') && h1.includes('A / 1') && h1.includes('+10'));
         T('Scoreboard: team photo on every row; school and both children on the rows', () => { const t = Sel.team(ids[0]); const keep = [t.school, t.captain, t.players[0]]; Object.assign(t, { school: 'পরীক্ষা বিদ্যালয়', captain: 'রিয়া' }); t.players[0] = 'অয়ন'; const h = Scenes.SCOREBOARD(s(), s().show.params).html; [t.school, t.captain, t.players[0]] = keep; return (h1.match(/class="sb-row/g) || []).length === Sel.standings().length && (h1.match(/team-photo/g) || []).length >= Sel.standings().length && h.includes('পরীক্ষা বিদ্যালয়') && h.includes('রিয়া • অয়ন'); });
         Show.next();
-        T('After round 3: final result → top 3 → winner → closing, no more rounds', () => { const rr = Show.rundown(); const last = rr.map((x) => x.scene); const iSB3 = rr.findIndex((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R3'); return last.slice(iSB3 + 1).join() === 'FINAL,TOP3,WINNER,END' && rr.filter((x) => x.scene === 'ROUND_INTRO').length === 3; });
+        T('After the rapid-fire round (the last): final result → top 3 → winner → closing, no more rounds', () => { const rr = Show.rundown(); const last = rr.map((x) => x.scene); const iSB = rr.findIndex((x) => x.scene === 'SCOREBOARD' && x.params.roundId === 'R5'); return iSB > 0 && last.slice(iSB + 1).join() === 'FINAL,TOP3,WINNER,END' && rr.filter((x) => x.scene === 'ROUND_INTRO').length === 4; });
       }
       // ---- design and sound ----
       T('Design: spinning corner logo on', () => s().design.corner.show && s().design.corner.spin && s().design.corner.pos === 'tr');
@@ -554,17 +555,14 @@ const SelfTest = {
         const ok = at('MAIN_TITLE') >= 0 && at('MAIN_TITLE') === at('MAIN_COUNTDOWN') - 1 && has('MAIN_TITLE') && has('ROUND_INTRO', { roundId: r1.id }) && has('TEAM_INTRO', { teamId: team.id, n: 1 }) && has('SCOREBOARD', { roundId: r1.id }) && has('GRID', { roundId: r1.id });
         [st.show.scene, st.show.params] = keep; return ok;
       });
-      T('Round 1 question 1: India\'s first LNG train — answer আহমেদাবাদ', () => { const q = Sel.roundQuestions('R1').find((x) => x.number === 1); return q && /LNG/.test(q.text) && q.options[q.answer] === 'আহমেদাবাদ' && !/জটায়ু/.test(q.options.join()); });
+      T('Round 1 question 1: the planet whose day is longer than its year — answer শুক্র', () => { const q = Sel.roundQuestions('R1').find((x) => x.number === 1); return q && /সন্ধ্যাতারা/.test(q.text) && q.options[q.answer] === 'শুক্র'; });
       T('Question board: all 30 main-round questions have a subject and a built-in picture; the board shows them', () => {
         const qs = ['R1', 'R2', 'R3'].flatMap((id) => Sel.roundQuestions(id));
         const st = Store.state; const keep = [st.show.scene, st.show.params]; st.show.scene = 'GRID'; st.show.params = { roundId: 'R1' };
         const html = Scenes.GRID(st, st.show.params).html; [st.show.scene, st.show.params] = keep;
-        return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('সাম্প্রতিক ঘটনা') && (html.match(/class="t-ic"/g) || []).length === 10;
+        return qs.length === 30 && qs.every((q) => q.subject && /^asset:topic_/.test(q.subjectIcon) && document.getElementById('asset-' + q.subjectIcon.slice(6))) && html.includes('বিজ্ঞান') && (html.match(/class="t-ic"/g) || []).length === 10;
       });
-      T('Main-round recordings: the operator\'s readings for all 30 questions (rounds 1, 2, 3) are built in', () => {
-        const qs = defaultState().questions.filter((q) => ['R1', 'R2', 'R3'].includes(q.roundId));
-        return qs.length === 30 && qs.every((q) => q.voiceQ === 'asset:voice_' + q.roundId + '_' + q.number && Media.builtin('voice_' + q.roundId + '_' + q.number).startsWith('data:audio/mpeg'));
-      });
+      T('Main-round recordings: the old readings (of the old questions) are gone — none built in, no question points to one', () => defaultState().questions.filter((q) => ['R1', 'R2', 'R3'].includes(q.roundId)).every((q) => !q.voiceQ) && !document.getElementById('asset-voice_R1_1'));
       T('Main countdown: the recorded voice is built in; each number follows the voice (10 … 1, GO!), music silent under it', () => {
         const st = clone(Store.state); st.show.scene = 'MAIN_COUNTDOWN'; st.audio.cdVoice = true;
         const ok = Media.builtin('cd-voice').startsWith('data:audio/mpeg') && cdVoiceOn(st) && CD_VOICE.at.every((v, i) => i === 0 || v > CD_VOICE.at[i - 1]) && CD_VOICE.go > CD_VOICE.at[9];
@@ -574,17 +572,13 @@ const SelfTest = {
       });
       T('Question picture: Z shows it full screen on the TV, a new question starts without it', () => { const def = emptyLive(); return def.zoomPic === false && typeof Actions.zoomPic === 'function'; });
       T('Rules recordings: rounds 2 and 3 read their rules; round 1 (rule changed: no pass, challenge) stays silent until re-recorded', () => !RULES_VOICE.R1 && ['R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
-      T('Round 1 recordings: all 10 in order', () => {
-        const qs = defaultState().questions.filter((q) => q.roundId === 'R1').sort((x, y) => x.number - y.number);
-        return qs.length === 10 && qs.every((q) => q.voiceQ === 'asset:voice_R1_' + q.number && Media.builtin('voice_R1_' + q.number).startsWith('data:audio/mpeg'));
-      });
-      T('Older save: recordings and board pictures arrive, also when only spaces or punctuation differ; own recordings kept', () => {
-        const d = defaultState(); const old = clone(d); old.rulesVersion = 16;
-        const q1 = old.questions.find((q) => q.roundId === 'R1' && q.number === 1); const q2 = old.questions.find((q) => q.roundId === 'R1' && q.number === 2);
-        const q5 = old.questions.find((q) => q.roundId === 'R1' && q.number === 5);
-        Object.assign(q1, { voiceQ: '', subject: '', subjectIcon: '', text: q1.text.replace(/ /g, '  ') + ' ' }); Object.assign(q2, { voiceQ: 'm_mine' }); Object.assign(q5, { voiceQ: '', text: 'আমার নিজের প্রশ্ন' });
+      T('Prelim (final list): 20 questions stored, the first 15 played, 5 kept in reserve', () => { const d = defaultState(); return d.prelim.questions.length === 20 && d.prelim.count === 15 && d.prelim.questions[0].answer === 'প্রায় ৮ মিনিট' && d.prelim.questions[14].answer === 'পাই (π)' && d.prelim.questions[19].answer === 'আমাজন'; });
+      T('Older save: an operator\'s own question and own recording stay; an untouched old question becomes the new one', () => {
+        const d = defaultState(); const old = clone(d); old.rulesVersion = 16; const sd = (n) => SEED.questions.find((q) => q.roundId === 'R1' && q.number === n);
+        const q1 = old.questions.find((q) => q.id === sd(1).id); const q5 = old.questions.find((q) => q.id === sd(5).id);
+        Object.assign(q1, { text: sd(1).prevText[0] }); Object.assign(q5, { voiceQ: 'm_mine', text: 'আমার নিজের প্রশ্ন' });
         const n = normalizeState(old); const g = (q) => n.questions.find((x) => x.id === q.id);
-        return g(q1).voiceQ === 'asset:voice_R1_1' && g(q1).subjectIcon === 'asset:topic_newspaper.png' && g(q2).voiceQ === 'm_mine' && g(q5).voiceQ === '';
+        return g(q1).text === sd(1).text && g(q5).text === 'আমার নিজের প্রশ্ন' && g(q5).voiceQ === 'm_mine';
       });
       T('Opening (prelim held earlier): no count of every registered team; the all-teams screen shows the finalists only', () => {
         const st = Store.state; const extra = Object.assign(clone(st.teams[0]), { id: 'TX9', name: 'X' }); st.teams.push(extra);
