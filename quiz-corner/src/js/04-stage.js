@@ -343,6 +343,9 @@ const Scenes = {
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
     const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
     const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    // a picture question: only the picture on the card (the words are in the picture); the answer picture appears only after the reveal
+    const pic = q.picOnly && q.image && !q.clip;
+    const picNow = pic && l.revealed && q.answerImage && !q.answerWide ? q.answerImage : q.image;
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
     const opts = showOpts ? H.part('opts', q.options.map((o, i) => {
       if (!o) return '';
@@ -351,7 +354,8 @@ const Scenes = {
     }).join(''), 'opts', dr.delivered ? '--opt-delay:' + (Show.droneMs() * 0.0008).toFixed(2) + 's' : '') : '';
     const poll = l.poll ? H.part('poll', l.poll.map((v, i) => (q.options[i] ? '<div class="bar"><span class="pct">' + String(v) + '%</span><div class="fill" style="--h:' + Math.max(2, v) + '%"></div><span class="lab">' + OPT_LABELS[i] + '</span></div>' : '<div></div>')).join(''), 'poll glass') : '';
     const ansText = q.answerText || q.options[q.answer] || '';
-    const ans = l.revealed ? H.part('answer', '<span class="lbl lbl-en">CORRECT ANSWER</span><div class="ans-box"><div class="ans" data-fit="5.4">' + (q.options[q.answer] && !q.answerText && l.optionsShown ? '(' + OPT_LABELS[q.answer] + ') ' : '') /* the option letter only when the options were on screen */ + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
+    const ans = l.revealed && pic && q.answerImage ? (q.answerWide ? H.part('answer', '<span class="lbl lbl-en">CORRECT ANSWER</span><div class="ans-img"><img data-media="' + esc(q.answerImage) + '" alt=""></div>', 'answer-bar pic-ans') : '')
+      : l.revealed ? H.part('answer', '<span class="lbl lbl-en">CORRECT ANSWER</span><div class="ans-box"><div class="ans" data-fit="5.4">' + (q.options[q.answer] && !q.answerText && l.optionsShown ? '(' + OPT_LABELS[q.answer] + ') ' : '') /* the option letter only when the options were on screen */ + esc(ansText) + (q.explanation ? '<span class="exp">' + esc(q.explanation) + '</span>' : '') + '</div></div>', 'answer-bar') : '';
     const stamp = l.result ? '<div class="stamp ' + l.result + '" data-part="stamp-' + l.resultAt + '">' + ({ correct: 'সঠিক ✓', wrong: 'ভুল ✗', noscore: 'নো স্কোর' }[l.result]) + '</div>' + (l.lastPoints ? '<div class="points-fly" data-part="pts-' + l.resultAt + '">' + signed(l.lastPoints) + '</div>' : '') : '';
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
@@ -359,10 +363,10 @@ const Scenes = {
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
       html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>') +
-        '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (7.6 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + opts + poll + ans + '</div>' +
+        '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + (pic ? H.part('card-' + (picNow === q.image ? 'q' : 'a'), '<div class="q-pic' + (picNow === q.image ? '' : ' is-answer') + '"><img data-media="' + esc(picNow) + '" alt=""></div>', 'q-card glass pic-only' + (dr.delivered ? ' delivered' : '')) : H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (7.6 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : ''))) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +
         (dr.delivered ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')) +
-        (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(q.image) + '" alt="">', 'q-zoom') : ''),
+        (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(pic ? picNow : q.image) + '" alt="">', 'q-zoom') : ''),
     };
   },
   standingsRows(s, rows, rid, revealFrom = 0, titles = false) {

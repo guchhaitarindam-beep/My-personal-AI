@@ -26,7 +26,7 @@ await p.screenshot({ path: out + '/cam-modal.png' });
 await p.locator('[data-act=camSnap]').first().click(); await p.waitForTimeout(3000);
 const shot = await p.evaluate(() => { const c = document.querySelector('#camShot'); return c && !c.hidden ? [c.width, c.height] : null; });
 ok('3-2-1 shot portrait', shot && shot[0] < shot[1], JSON.stringify(shot));
-await p.locator('[data-act=camUse]').click(); await p.waitForTimeout(1200);
+await p.locator('[data-act=camUse]').click(); await p.waitForFunction(() => !!QC.Store.state.teams[0].captainPhoto && !document.querySelector('.modal-back'), null, { timeout: 15000 }).catch(() => {}); // the photo touch-up takes a moment
 const r = await p.evaluate(() => ({ id: QC.Store.state.teams[0].captainPhoto, modal: !!document.querySelector('.modal-back'), live: (() => { const v = document.querySelector('#camVideo'); return !!v; })() }));
 ok('photo saved in slot, modal closed', r.id && !r.modal, JSON.stringify(r));
 const thumb = await p.evaluate(() => !!document.querySelector('.mthumb.has img'));

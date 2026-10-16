@@ -24,7 +24,7 @@ await p.keyboard.press('Escape');
 const csv = await p.evaluate(async () => { const QC = window.QC; let blob; const orig = window.URL.createObjectURL; return new Promise((res) => { window.URL.createObjectURL = (bb) => { blob = bb; window.URL.createObjectURL = orig; blob.text().then(res); return orig(bb); }; QC.Actions.exportQuestionsCsv(); }); });
 step(csv.split('\n').length > 70, 'প্রশ্ন CSV নামানো যায়', (csv.split('\n').length - 1) + ' সারি');
 await p.evaluate(() => window.QC.Actions.importOpen()); await p.waitForTimeout(300);
-const small = csv.split('\n').slice(0, 6).join('\n');
+const lines = csv.split('\n'); const small = [lines[0]].concat(lines.slice(1).filter((l) => !/^"?R1"?,/.test(l)).slice(0, 5)).join('\n'); // typed questions (round 1 is pictures, no options)
 await p.fill('#importText', small); await p.click('[data-act="importPreview"]'); await p.waitForTimeout(800);
 await p.click('[data-act="importReplace"]'); await p.waitForTimeout(800);
 const n = await p.evaluate(() => window.QC.Store.state.questions.length);

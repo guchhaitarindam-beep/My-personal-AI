@@ -103,7 +103,8 @@ check('Coach card guides the operator', await ctl.evaluate(() => /answer/i.test(
 check('Action announced for screen readers', await ctl.evaluate(() => /সঠিক/.test(document.querySelector('#announce').textContent)));
 check('Coach makes the right buttons glow', await ctl.evaluate(() => document.querySelectorAll('#live .btn.glow').length > 0));
 await ctl.keyboard.press('r');
-check('Stage shows answer after correct + R', await stage.waitForFunction(() => !!document.querySelector('.layer:not(.exiting) .answer-bar'), null, { timeout: 3000 }).then(() => true).catch(() => false));
+// round 1 is the picture round: the answer is a picture (a strip under the question, or it takes the question picture's place)
+check('Stage shows answer after correct + R', await stage.waitForFunction(() => !!document.querySelector('.layer:not(.exiting) .answer-bar, .layer:not(.exiting) .q-pic.is-answer'), null, { timeout: 3000 }).then(() => true).catch(() => false));
 await ctl.evaluate(() => window.QC.Store.undo()); // take the reveal back, so Ctrl+Z below undoes the score
 await ctl.keyboard.press('Control+z');
 check('Ctrl+Z undoes score', await ctl.evaluate((b) => window.QC.Sel.score(window.QC.Store.state.live.active) === b, before));
@@ -380,10 +381,10 @@ check('Winner with long name: no overflow', sw.length === 0, sw.join(', '));
 await ctl.evaluate(() => window.QC.Store.undo());
 // the question text stays large: a picture beside it may not shrink the words
 const qFont = async () => { await stage.waitForTimeout(2600); return stage.evaluate(() => { const el = document.querySelector('.layer:not(.exiting) .q-text'); return el ? parseFloat(getComputedStyle(el).fontSize) : 0; }); };
-await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img', (s) => { s.questions.find((q) => q.id === 'Q07').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((x) => x.scene === 'QUESTION' && x.params.qid === 'Q07')); });
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img', (s) => { s.questions.find((q) => q.id === 'Q28').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((x) => x.scene === 'QUESTION' && x.params.qid === 'Q28')); }); // a typed question (round 2); round 1 is pictures only
 const withImg = await qFont();
 const hasImg = await stage.evaluate(() => !!document.querySelector('.layer:not(.exiting) .q-img img'));
-await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-noimg', (s) => { s.questions.find((q) => q.id === 'Q07').image = ''; }); });
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-noimg', (s) => { s.questions.find((q) => q.id === 'Q28').image = ''; }); });
 const noImg = await qFont();
 await ctl.evaluate(() => { window.QC.Store.undo(); window.QC.Store.undo(); }); // the test picture goes again
 check('Question picture shows and the question text stays large (≥ 85% of text-only size)', hasImg && withImg >= noImg * 0.85, withImg.toFixed(1) + 'px with picture vs ' + noImg.toFixed(1) + 'px without');

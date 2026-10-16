@@ -59,6 +59,7 @@ await type('questions.' + qi + '.text', 'পরীক্ষার প্রশ�
 await type('questions.' + qi + '.options.0', 'আম'); await type('questions.' + qi + '.options.1', 'কাঁঠাল');
 await type('questions.' + qi + '.options.2', 'কলা'); await type('questions.' + qi + '.options.3', 'আপেল');
 await ctl.locator('[data-bind="questions.' + qi + '.answer"][value="0"]').first().check(); await ctl.waitForTimeout(300); // the right answer is a radio button
+await type('questions.' + qi + '.answerText', ''); await ctl.locator('[data-bind="questions.' + qi + '.picOnly"]').first().uncheck(); await ctl.waitForTimeout(300); // round 1 is a picture question: switch it to a typed one
 await go('GRID', { roundId: 'R1' }); await ctl.waitForTimeout(800);
 await ctl.evaluate((id) => window.QC.Actions.loadQ(id), qid);
 txt = flat(await tvText(2600));
