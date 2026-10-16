@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261016-1325 -->
+<!-- QC-BUILD: 20261016-2134 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 16-10-2026 13:25</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 16-10-2026 21:34</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -1802,11 +1802,15 @@ fieldset.lockset[disabled] { opacity: .75; }
 /* ---- a picture question alone on the TV: the picture fills the screen edge to edge (only the scores underneath) ---- */
 .q-card.pic-only .q-pic { overflow: hidden; }
 .q-card.pic-only .q-pic img.q-pic-bg { display: none; }
-.stage .q-wrap.pic.alone { margin: -3.2cqh -3.2cqw 0; }
+.stage .q-wrap.clean.alone { margin: -3.2cqh -3.2cqw 0; } /* the question alone: flush with the top, left and right edges */
+.stage .layer:has(> .q-wrap.clean.alone) { padding-bottom: 1.2cqh; } /* only the scores underneath, close to the bottom */
+.stage .layer:has(> .q-wrap.clean.alone) > .sstrip { margin-top: .8cqh; }
+.stage .q-wrap.clean.alone:not(.pic) .q-card { border-radius: 0; border: 0; box-shadow: none; outline: 0; }
+.stage .q-wrap.clean.alone:not(.pic) .q-card::before, .stage .q-wrap.clean.alone:not(.pic) .q-card::after { display: none; }
 .stage .q-wrap.pic.alone .q-main, .stage .q-wrap.pic.alone .q-card.pic-only { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; }
 .stage .q-wrap.pic.alone .q-main::before, .stage .q-wrap.pic.alone .q-main::after, .stage .q-wrap.pic.alone .q-card::before, .stage .q-wrap.pic.alone .q-card::after { display: none; }
 .stage .q-wrap.pic.alone .q-pic img.q-pic-main { border: 0; border-radius: 0; box-shadow: 0 0 6cqh rgba(0, 0, 0, .7); }
-.stage .q-wrap.pic.alone .q-pic img.q-pic-bg { display: block; position: absolute; inset: -4%; width: 108%; height: 108%; max-width: none; max-height: none; object-fit: cover; filter: blur(3cqh) brightness(.45) saturate(1.2); border: 0; border-radius: 0; box-shadow: none; animation: none; }
+.stage .q-wrap.pic.alone .q-pic img.q-pic-bg { display: block; position: absolute; inset: -4%; width: 108%; height: 108%; max-width: none; max-height: none; object-fit: cover; filter: blur(3.4cqh) brightness(.62) saturate(1.25); border: 0; border-radius: 0; box-shadow: none; animation: none; }
 .stage .q-wrap { transition: grid-template-columns calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1), gap calc(.9s / var(--anim-speed, 1)), margin calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1); }
 
 /* ===== Showpiece effects (made to be seen from the back of the hall) ===== */
@@ -5254,7 +5258,9 @@ class StageView {
   /** The spinning show badge in a corner of every scene (V100); it flies in and docks when it appears. */
   corner(s, sc) {
     const c = s.design.corner; const el = $('.corner-logo', this.stage);
-    const hide = !c.show || s.show.blackout; // on every screen, from the first to the last
+    // on every screen, from the first to the last — except while a question is alone on the TV (it has the whole screen);
+    // the badge flies in again with the team photo and the timer
+    const hide = !c.show || s.show.blackout || Sel.qAlone(s);
     const was = !el.hidden;
     el.hidden = hide;
     el.dataset.pos = c.pos;

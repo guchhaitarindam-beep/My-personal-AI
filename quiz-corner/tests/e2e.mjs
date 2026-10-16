@@ -47,7 +47,7 @@ let syncIssues = 0;
 for (let i = 0; i < rd.length; i++) {
   await ctl.evaluate((i) => window.QC.Show.go(window.QC.Show.rundown()[i]), i);
   const ctlRev = await ctl.evaluate(() => window.QC.Store.state.rev);
-  try { await stage.waitForFunction((r) => window.QC.Store.state.rev >= r, ctlRev, { timeout: 3000 }); } catch (e) { syncIssues++; }
+  try { await stage.waitForFunction((r) => window.QC.Store.state.rev >= r, ctlRev, { timeout: 3000 }); } catch (e) { syncIssues++; console.log('LATE at step ' + i + ' ' + rd[i].scene); }
   const sc = rd[i].scene;
   if (want.has(sc) && !shot.has(sc)) {
     shot.add(sc);
@@ -393,6 +393,10 @@ check('Question picture shows and the question text stays large (≥ 85% of text
 const noLogo = [];
 for (const sc of ['ORGANIZER', 'LOGO', 'THEME', 'IDENTITY', 'TEAM_INTRO', 'ROUND_RULES', 'QUESTION', 'SCOREBOARD', 'WINNER', 'END']) {
   await ctl.evaluate((sc) => { const QC = window.QC; const st = QC.Show.rundown().find((x) => x.scene === sc); if (st) QC.Show.go(st); else QC.Show.jump(sc); }, sc);
+  if (sc === 'QUESTION') { // a question alone on the TV has the whole screen (no badge); with the team photo and timer the badge is back
+    await stage.waitForTimeout(500); if (await stage.evaluate(() => window.QC.Sel.qAlone() && !document.querySelector('.corner-logo').hidden)) noLogo.push('QUESTION alone shows the badge');
+    await ctl.evaluate(() => window.QC.Actions.next());
+  }
   await stage.waitForTimeout(500);
   const ok = await stage.evaluate(() => { const c = document.querySelector('.corner-logo'); const st = document.querySelector('.stage').getBoundingClientRect(); if (!c || c.hidden) return false; const r = c.getBoundingClientRect(); return r.width > 20 && r.right <= st.right + 2 && r.top >= st.top - 2; });
   if (!ok) noLogo.push(sc);

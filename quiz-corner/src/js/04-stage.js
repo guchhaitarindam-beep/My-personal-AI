@@ -561,7 +561,9 @@ class StageView {
   /** The spinning show badge in a corner of every scene (V100); it flies in and docks when it appears. */
   corner(s, sc) {
     const c = s.design.corner; const el = $('.corner-logo', this.stage);
-    const hide = !c.show || s.show.blackout; // on every screen, from the first to the last
+    // on every screen, from the first to the last — except while a question is alone on the TV (it has the whole screen);
+    // the badge flies in again with the team photo and the timer
+    const hide = !c.show || s.show.blackout || Sel.qAlone(s);
     const was = !el.hidden;
     el.hidden = hide;
     el.dataset.pos = c.pos;
