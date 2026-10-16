@@ -359,15 +359,22 @@ const UI = {
   photoDeck(s, always = false) {
     const auto = ['TEAMS_ALL', 'TEAM_INTRO', 'FINALIST_INTRO'].includes(s.show.scene);
     const open = always || (this.photosOpen == null ? auto : this.photosOpen);
-    const filled = s.teams.reduce((n, t) => n + (t.captainPhoto ? 1 : 0) + (t.playerPhotos[0] ? 1 : 0), 0);
+    const filled = s.teams.reduce((n, t) => n + (t.photo ? 1 : 0), 0);
     const locked = TeamLock.on();
-    let h = '<div class="card' + (locked ? ' deck-locked' : '') + '"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Teams: school, names & photos (' + filled + ' / ' + (s.teams.length * 2) + ' photos)</button>' +
+    let h = '<div class="card' + (locked ? ' deck-locked' : '') + '"><div class="row"><button class="btn sm' + (open ? ' on' : '') + '" data-act="photosToggle">📷 Teams: school, names & photos (' + filled + ' / ' + s.teams.length + ' team photos)</button>' +
       (locked ? '<span class="status-pill lock-pill">🔒 Locked for today</span><button class="btn sm ghost" data-act="teamUnlock">Unlock…</button>' : '<button class="btn sm" data-act="memBulk">⇪ Many photos at once</button><button class="btn sm gold" data-act="teamLock" title="After this nothing about the teams can change by mistake today; it unlocks by itself tomorrow">🔒 Lock for today</button>') + '</div>';
     if (open) {
       h += locked ? '<p class="lock-note">🔒 Schools, names and photos are locked for today, so nothing can change by mistake during the show. Tomorrow they are editable again by themselves. (Our organisers\' page is not locked.)</p><div class="mem-grid">'
-        : '<p class="muted" style="margin:.4rem 0">Type the school and the two names • photo: pick it in the tray below and click the circle, drag a file onto the circle, <b>📸 laptop camera</b>, or copy an image, hover and press <kbd>Ctrl</kbd>+<kbd>V</kbd> — phone photos are cut to a portrait and brightened by themselves, and appear on the TV at once</p>' + Tray.html() + '<div class="mem-grid">';
+        : '<p class="muted" style="margin:.4rem 0">Type the school and the two names • <b>one photo per team, both children together</b> (the wide box) — that is the photo on the TV; the round member boxes are optional • photo: pick it in the tray below and click the circle, drag a file onto the circle, <b>📸 laptop camera</b>, or copy an image, hover and press <kbd>Ctrl</kbd>+<kbd>V</kbd> — phone photos are cut to a portrait and brightened by themselves, and appear on the TV at once</p>' + Tray.html() + '<div class="mem-grid">';
       h += s.teams.map((t, i) => {
         const cur = (s.show.scene === 'TEAM_INTRO' || s.show.scene === 'FINALIST_INTRO') && s.show.params.teamId === t.id;
+        // the team's photo: both children together in one picture (this is the one on the TV)
+        const pair = () => {
+          const path = 'teams.' + i + '.photo'; const id = t.photo;
+          const face = id ? '<img data-media="' + esc(id) + '" alt="">' : '<span>＋<small>Both</small></span>';
+          if (locked) return '<div class="mslot pair"><span class="mthumb wide' + (id ? ' has' : '') + '">' + face + '</span><span class="mslot-acts">🔒</span></div>';
+          return '<div class="mslot pair"><button class="mthumb wide' + (id ? ' has' : '') + (Tray.armed ? ' wants' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Team photo — both children together — click / drag a file / Ctrl+V">' + face + '</button><span class="mslot-acts"><button class="btn sm cam" data-act="memCam" data-arg="' + esc(path) + '" title="Take the team photo (both children together) with the laptop camera">📸</button></span></div>';
+        };
         const slot = (k) => {
           const path = k === 0 ? 'teams.' + i + '.captainPhoto' : 'teams.' + i + '.playerPhotos.0';
           const npath = k === 0 ? 'teams.' + i + '.captain' : 'teams.' + i + '.players.0';
@@ -376,7 +383,7 @@ const UI = {
           if (locked) return '<div class="mslot"><span class="mthumb' + (id ? ' has' : '') + '">' + face + '</span><input type="text" value="' + esc(nm) + '" disabled aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts">🔒</span></div>';
           return '<div class="mslot"><button class="mthumb' + (id ? ' has' : '') + (Tray.armed ? ' wants' : '') + '" data-act="memPhoto" data-arg="' + esc(path) + '" data-drop="' + esc(path) + '" title="Member ' + (k + 1) + ' — click / drag a file / Ctrl+V">' + face + '</button><input type="text" data-bind="' + esc(npath) + '" value="' + esc(nm) + '" placeholder="Member ' + (k + 1) + (k === 0 ? ' (captain)' : '') + '" aria-label="' + esc(Sel.code(t)) + ' member ' + (k + 1) + '"><span class="mslot-acts"><button class="btn sm cam" data-act="memCam" data-arg="' + esc(path) + '" title="Take the photo with the laptop camera">📸</button>' + (id ? '<button class="btn sm ghost" data-act="clearMedia" data-arg="' + esc(path) + '" title="Remove photo">✕</button>' : '') + '</span></div>';
         };
-        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><input class="mt-school" type="text"' + (locked ? ' disabled' : ' data-bind="teams.' + i + '.school"') + ' value="' + esc(t.school) + '" placeholder="School / বিদ্যালয়ের নাম" aria-label="' + esc(Sel.code(t)) + ' school"></div>' + slot(0) + slot(1) + '</div>';
+        return '<div class="mem-team' + (cur ? ' cur' : '') + '" style="--team:' + esc(t.color) + '"><div class="mt-head"><b class="mt-code">' + esc(Sel.code(t)) + '</b><input class="mt-school" type="text"' + (locked ? ' disabled' : ' data-bind="teams.' + i + '.school"') + ' value="' + esc(t.school) + '" placeholder="School / বিদ্যালয়ের নাম" aria-label="' + esc(Sel.code(t)) + ' school">' + pair() + '</div>' + slot(0) + slot(1) + '</div>';
       }).join('');
       h += '</div>';
     }
@@ -607,7 +614,7 @@ const Actions = {
   stopAudio() { AudioDirector.stopAll(); Cue.music('theme', 'stop'); Cue.music('welcome', 'stop'); Cue.music('winner', 'stop'); Cue.music('background', 'stop'); Speech.stop(); },
   shortcuts() { UI.modal('Keyboard shortcuts', '<div class="kbd-grid">' + SHORTCUTS.map(([k, d]) => '<div><kbd>' + esc(k) + '</kbd><span>' + esc(d) + '</span></div>').join('') + '</div>'); },
   prev() { Show.prev(); },
-  next() { Show.next(); },
+  next() { if (Sel.qAlone()) { Store.commit('q-panel', (s) => { s.live.panel = true; }, { undo: false }); return; } Show.next(); }, // first Next on a question: the team photo and the timer come in
   replay() { const rd = Show.rundown(); const st = rd[Show.index()] || { key: Show.currentKey(), scene: Store.state.show.scene, params: Store.state.show.params }; if (st.scene === 'QUESTION') { Game.load(st.params.qid, Store.state.live.active); Store.commit('replay', (s) => { s.show.startedAt = now(); }, { undo: false }); } else Show.go(st); },
   goStep(i) { const st = Show.rundown()[int(i)]; if (st) Show.go(st); },
   jump(scene) { if (scene === 'SCOREBOARD') Show.scoreboard(); else Show.jump(scene); },
@@ -646,7 +653,8 @@ const Actions = {
   async memPhotoFile(path, file) {
     if (TeamLock.guards(path)) return TeamLock.refuse();
     try {
-      const fixed = Store.state.settings.photoFix !== false && /(captainPhoto|playerPhotos)/.test(path) ? await PhotoFix.portrait(file).catch((e) => { Log.err('photofix', e); return file; }) : file;
+      const pair = /^teams\.\d+\.photo$/.test(path); // the team's photo: both children together, 4 : 3
+      const fixed = Store.state.settings.photoFix !== false && (pair || /(captainPhoto|playerPhotos)/.test(path)) ? await PhotoFix.portrait(file, pair ? 4 / 3 : 3 / 4).catch((e) => { Log.err('photofix', e); return file; }) : file;
       const id = await Media.add(fixed, 'image'); Store.commit('media:' + path, (s) => setPath(s, path, id)); UI.toast('Photo added ✓', 'ok'); return id;
     } catch (e) { UI.toast(e.message || 'Could not add the photo', 'err'); Log.err('photo', e); }
   },
@@ -655,7 +663,7 @@ const Actions = {
     if (TeamLock.guards(path)) return TeamLock.refuse();
     const stop = () => { if (Cam.stream) Cam.stream.getTracks().forEach((t) => t.stop()); Cam.stream = null; };
     stop(); Cam.path = path; Cam.shot = null;
-    const parts = String(path).split('.'); const t = Store.state.teams[int(parts[1])]; const who = t ? Sel.code(t) + ' • ' + (parts[2] === 'captainPhoto' ? 'Member 1' : 'Member 2') : '';
+    const parts = String(path).split('.'); const t = Store.state.teams[int(parts[1])]; const who = t ? Sel.code(t) + ' • ' + (parts[2] === 'photo' ? 'both children together' : parts[2] === 'captainPhoto' ? 'Member 1' : 'Member 2') : '';
     UI.modal('📸 Photo — ' + who, '<div class="cam-wrap"><video id="camVideo" autoplay playsinline muted></video><canvas id="camShot" hidden></canvas><div class="cam-guide"></div><div class="cam-count" id="camCount"></div></div><div class="row" style="margin-top:.6rem;gap:.5rem;flex-wrap:wrap"><select id="camSel" class="btn"></select><button class="btn lg primary" data-act="camSnap">📸 Take photo (3-2-1)</button><button class="btn lg" data-act="camSnap" data-arg="now">Now</button><button class="btn lg" data-act="camRetake">↺ Retake</button><button class="btn lg good" data-act="camUse">✔ Use this photo</button></div><p class="muted" id="camMsg">Look at the camera, face in the middle.</p>');
     const back = $('.modal-back'); if (back) new MutationObserver((m, o) => { if (!back.isConnected) { stop(); o.disconnect(); } }).observe(document.body, { childList: true });
     const start = async (deviceId) => {
@@ -674,7 +682,8 @@ const Actions = {
     const v = $('#camVideo'); if (!v || !v.videoWidth) { UI.toast('The camera is not ready yet', 'err'); return; }
     const shoot = () => {
       // a portrait (3 : 4) from the middle of the picture; the preview is a mirror, the saved photo is the right way round
-      const vw = v.videoWidth, vh = v.videoHeight; const h = vh; const w = Math.min(vw, Math.round(h * 3 / 4)); const x = Math.round((vw - w) / 2);
+      const ar = /\.photo$/.test(Cam.path || '') ? 4 / 3 : 3 / 4; // the team's photo of both children is a wide 4 : 3
+      const vw = v.videoWidth, vh = v.videoHeight; const h = vh; const w = Math.min(vw, Math.round(h * ar)); const x = Math.round((vw - w) / 2);
       const c = $('#camShot'); c.width = w; c.height = h; c.getContext('2d').drawImage(v, x, 0, w, h, 0, 0, w, h);
       c.hidden = false; v.hidden = true; Cam.shot = c; const m = $('#camMsg'); if (m) m.textContent = 'Good? Press ✔ Use this photo — or ↺ Retake.';
     };
@@ -706,7 +715,8 @@ const Actions = {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
     inp.onchange = async () => {
       const files = Array.from(inp.files || []); if (!files.length) return;
-      const slots = []; Store.state.teams.forEach((t, i) => { if (!t.captainPhoto) slots.push('teams.' + i + '.captainPhoto'); if (!t.playerPhotos[0]) slots.push('teams.' + i + '.playerPhotos.0'); });
+      // one photo per team (both children together): the photos fill the empty team photos in order
+      const slots = []; Store.state.teams.forEach((t, i) => { if (!t.photo) slots.push('teams.' + i + '.photo'); });
       let n = 0;
       for (const f of files) { const path = slots[n]; if (!path) break; if (await Actions.memPhotoFile(path, f)) n += 1; }
       UI.toast(n + ' photo(s) added' + (files.length > n ? ' • ' + (files.length - n) + ' left over (no empty slots)' : ''), n ? 'ok' : 'err');

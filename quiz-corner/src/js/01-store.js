@@ -329,6 +329,12 @@ const Sel = {
     return this.round(s.live.roundId) || this.round(s.show.params.roundId) || s.rounds.find((r) => r.enabled) || s.rounds[0];
   },
   liveQuestion() { return this.question(Store.state.live.qid); },
+  /** Rounds 1–3 (not the buzzer round): the question is first alone on the TV, full screen, with only the scores underneath.
+      True while it still is — the team photo and the timer come in after settings.qAloneSec, on Next, or as soon as play starts. */
+  qAlone(s = Store.state) {
+    const l = s.live; const r = this.round(l.roundId);
+    return s.show.scene === 'QUESTION' && !!l.qid && !!r && r.type !== 'rapid' && !l.panel && !s.timer.running && !l.result && !l.revealed && !l.hands.length && !l.optionsShown && l.flow === 'direct' && !arr(l.passChain).length;
+  },
   /** Team currently answering (challenger during a challenge). */
   answeringTeam() { const l = Store.state.live; return l.flow === 'challenge' && l.challenger ? l.challenger : l.active; },
   timerRemaining(t = Store.state.timer) {
@@ -371,6 +377,7 @@ const Timer = {
     const secs = clamp(num(seconds, this.durationFor(mode)), 1, 3600);
     Store.commit('timer-start', (s) => {
       s.timer = { mode, duration: secs * 1000, base: secs * 1000, remaining: secs * 1000, startedAt: now() + delayMs, running: true, token: (s.timer.token || 0) + 1, expired: false };
+      if (s.show.scene === 'QUESTION') s.live.panel = true; // the timer brings the team photo and the clock onto the TV
     }, { undo: false });
     Cue.play('transition', { soft: true });
   },

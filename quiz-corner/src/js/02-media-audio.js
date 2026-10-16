@@ -199,12 +199,20 @@ const PhotoFix = {
     if ('createImageBitmap' in window) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* <img> below */ } }
     return Media.decode(file);
   },
-  /** the 3 : 4 frame: around the largest face when the browser can find faces, else the middle with the head in the upper part */
-  async frame(src, w0, h0) {
-    let cw, ch; if (w0 / h0 > 3 / 4) { ch = h0; cw = Math.round(h0 * 3 / 4); } else { cw = w0; ch = Math.round(w0 * 4 / 3); }
+  /** the 3 : 4 frame (a team's photo of both children: 4 : 3) around the faces when the browser can find them,
+      else the middle with the heads in the upper part */
+  async frame(src, w0, h0, ar = 3 / 4) {
+    let cw, ch; if (w0 / h0 > ar) { ch = h0; cw = Math.round(h0 * ar); } else { cw = w0; ch = Math.round(w0 / ar); }
     let fx = w0 / 2; let fy = h0 * 0.42; let face = null;
     if ('FaceDetector' in window) {
       try { const f = await new window.FaceDetector({ fastMode: true, maxDetectedFaces: 4 }).detect(src); face = f.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height)[0] || null; } catch (e) { face = null; }
+    }
+    if (face && ar > 1) {
+      // two children side by side: keep every face in, centred between them
+      let fs = []; try { fs = await new window.FaceDetector({ fastMode: true, maxDetectedFaces: 4 }).detect(src); } catch (e) { fs = [face]; }
+      const xs = fs.map((f) => f.boundingBox); const x0 = Math.min(...xs.map((b) => b.x)); const x1 = Math.max(...xs.map((b) => b.x + b.width)); const y0 = Math.min(...xs.map((b) => b.y)); const y1 = Math.max(...xs.map((b) => b.y + b.height));
+      fx = (x0 + x1) / 2; fy = (y0 + y1) / 2;
+      return { x: clamp(Math.round(fx - cw / 2), 0, w0 - cw), y: clamp(Math.round(fy - ch * 0.4), 0, h0 - ch), w: cw, h: ch };
     }
     if (face) {
       const b = face.boundingBox; fx = b.x + b.width / 2; fy = b.y + b.height / 2;
@@ -248,12 +256,12 @@ const PhotoFix = {
     for (let i = 0; i < d.length; i += 4) for (let c = 0; c < 3; c += 1) { const diff = d[i + c] - e[i + c]; if (diff > 2 || diff < -2) d[i + c] = d[i + c] + diff * amount; }
     ctx.putImageData(a, 0, 0);
   },
-  async portrait(file) {
+  async portrait(file, ar = 3 / 4) {
     const src = await this.bitmap(file);
     const w0 = src.naturalWidth || src.width; const h0 = src.naturalHeight || src.height;
     if (!w0 || !h0) throw new Error('empty image');
-    const f = await this.frame(src, w0, h0);
-    const W = Math.min(this.W, f.w); const H = Math.round(W * 4 / 3);
+    const f = await this.frame(src, w0, h0, ar);
+    const W = Math.min(ar > 1 ? this.H : this.W, f.w); const H = Math.round(W / ar);
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     // big phone photos shrink in two steps — sharper than one big jump

@@ -32,9 +32,9 @@ await p.locator('#tabBody .tray-it').first().click(); await p.waitForTimeout(200
 ok('armed + circles pulse', await p.evaluate(() => !!document.querySelector('.tray-it.armed') && !!document.querySelector('.mthumb.wants')));
 await p.locator('#tabBody [data-act=memPhoto][data-arg="teams.1.captainPhoto"]').click(); await p.waitForFunction(() => !!QC.Store.state.teams[1].captainPhoto, null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300);
 ok('tray photo → B member 1', await p.evaluate(() => !!QC.Store.state.teams[1].captainPhoto));
-// drag second tray photo onto C member 2
-await p.locator('#tabBody .tray-it:not(.used)').first().dragTo(p.locator('#tabBody [data-arg="teams.2.playerPhotos.0"][data-act=memPhoto]')); const dragOk = await p.waitForFunction(() => !!QC.Store.state.teams[2].playerPhotos[0], null, { timeout: 8000 }).then(() => true).catch(() => false);
-ok('drag tray → C member 2', dragOk, await p.evaluate(() => JSON.stringify({ armed: QC.Tray.armed, used: QC.Tray.items.map(x => x.used) })));
+// drag second tray photo onto B member 2 (close to the tray, so nothing scrolls during the drag)
+await p.locator('#tabBody .tray-it:not(.used)').first().dragTo(p.locator('#tabBody [data-arg="teams.1.playerPhotos.0"][data-act=memPhoto]')); const dragOk = await p.waitForFunction(() => !!QC.Store.state.teams[1].playerPhotos[0], null, { timeout: 8000 }).then(() => true).catch(() => false);
+ok('drag tray → B member 2', dragOk, await p.evaluate(() => JSON.stringify({ armed: QC.Tray.armed, used: QC.Tray.items.map(x => x.used) })));
 ok('used marks', await p.evaluate(() => document.querySelectorAll('.tray-it.used').length) === 2);
 // folder watch with a fake folder
 await p.evaluate(() => { window.__dir = []; const fh = (f) => ({ kind: 'file', name: f.name, getFile: async () => f }); window.showDirectoryPicker = async () => ({ name: 'QuizPhotos', async *values() { for (const f of window.__dir) yield fh(f); } }); });

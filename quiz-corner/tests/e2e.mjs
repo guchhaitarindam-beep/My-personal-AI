@@ -64,7 +64,8 @@ for (let i = 0; i < rd.length; i++) {
       });
       document.querySelectorAll('.layer:not(.exiting) .glass, .layer:not(.exiting) .opt, .layer:not(.exiting) .sb-row, .layer:not(.exiting) .timer').forEach((el) => {
         const r = el.getBoundingClientRect();
-        if (r.width && (r.right > st.right + 2 || r.bottom > st.bottom + 2 || r.left < st.left - 2)) bad.push(el.className + ' outside stage');
+        // the team photo and timer wait hidden beside a question that is still alone on the TV — not on screen, not counted
+        if (r.width && el.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && (r.right > st.right + 2 || r.bottom > st.bottom + 2 || r.left < st.left - 2)) bad.push(el.className + ' outside stage');
       });
       return bad;
     });
@@ -77,9 +78,9 @@ check('Built-in logo image renders on stage', await stage.evaluate(() => { const
 const hasSongs = await ctl.evaluate(() => !!document.getElementById('asset-theme'));
 if (hasSongs) check('Built-in theme + welcome songs resolve', await ctl.evaluate(async () => (await window.QC.Media.url('asset:theme')).startsWith('blob:') && (await window.QC.Media.url('asset:welcome')).startsWith('blob:')));
 // a question with a picture (the 13 Oct questions have none, so one is given for the test)
-await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img1', (s) => { s.questions.find((q) => q.id === 'Q01').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); });
+await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img1', (s) => { s.questions.find((q) => q.id === 'Q01').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); QC.Store.commit('test-panel', (s) => { s.live.panel = true; }); }); // the timer and team photo in (as after Next)
 await stage.waitForTimeout(1500);
-check('Question image renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img'); return !!i && i.naturalWidth > 0; }));
+check('Question image renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img, .layer:not(.exiting) .q-pic img'); return !!i && i.naturalWidth > 0; }));
 check('Timer ring fully inside stage', await stage.evaluate(() => { const st = document.querySelector('.stage').getBoundingClientRect(); const c = document.querySelector('.layer:not(.exiting) .timer .ring').getBoundingClientRect(); return c.bottom <= st.bottom + 1 && c.right <= st.right + 1 && c.width > 50; }));
 check('Every scene type visited', [...want].every((s) => shot.has(s)), [...want].filter((s) => !shot.has(s)).join(','));
 check('Control → Stage sync on every step', syncIssues === 0, syncIssues + ' late');

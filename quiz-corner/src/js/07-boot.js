@@ -80,8 +80,8 @@ const SelfTest = {
     // Sandbox: no persistence, no sync, no audio, no UI updates while testing.
     Store.sandbox = true;
     Store.past = []; Store.future = [];
-    // round 1 is picture questions (no typed options); the scoring tests below borrow round 3's words and options for round 1
-    const typedR1 = () => { const r3 = Store.state.questions.filter((q) => q.roundId === 'R3'); Store.state.questions.filter((q) => q.roundId === 'R1').forEach((q, i) => { const d = r3[i % r3.length]; Object.assign(q, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: '', image: '', picOnly: false, answerImage: '', answerWide: false }); }); };
+    // round 1 is picture questions (no typed options); the scoring tests below borrow round 2's words and options for round 1
+    const typedR1 = () => { const r3 = Store.state.questions.filter((q) => q.roundId === 'R2'); Store.state.questions.filter((q) => q.roundId === 'R1').forEach((q, i) => { const d = r3[i % r3.length]; Object.assign(q, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: '', image: '', picOnly: false, answerImage: '', answerWide: false }); }); };
     try {
       Store.state = normalizeState(defaultState()); typedR1();
       const s = () => Store.state;
@@ -256,13 +256,14 @@ const SelfTest = {
       T('Rules: prelim — 15 questions, stars on 3/6/9/12/15', () => s().prelim.rules.includes('১৫টি') && Sel.prelimQuestions().map((q, i) => (q.star ? i + 1 : 0)).filter(Boolean).join() === '3,6,9,12,15');
       T('Questions: 10 each in rounds 1–3, numbered 1–10', () => ['R1', 'R2', 'R3'].every((id) => { const qs = Sel.roundQuestions(id); return qs.length === 10 && qs.map((q) => q.number).sort((x, y) => x - y).join() === '1,2,3,4,5,6,7,8,9,10'; }));
       // Round 1 opens with a current-affairs question (13 Oct, the organiser's choice); rounds 2 and 3 keep a mythology question
-      T('Questions: R2 Q1 পারদ, R3 Q10 হাইড্রোক্লোরিক অ্যাসিড', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); const a = (rid, n) => { const q = RQ(rid).find((x) => x.number === n); return q ? q.options[q.answer] : ''; }; return a('R2', 1) === 'পারদ' && a('R3', 10) === 'হাইড্রোক্লোরিক অ্যাসিড'; });
+      T('Questions: round 2 from 2ND_ROUND.pptx — Q1 চৈত্র, Q10 Joint Photographic Experts Group', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); const a = (rid, n) => { const q = RQ(rid).find((x) => x.number === n); return q ? q.options[q.answer] : ''; }; return a('R2', 1) === 'চৈত্র' && a('R2', 10) === 'Joint Photographic Experts Group'; });
+      T('Questions: round 3 is the 10 picture questions of 3RD_ROUND.pptx — picture only; the answer a picture or the written answer', () => { const d0 = normalizeState(defaultState()); const q = d0.questions.filter((x) => x.roundId === 'R3').sort((a, b) => a.number - b.number); return q.length === 10 && q.every((x, i) => x.picOnly && x.image === 'asset:r3pic_q' + String(i + 1).padStart(2, '0') + '.jpg' && document.getElementById('asset-' + x.image.slice(6)) && x.answerText && (!x.answerImage || document.getElementById('asset-' + x.answerImage.slice(6)))) && q[0].answerText.includes('শূন্য') && q[5].answerImage === 'asset:r3pic_a06.jpg'; });
       T('Questions: round 1 is the 10 picture questions of 1ST_ROUND.pptx — each a question picture and an answer picture, both built in', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); const q = RQ('R1'); return q.length === 10 && q.every((x, i) => x.picOnly && x.image === 'asset:r1pic_q' + String(i + 1).padStart(2, '0') + '.jpg' && x.answerImage === 'asset:r1pic_a' + String(i + 1).padStart(2, '0') + '.jpg' && document.getElementById('asset-' + x.image.slice(6)) && document.getElementById('asset-' + x.answerImage.slice(6)) && x.answerText); });
-      T('Questions: every round 2–3 question has four options and an answer among them', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2', 'R3'].every((id) => RQ(id).every((q) => q.options.filter(Boolean).length === 4 && q.options[q.answer])); });
-      T('Questions: rounds 2–3 show no picture beside the question (the words come first)', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2', 'R3'].every((id) => RQ(id).every((q) => !q.image)); });
+      T('Questions: every round 2 question has four options and an answer among them', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2'].every((id) => RQ(id).every((q) => q.options.filter(Boolean).length === 4 && q.options[q.answer])); });
+      T('Questions: round 2 shows no picture beside the question (the words come first)', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2'].every((id) => RQ(id).every((q) => !q.image)); });
       T('Questions: old saves lose the subject pictures beside the question; the operator\'s own picture stays', () => { const old = defaultState(); delete old.rulesVersion; const a = old.questions.find((q) => q.roundId === 'R1'); const b = old.questions.find((q) => q.roundId === 'R2'); a.image = 'asset:topic_telescope.png'; b.image = 'm_mine'; const n = normalizeState(old); return n.questions.find((q) => q.id === a.id).image === '' && n.questions.find((q) => q.id === b.id).image === 'm_mine'; });
       T('Questions: none of the original 70 dropped (total ' + s().questions.length + ')', () => Array.from({ length: 70 }, (_, i) => 'Q' + String(i + 1).padStart(2, '0')).every((id) => Sel.question(id)) && new Set(s().questions.map((q) => q.id)).size === s().questions.length);
-      T('Questions: every correct answer is among the options (picture questions: the answer is a picture)', () => normalizeState(defaultState()).questions.every((q) => q.picOnly ? q.answerImage : q.options[q.answer]));
+      T('Questions: every correct answer is among the options (picture questions: the answer is a picture)', () => normalizeState(defaultState()).questions.every((q) => q.picOnly ? q.answerImage || q.answerText : q.options[q.answer]));
       {
         const [ta, tb, tc] = Sel.finalistIds();
         Store.state.show.scene = 'QUESTION';
@@ -452,7 +453,7 @@ const SelfTest = {
       }
       T('Our team: Arindam Guchhait in the centre, then Subrata, Pradip, Chandan Paloi, Sanjay, Sourav — all with photos, no "captain"', () => { const c = defaultState().crew; return c.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালই|সঞ্জয় মণ্ডল|সৌরভ মাইতি' && !JSON.stringify(c).includes('অধিনায়ক') && !defaultState().event.credits.includes('অধিনায়ক') && !Scenes.CREW(defaultState(), { sub: 6 }).html.includes('অধিনায়ক') && c.every((x, i) => x.photo === 'asset:crew' + i) && c[5].role.includes('সহযোগিতা') && defaultState().event.credits.includes('সহযোগিতায়: সৌরভ মাইতি') && !defaultState().event.credits.includes('চন্দন পাল ও'); });
       T('Our team: old crew list in old saves becomes the new team, own edits kept', () => { const old = defaultState(); delete old.rulesVersion; old.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); old.event.credits = 'প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত\nপুরনো'; const n = normalizeState(old); const mine = defaultState(); delete mine.rulesVersion; mine.crew = [{ name: 'আমার লোক', role: '', about: '', photo: '' }]; const v7 = defaultState(); delete v7.rulesVersion; v7.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); v7.event.credits = 'পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত (অধিনায়ক)\nবাছাই পর্বের প্রশ্ন সংকলন: চন্দন পাল ও প্রদীপ ভূঁইয়া'; const n7 = normalizeState(v7); return n7.crew.length === 6 && n7.crew[3].name === 'চন্দন পালই' && n7.crew[5].photo === 'asset:crew5' && n7.event.credits.includes('সৌরভ') && n.crew.length === 6 && n.crew[2].photo === 'asset:crew2' && n.event.credits.includes('সঞ্জয় মণ্ডল') && n.event.credits.includes('টিকাশী গুচ্ছ সম্পদ কেন্দ্র') && normalizeState(mine).crew[0].name === 'আমার লোক'; });
-      T('Corrections: an old save still holding an old question gets the new one (text, options, subject, picture), its old reading dropped', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R2' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], subject: 'সাম্প্রতিক ঘটনা', voiceQ: 'asset:voice_R2_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.text === sq.text && n.options[n.answer] === 'পারদ' && n.subject === sq.subject && n.voiceQ === '' && n.image === ''; });
+      T('Corrections: an old save still holding an old question gets the new one (text, options, subject, picture), its old reading dropped', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R2' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], subject: 'সাম্প্রতিক ঘটনা', voiceQ: 'asset:voice_R2_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.text === sq.text && n.options[n.answer] === 'চৈত্র' && n.subject === sq.subject && n.voiceQ === '' && n.image === ''; });
       T('Corrections: an old save still holding the old round 1 question gets the picture question (picture, answer picture)', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R1' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], image: '', picOnly: false, answerImage: '', voiceQ: 'asset:voice_R1_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.picOnly && n.image === 'asset:r1pic_q01.jpg' && n.answerImage === 'asset:r1pic_a01.jpg' && n.voiceQ === ''; });
       {
         Store.state.show.scene = 'QUESTION'; const q3 = Sel.roundQuestions('R3')[0]; Game.load(q3.id, Sel.finalistIds()[0]); Game.reveal();
@@ -620,7 +621,24 @@ const SelfTest = {
         const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
-      T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R1')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R1'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return h.includes('রাউন্ড ১'); })(); });
+      T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R5')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R5'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return /রাউন্ড [০-৯]/.test(h); })(); });
+      T('Rounds 1–3 on the TV: no title line; the question alone first (full screen, scores underneath); the team photo and timer come in on Next or after the set seconds, or when the timer starts', () => {
+        const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
+        try {
+          const out = [];
+          for (const rid of ['R1', 'R2', 'R3']) {
+            const q = Sel.roundQuestions(rid)[0]; Game.load(q.id, Sel.finalistIds()[0]);
+            const h0 = Scenes.QUESTION(s(), { qid: q.id }).html;
+            out.push(!h0.includes('s-head') && !h0.includes('JUNIOR GENIUS') && !h0.includes('QUESTION 0') && !h0.includes('q-intro') && h0.includes('q-wrap clean alone') && h0.includes('sstrip') && Sel.qAlone());
+            Actions.next(); const h1 = Scenes.QUESTION(s(), { qid: q.id }).html;
+            out.push(s().show.scene === 'QUESTION' && s().live.panel && !h1.includes(' alone') && h1.includes('data-timer') && h1.includes('team-card'));
+          }
+          const q = Sel.roundQuestions('R1')[1]; Game.load(q.id, Sel.finalistIds()[1]); Timer.start('direct'); out.push(!Sel.qAlone()); Timer.pause(); out.push(!Sel.qAlone());
+          Game.load(Sel.roundQuestions('R1')[2].id, Sel.finalistIds()[2]); s().live.deliverAt = now() - 13000; Authority.qPanel(s()); out.push(s().live.panel === true);
+          const r5 = Sel.roundQuestions('R5')[0]; Game.load(r5.id); const h5 = Scenes.QUESTION(s(), { qid: r5.id }).html; out.push(!Sel.qAlone() && h5.includes('s-head'));
+          return out.every(Boolean) || out.join();
+        } finally { Store.state = keep; }
+      });
       T('TV timer and countdown in English digits (1:00, 45 … 0)', () => fmtTime(60000) === '1:00' && fmtTime(45000) === '45' && /^[0-9:]+$/.test(fmtTime(9000)) && !/[০-৯]/.test(Scenes.MAIN_COUNTDOWN(s()).html.replace(/<[^>]+>/g, '').replace(/MAIN ROUND STARTS IN/, '')));
       T('Countdown: 10, 9 … 1 then GO! in English digits (one second per number)', () => s().settings.countdownFrom === 10 && s().settings.countdownStepMs === 1000 && Scenes.MAIN_COUNTDOWN(s()).html.includes('MAIN ROUND STARTS IN') && Scenes.MAIN_COUNTDOWN(s()).html.includes('>10<'));
 
@@ -661,10 +679,13 @@ const Authority = {
   start() {
     setInterval(() => safe('authority', () => this.tick()), 100);
   },
+  /** rounds 1–3: after the question has been alone on the TV for a while, the team photo and the timer come in by themselves */
+  qPanel(s) { if (Sel.qAlone(s) && now() - s.live.deliverAt >= int(s.settings.qAloneSec, 12, 0, 120) * 1000) Store.commit('q-panel', (st) => { st.live.panel = true; }, { undo: false }); },
   tick() {
     if (Store.sandbox) return;
     Timer.tick();
     const s = Store.state;
+    this.qPanel(s);
     // "Our team": after the first card the others arrive by themselves, one every crewStepMs (V100).
     if (s.show.scene === 'CREW' && s.settings.crewAuto) {
       const cur = int(s.show.params.sub, 1);

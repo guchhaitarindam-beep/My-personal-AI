@@ -33,7 +33,7 @@ const H = {
   /** Team photo with the team number as a broadcast-style fallback. */
   tphoto(t, cls = '') {
     const letter = Sel.codeHidden(t) ? firstGrapheme(Sel.preName(t)) : Sel.code(t).charAt(0) || bn(Sel.teamIndex(t.id) + 1);
-    if (t.photo) return H.photo(t.photo, t.name, cls, '', letter);
+    if (t.photo) return H.photo(t.photo, t.name, cls + ' pair', '', letter); // the team's photo: both children together
     const faces = Sel.members(t).filter((m) => m.photo);
     if (faces.length) return '<div class="team-photo duo n' + faces.length + ' ' + cls + '">' + faces.map((m) => '<img data-media="' + esc(m.photo) + '" alt="" hidden>').join('') + '<span class="initial" data-fallback>' + esc(letter) + '</span></div>';
     return H.photo('', t.name, cls, '', letter);
@@ -360,12 +360,14 @@ const Scenes = {
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
     const qScale = r && r.design.qScale && r.design.qScale !== 1 ? r.design.qScale : 1;
+    const clean = !!r && r.type !== 'rapid';
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
-      html: H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>') +
-        '<div class="q-wrap" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + (pic ? H.part('card-' + (picNow === q.image ? 'q' : 'a'), '<div class="q-pic' + (picNow === q.image ? '' : ' is-answer') + '"><img data-media="' + esc(picNow) + '" alt=""></div>', 'q-card glass pic-only' + (dr.delivered ? ' delivered' : '')) : H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + (7.6 * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : ''))) + opts + poll + ans + '</div>' +
+      // rounds 1–3: no title line (round name, JUNIOR GENIUS SEASON 4, question number) — the question has the whole screen
+      html: (clean ? '' : H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>')) +
+        '<div class="q-wrap' + (clean ? ' clean' : '') + (Sel.qAlone(s) ? ' alone' : '') + '" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + (pic ? H.part('card-' + (picNow === q.image ? 'q' : 'a'), '<div class="q-pic' + (picNow === q.image ? '' : ' is-answer') + '"><img data-media="' + esc(picNow) + '" alt=""></div>', 'q-card glass pic-only' + (dr.delivered ? ' delivered' : '')) : H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + ((clean ? 10.5 : 7.6) * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : ''))) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +
-        (dr.delivered ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')) +
+        (dr.delivered || clean ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')) +
         (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(pic ? picNow : q.image) + '" alt="">', 'q-zoom') : ''),
     };
   },
@@ -446,6 +448,7 @@ class StageView {
     const refit = () => { if (this.refitQ) return; this.refitQ = requestAnimationFrame(() => { this.refitQ = 0; this.fitAll(); }); };
     this.stage.addEventListener('animationend', (e) => { if (e.target.classList && e.target.classList.contains('layer')) refit(); });
     this.stage.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') refit(); }, true);
+    this.stage.addEventListener('transitionend', (e) => { if (e.target.classList && e.target.classList.contains('q-wrap')) refit(); }); // the question widened / narrowed
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
   }

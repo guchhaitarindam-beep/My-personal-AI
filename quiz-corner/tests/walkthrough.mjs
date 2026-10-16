@@ -44,11 +44,13 @@ sc = await next(1500); step(sc === 'CREW', 'আমাদের টিম', sc);
 await stage.waitForTimeout(2800 * 5); const crewSub = await ctl.evaluate(() => window.QC.Store.state.show.params.sub); step(crewSub >= await ctl.evaluate(() => window.QC.Sel.crew().length), 'আমাদের টিমের কার্ড নিজে নিজে একে একে আসে', 'দেখা গেল ' + crewSub + 'টি'); await shot('05-crew');
 sc = await next(1200); step(sc === 'TEAMS_ALL', 'সব দল', sc);
 sc = await next(1500); step(sc === 'TEAM_INTRO', 'দল পরিচিতি শুরু', sc);
-// 3. add the two member photos of team A / 1 from the live panel (click → file), as at the venue
-const slot = ctl.locator('.mthumb').first();
+// 3. the team photo (both children together) and the two member photos of team A / 1 from the live panel (click → file), as at the venue
+const [fc0] = await Promise.all([ctl.waitForEvent('filechooser'), ctl.locator('.mslot.pair .mthumb').first().click()]); await fc0.setFiles(photo);
+await ctl.waitForTimeout(1500);
+const slot = ctl.locator('.mslot:not(.pair) .mthumb').first();
 const [fc] = await Promise.all([ctl.waitForEvent('filechooser'), slot.click()]); await fc.setFiles(photo);
 await ctl.waitForTimeout(1500);
-const [fc2] = await Promise.all([ctl.waitForEvent('filechooser'), ctl.locator('.mthumb').nth(1).click()]); await fc2.setFiles(photo);
+const [fc2] = await Promise.all([ctl.waitForEvent('filechooser'), ctl.locator('.mslot:not(.pair) .mthumb').nth(1).click()]); await fc2.setFiles(photo);
 await ctl.waitForTimeout(1500);
 await ctl.locator('.mslot input').first().fill('রিয়া মাইতি'); await ctl.locator('.mslot input').first().press('Tab');
 await ctl.locator('.mslot input').nth(1).fill('সোহম দাস'); await ctl.locator('.mslot input').nth(1).press('Tab');
@@ -56,6 +58,8 @@ await stage.waitForTimeout(800);
 sc = await next(1500); sc = await next(1500); await shot('06-team-intro-members');
 const mem = await stage.evaluate(() => ({ cards: document.querySelectorAll('.layer:not(.exiting) .mem-card:not(.hidden)').length, imgs: Array.from(document.querySelectorAll('.layer:not(.exiting) .mem-card img')).filter((i) => i.complete && i.naturalWidth).length }));
 step(mem.cards === 2 && mem.imgs === 2, 'দল A / 1: সদস্য ১ ও ২ ছবিসহ একে একে', JSON.stringify(mem));
+const pairPh = await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .intro-ph .team-photo.pair img'); return !!i && i.complete && i.naturalWidth > 0 && i.naturalWidth > i.naturalHeight; });
+step(pairPh, 'দল A / 1: দুজনের একসঙ্গে দলের ছবি (চওড়া ৪:৩) বড় করে');
 while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) sc = await next(450);
 step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); const cd0 = (await cues()).filter((c) => c === 'countdown'); await stage.waitForTimeout(1600); await shot('07-countdown');
 // with the operator's recorded countdown (voice + music) the numbers follow the voice; without it: beeps, one second per number
