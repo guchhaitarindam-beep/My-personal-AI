@@ -69,14 +69,15 @@ const H = {
     return '<div class="team-card glass" data-part="team-' + esc(t.id) + '" data-morph style="' + H.teamVars(t) + '">' +
       '<div class="flowtag" data-part="tag">' + esc(tag) + '</div>' + '<div data-part="ph" class="tc-ph">' + H.tphoto(t) + '</div>' +
       '<div class="tcode-big" data-part="code">TEAM ' + esc(c) + '</div>' + (nm && nm !== c ? '<div class="tname" data-part="nm">' + esc(nm) + '</div>' : '') +
-      '<div class="tscore" data-part="sc">' + String(score) + ' পয়েন্ট</div></div>';
+      '<div class="tscore" data-part="sc">' + String(score) + ' পয়েন্ট</div>' + (Sel.streak(t.id) >= 2 ? '<div class="hot" data-part="hot">🔥 পরপর ' + bn(Sel.streak(t.id)) + 'টি সঠিক</div>' : '') + '</div>';
   },
   mini(t, label) { return t ? '<div class="mini-team" style="' + H.teamVars(t) + '">' + H.tphoto(t) + '<small>' + esc(label) + '</small><b class="tcode-big sm">' + esc(Sel.code(t)) + '</b>' + (str(t.name).trim() !== Sel.code(t) ? '<b>' + esc(t.name) + '</b>' : '') + '<span class="mscore">' + String(Sel.score(t.id)) + ' পয়েন্ট</span></div>' : '<div></div>'; },
   /** Live score strip for every finalist (A / 1 … H / 8). Each cell carries its score so a change swaps only that cell. */
   strip(s, activeId) {
     const ids = Sel.finalistIds();
     if (!s.design.scoreStrip || !ids.length) return '';
-    return '<div class="sstrip" data-part="strip" data-morph style="--n:' + ids.length + '">' + ids.map((id) => { const t = Sel.team(id); if (!t) return ''; const sc = Sel.score(id); return '<div data-part="s-' + esc(id) + '-' + sc + '-' + (id === activeId ? 1 : 0) + '" class="scell' + (id === activeId ? ' on' : '') + '" data-team="' + esc(id) + '" data-score="' + sc + '" style="' + H.teamVars(t) + '"><b class="c">' + esc(Sel.code(t)) + '</b><span class="v">' + String(sc) + '</span></div>'; }).join('') + '</div>';
+    const lead = Sel.leaders();
+    return '<div class="sstrip" data-part="strip" data-morph style="--n:' + ids.length + '">' + ids.map((id) => { const t = Sel.team(id); if (!t) return ''; const sc = Sel.score(id); const king = lead.includes(id); const hot = Sel.streak(id); return '<div data-part="s-' + esc(id) + '-' + sc + '-' + (id === activeId ? 1 : 0) + '-' + (king ? 1 : 0) + '-' + hot + '" class="scell' + (id === activeId ? ' on' : '') + (king ? ' lead' : '') + '" data-team="' + esc(id) + '" data-score="' + sc + '" style="' + H.teamVars(t) + '">' + (king ? '<span class="crown" aria-hidden="true">👑</span>' : '') + '<b class="c">' + esc(Sel.code(t)) + '</b><span class="v">' + String(sc) + '</span>' + (hot >= 2 ? '<span class="flame" aria-hidden="true">🔥' + String(hot) + '</span>' : '') + '</div>'; }).join('') + '</div>';
   },
 };
 
@@ -496,6 +497,7 @@ class StageView {
     // Derived one-shot effects (identical in every window because they come from state).
     if (s.live.result === 'correct' && s.live.resultAt !== this.lastResultAt && s.show.scene === 'QUESTION' && this.fx) this.fx.burst(false);
     if (s.live.result === 'correct' && s.live.resultAt !== this.lastResultAt && s.show.scene === 'QUESTION') this.celebrate();
+    if (s.live.result === 'wrong' && s.live.resultAt !== this.lastResultAt && s.show.scene === 'QUESTION' && s.design.motion) this.flash('wrong-flash', 900); // a wrong answer: one red flash round the edge
     this.lastResultAt = s.live.resultAt;
     // the right answer appears: a burst of gold light
     const rk = s.show.scene === 'QUESTION' && s.live.revealed ? s.live.qid + ':' + s.live.deliverAt : '';
@@ -541,6 +543,8 @@ class StageView {
       requestAnimationFrame(step);
     });
   }
+  /** A one-shot full-screen overlay (red flash, TIME UP banner …) that removes itself. */
+  flash(cls, ms, html = '') { const f = document.createElement('div'); f.className = 'stage-flash ' + cls; f.setAttribute('aria-hidden', 'true'); f.innerHTML = html; this.stage.appendChild(f); setTimeout(() => f.remove(), ms); }
   /** A correct answer: a golden glow with sparks over the answering team's card. */
   celebrate() {
     if (!Store.state.design.motion) return;
@@ -681,6 +685,11 @@ class StageView {
     const mode = { direct: 'DIRECT', pass: 'PASS', bonus: 'BONUS', challenge: 'CHALLENGE', raise: 'HANDS UP' }[t.mode] || 'TIMER';
     const last = s.design.motion && ['QUESTION', 'PRELIM_Q'].includes(s.show.scene) && t.running && !waiting && rem > 0 && sec <= s.settings.warnAt;
     if (this.stage.classList.contains('last10') !== last) this.stage.classList.toggle('last10', last);
+    const last5 = last && sec <= s.settings.critAt; // the last seconds: faster red pulse, the clock throbs
+    if (this.stage.classList.contains('last5') !== last5) this.stage.classList.toggle('last5', last5);
+    // time is up: a big "সময় শেষ!" across the screen for a moment, readable from the back of the hall
+    if (t.expired && s.show.scene === 'QUESTION' && this.timeUpTok !== t.token) { if (this.timeUpTok !== undefined && s.design.motion) this.flash('timesup', 2200, '<b>সময় শেষ!</b>'); this.timeUpTok = t.token; }
+    if (!t.expired && this.timeUpTok === undefined) this.timeUpTok = -1;
     $$('[data-timer]', this.stage).forEach((el) => {
       const ring = $('.ring', el); const dg = $('.digits', el); const md = $('.mode', el);
       if (ring) { ring.setAttribute('stroke-dashoffset', String(Math.round((1 - frac) * 1000))); ring.setAttribute('stroke-width', String(s.design.ringWidth)); }

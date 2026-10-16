@@ -622,6 +622,24 @@ const SelfTest = {
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
       T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R5')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R5'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return /রাউন্ড [০-৯]/.test(h); })(); });
+      T('Score strip: the leader wears a crown, two correct answers in a row show a flame; a wrong answer ends the run', () => {
+        const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
+        try {
+          const [a, b] = Sel.finalistIds(); const qs = Sel.roundQuestions('R2');
+          const none = !H.strip(s(), '').includes('crown');
+          Game.load(qs[0].id, a); Game.judge('correct'); Game.load(qs[1].id, a); Game.judge('correct');
+          const h = H.strip(s(), ''); const ok1 = Sel.leaders().join() === a && Sel.streak(a) === 2 && (h.match(/class="crown"/g) || []).length === 1 && h.includes('🔥2') && Scenes.QUESTION(s(), { qid: qs[1].id }).html.includes('পরপর ২টি সঠিক');
+          Game.load(qs[2].id, a); Game.judge('wrong'); const ok2 = Sel.streak(a) === 0 && !H.strip(s(), '').includes('🔥');
+          Game.load(qs[3].id, b); Game.judge('correct'); Game.load(qs[4].id, b); Game.judge('correct'); const tie = Sel.leaders().length === 2;
+          return (none && ok1 && ok2 && tie) || [none, ok1, ok2, tie].join();
+        } finally { Store.state = keep; }
+      });
+      T('Spelling: corrected words on the TV (ঘণ্টা, ইংরেজি, শ্রীলঙ্কা, ৩৯টি, sin 90°-এর) and an old save takes them', () => {
+        const d0 = normalizeState(defaultState()); const q = (rid, n) => d0.questions.find((x) => x.roundId === rid && x.number === n);
+        const fresh = q('R3', 1).answerText.includes('ঘণ্টা') && q('R2', 1).text.includes('ইংরেজি') && q('R2', 6).options.includes('শ্রীলঙ্কা') && q('R2', 6).text.includes('৩৯টি') && q('R5', 10).text.includes('90°-এর');
+        const o = defaultState(); delete o.rulesVersion; const sq = o.questions.find((x) => x.id === q('R3', 1).id); sq.answerText = 'শূন্য ঘন্টা / Zero hour'; o.groupCaption = 'উত্তর কলমদান বোর্ড প্রাথমিক বিদ্যালয়-এর শিক্ষকমণ্ডলী';
+        const n = normalizeState(o); return fresh && n.questions.find((x) => x.id === sq.id).answerText.includes('ঘণ্টা') && n.groupCaption.includes('বিদ্যালয়ের');
+      });
       T('Rounds 1–3 on the TV: no title line; the question alone first (full screen, scores underneath); the team photo and timer come in on Next or after the set seconds, or when the timer starts', () => {
         const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
         try {

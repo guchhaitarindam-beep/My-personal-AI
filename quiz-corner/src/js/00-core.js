@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 29;
+const RULES_VERSION = 30;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -361,6 +361,7 @@ function upgradeRules(s, def, from = 0) {
   // the default animal cards got pictures — only where the operator had not put a picture of their own
   if (isObj(s.draw) && s.draw.theme === 'animals') arr(s.draw.items).forEach((it) => { const d = isObj(it) && !it.image && DRAW_THEMES.animals.items.find((x) => x[0] === it.label); if (d) it.image = d[2]; });
   if (isObj(s.event) && OLD_CREDITS(str(s.event.credits))) s.event.credits = def.event.credits;
+  if (str(s.groupCaption) === 'উত্তর কলমদান বোর্ড প্রাথমিক বিদ্যালয়-এর শিক্ষকমণ্ডলী') s.groupCaption = def.groupCaption; // spelling
   s.rounds = arr(s.rounds).map((r) => {
     const d = def.rounds.find((x) => isObj(r) && x.id === r.id);
     if (!d) return r;
@@ -370,6 +371,7 @@ function upgradeRules(s, def, from = 0) {
   // Questions the show rewrote get the new wording only where the operator had not changed the old one.
   const prevText = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevText).map(String)]));
   const prevExp = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevExplanation).map(String)]));
+  const prevAns = new Map(arr(SEED.questions).map((q) => [q.id, arr(q.prevAnswerText).map(String)]));
   s.questions = arr(s.questions).map((q) => {
     const d = isObj(q) && seedQ.get(q.id);
     if (!d) return q;
@@ -377,6 +379,7 @@ function upgradeRules(s, def, from = 0) {
     if ((prevText.get(q.id) || []).includes(str(q.text))) Object.assign(out, { text: d.text, options: d.options.slice(), answer: d.answer, answerText: d.answerText, explanation: d.explanation, image: d.image, subject: d.subject, subjectIcon: d.subjectIcon, picOnly: d.picOnly, answerImage: d.answerImage, answerWide: d.answerWide, clue: d.clue, voiceQ: '', voiceOpt: '', voiceAns: '' }); // old readings no longer match
     if (!out.explanation && d.explanation && out.text === d.text) out.explanation = d.explanation;
     if ((prevExp.get(q.id) || []).includes(str(out.explanation))) out.explanation = d.explanation; // a corrected explanation the operator had not changed
+    if ((prevAns.get(q.id) || []).includes(str(out.answerText))) out.answerText = d.answerText; // a corrected written answer (spelling) the operator had not changed
     return out;
   });
   // 15 Oct: the main-round questions show no picture (the words come first, readable from far away); the board keeps its subject pictures

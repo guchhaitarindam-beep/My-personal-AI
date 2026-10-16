@@ -1616,3 +1616,36 @@ fieldset.lockset[disabled] { opacity: .75; }
 .stage .q-wrap.pic.alone .q-pic img.q-pic-main { border: 0; border-radius: 0; box-shadow: 0 0 6cqh rgba(0, 0, 0, .7); }
 .stage .q-wrap.pic.alone .q-pic img.q-pic-bg { display: block; position: absolute; inset: -4%; width: 108%; height: 108%; max-width: none; max-height: none; object-fit: cover; filter: blur(3cqh) brightness(.45) saturate(1.2); border: 0; border-radius: 0; box-shadow: none; animation: none; }
 .stage .q-wrap { transition: grid-template-columns calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1), gap calc(.9s / var(--anim-speed, 1)), margin calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1); }
+
+/* ===== Showpiece effects (made to be seen from the back of the hall) ===== */
+/* the team in the lead wears a crown on the score strip; a run of correct answers shows a flame */
+.stage .scell { position: relative; overflow: visible; }
+.stage .scell.lead { box-shadow: 0 0 0 .35cqh var(--gold), 0 0 2.6cqh color-mix(in srgb, var(--gold) 70%, transparent); }
+.stage .scell .crown { position: absolute; left: 50%; top: -3.4cqh; transform: translateX(-50%); font-size: 3.6cqh; line-height: 1; filter: drop-shadow(0 .3cqh .6cqh rgba(0, 0, 0, .6)); animation: crownBob 2.4s ease-in-out infinite; }
+@keyframes crownBob { 0%, 100% { transform: translate(-50%, 0) rotate(-6deg); } 50% { transform: translate(-50%, -.5cqh) rotate(6deg); } }
+.stage .scell .flame { position: absolute; right: -.6cqw; top: -2.8cqh; font-size: 2.9cqh; font-weight: 800; color: #fff; text-shadow: 0 0 1cqh #ff7a00; animation: flameFlick .9s ease-in-out infinite alternate; }
+@keyframes flameFlick { from { transform: scale(1) rotate(-4deg); } to { transform: scale(1.15) rotate(4deg); } }
+.stage .team-card .hot { text-align: center; font-weight: 800; font-size: 2.2cqh; color: #ffd27a; text-shadow: 0 0 1.4cqh #ff7a00; animation: flameFlick 1.1s ease-in-out infinite alternate; }
+/* a picture question arrives: one soft spotlight sweep across it (the words stay readable) */
+.stage .q-wrap.pic.alone .q-pic::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .28) 48%, rgba(255, 240, 200, .38) 50%, rgba(255, 255, 255, .28) 52%, transparent 65%) no-repeat; background-size: 250% 100%; animation: picSpot calc(1.6s / var(--anim-speed, 1)) ease-in-out calc(1.1s / var(--anim-speed, 1)) both; }
+@keyframes picSpot { from { background-position: 140% 0; opacity: 1; } 90% { opacity: 1; } to { background-position: -40% 0; opacity: 0; } }
+/* the answer picture arrives: a golden shine and a glow */
+.stage .q-pic.is-answer::after, .stage .answer-bar.pic-ans .ans-img::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 30%, rgba(255, 236, 160, .65) 50%, transparent 70%) no-repeat; background-size: 250% 100%; animation: picSpot calc(1.3s / var(--anim-speed, 1)) ease-out calc(.35s / var(--anim-speed, 1)) both; }
+.stage .answer-bar.pic-ans .ans-img { position: relative; }
+.stage .q-pic.is-answer img.q-pic-main { animation: ansPicIn calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes ansPicIn { from { transform: scale(.88); filter: brightness(2.2) saturate(.4); } 60% { filter: brightness(1.25); } }
+/* the last seconds: the red edge beats faster and the clock throbs */
+.stage.last5 .edge-pulse { animation: edgeBeat .5s ease-in-out infinite; box-shadow: inset 0 0 0 .9cqh rgba(255, 45, 85, .95), inset 0 0 14cqh rgba(255, 45, 85, .6); }
+.stage.last5 .q-side .timer { animation: clockThrob .5s ease-in-out infinite; }
+@keyframes clockThrob { 50% { transform: scale(1.07); filter: drop-shadow(0 0 2.4cqh rgba(255, 45, 85, .9)); } }
+/* one-shot overlays */
+.stage .stage-flash { position: absolute; inset: 0; z-index: 40; pointer-events: none; display: grid; place-items: center; }
+.stage .stage-flash.wrong-flash { box-shadow: inset 0 0 0 1cqh rgba(255, 40, 70, .95), inset 0 0 18cqh rgba(255, 40, 70, .65); animation: wrongFlash .9s ease-out both; }
+@keyframes wrongFlash { from { opacity: 0; } 15% { opacity: 1; } to { opacity: 0; } }
+.stage .stage-flash.timesup { background: radial-gradient(ellipse at center, rgba(120, 0, 20, .55), rgba(0, 0, 0, 0) 70%); animation: tuBg 2.2s ease-out both; }
+.stage .stage-flash.timesup b { font-family: var(--font-bn, inherit); font-weight: 900; font-size: 16cqh; color: #fff; padding: 1cqh 6cqw; border-radius: 3cqh; background: linear-gradient(180deg, #ff3b55, #b0001c); border: .6cqh solid #ffd27a; box-shadow: 0 0 6cqh rgba(255, 40, 70, .8), 0 2cqh 6cqh rgba(0, 0, 0, .6); text-shadow: 0 .5cqh 1cqh rgba(0, 0, 0, .5); animation: tuIn 2.2s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes tuBg { from { opacity: 0; } 10% { opacity: 1; } 75% { opacity: 1; } to { opacity: 0; } }
+@keyframes tuIn { from { transform: scale(2.4); opacity: 0; } 14% { transform: scale(1); opacity: 1; } 22% { transform: scale(1.06); } 30% { transform: scale(1); } 78% { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.9); } }
+/* brighter, crisper pictures on the TV */
+.stage .q-pic img.q-pic-main, .stage .answer-bar .ans-img img { image-rendering: auto; filter: saturate(1.06) contrast(1.03); }
+@media (prefers-reduced-motion: reduce) { .stage .scell .crown, .stage .scell .flame, .stage .team-card .hot { animation: none; } }

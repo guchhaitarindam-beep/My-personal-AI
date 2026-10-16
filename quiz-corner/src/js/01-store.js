@@ -315,6 +315,17 @@ const Sel = {
     }
     return st;
   },
+  /** Correct answers in a row (own answers and challenges); a wrong answer or a no-score ends the run. */
+  streak(tid) {
+    let n = 0;
+    for (let i = Store.state.ledger.length - 1; i >= 0; i--) {
+      const e = Store.state.ledger[i]; if (e.team !== tid) continue;
+      if (e.kind === 'correct' || e.kind === 'challenge') n += 1; else if (e.kind === 'wrong' || e.kind === 'cwrong' || e.kind === 'noscore') break;
+    }
+    return n;
+  },
+  /** The team(s) in the lead (a score above 0) — they wear the crown on the score strip. */
+  leaders() { const ids = this.finalistIds(); const top = Math.max(0, ...ids.map((id) => this.score(id))); return top > 0 ? ids.filter((id) => this.score(id) === top) : []; },
   /** Best gain in a round ("round star"). */
   roundStar(rid) {
     const rows = this.standings(undefined, rid);
