@@ -629,12 +629,14 @@ const SelfTest = {
           for (const rid of ['R1', 'R2', 'R3']) {
             const q = Sel.roundQuestions(rid)[0]; Game.load(q.id, Sel.finalistIds()[0]);
             const h0 = Scenes.QUESTION(s(), { qid: q.id }).html;
-            out.push(!h0.includes('s-head') && !h0.includes('JUNIOR GENIUS') && !h0.includes('QUESTION 0') && !h0.includes('q-intro') && h0.includes('q-wrap clean alone') && h0.includes('sstrip') && Sel.qAlone());
+            out.push(!h0.includes('s-head') && !h0.includes('JUNIOR GENIUS') && !h0.includes('QUESTION 0') && !h0.includes('q-intro') && /q-wrap clean( pic)? alone/.test(h0) && (rid === 'R2' || (h0.includes('q-wrap clean pic alone') && h0.includes('q-pic-bg'))) && h0.includes('sstrip') && Sel.qAlone()); // a picture question fills the screen
             Actions.next(); const h1 = Scenes.QUESTION(s(), { qid: q.id }).html;
             out.push(s().show.scene === 'QUESTION' && s().live.panel && !h1.includes(' alone') && h1.includes('data-timer') && h1.includes('team-card'));
           }
           const q = Sel.roundQuestions('R1')[1]; Game.load(q.id, Sel.finalistIds()[1]); Timer.start('direct'); out.push(!Sel.qAlone()); Timer.pause(); out.push(!Sel.qAlone());
           Game.load(Sel.roundQuestions('R1')[2].id, Sel.finalistIds()[2]); s().live.deliverAt = now() - 13000; Authority.qPanel(s()); out.push(s().live.panel === true);
+          // a picture given for a round 2 question (its words in the picture) makes it a picture question too: only the picture on the TV
+          { const q2 = Sel.roundQuestions('R2')[3]; Object.assign(q2, { image: 'asset:r3pic_q01.jpg', picOnly: true }); Game.load(q2.id, Sel.finalistIds()[3]); const h2 = Scenes.QUESTION(s(), { qid: q2.id }).html; out.push(h2.includes('q-wrap clean pic alone') && !h2.includes('q-text"')); }
           const r5 = Sel.roundQuestions('R5')[0]; Game.load(r5.id); const h5 = Scenes.QUESTION(s(), { qid: r5.id }).html; out.push(!Sel.qAlone() && h5.includes('s-head'));
           return out.every(Boolean) || out.join();
         } finally { Store.state = keep; }

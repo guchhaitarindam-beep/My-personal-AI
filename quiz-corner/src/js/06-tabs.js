@@ -444,8 +444,11 @@ Object.assign(Actions, {
         try {
           const id = await Media.add(f, kind);
           const field = kind === 'image' ? 'image' : kind === 'audio' && m.voice !== 'clip' ? VOICE_FIELD[m.voice] : 'clip';
-          Store.commit('bulk-media', (s) => { const t = s.questions.find((x) => x.id === q.id); t[field] = id; });
-          const what = { image: 'picture', clip: 'clip', voiceQ: 'question reading', voiceOpt: 'options reading', voiceAns: 'answer reading' }[field];
+          // rounds 1–3: a picture is the whole question (its words are in the picture); "…-উত্তর" / "-ans" is the answer picture
+          const rd = Sel.round(q.roundId); const picRound = kind === 'image' && rd && rd.type !== 'rapid';
+          let wide = false; if (picRound && m.voice === 'ans') { try { const bm = await createImageBitmap(f); wide = bm.width / bm.height > 2.5; if (bm.close) bm.close(); } catch (e) { wide = false; } }
+          Store.commit('bulk-media', (s) => { const t = s.questions.find((x) => x.id === q.id); if (picRound && m.voice === 'ans') { t.answerImage = id; t.answerWide = wide; } else { t[field] = id; if (picRound) t.picOnly = true; } });
+          const what = picRound && m.voice === 'ans' ? 'answer picture' : picRound ? 'picture question' : { image: 'picture', clip: 'clip', voiceQ: 'question reading', voiceOpt: 'options reading', voiceAns: 'answer reading' }[field];
           done.push(f.name + ' → round ' + m.round + ', question ' + m.n + ' (' + what + ')');
         } catch (e) { skipped.push(f.name + ' (' + (e.message || 'could not open') + ')'); }
       }

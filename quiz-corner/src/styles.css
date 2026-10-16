@@ -1606,3 +1606,13 @@ fieldset.lockset[disabled] { opacity: .75; }
 .mthumb.wide { width: 56px; height: 42px; border-radius: 7px; }
 .mslot.pair .cam { padding: .15rem .35rem; }
 .stage .q-wrap.clean .q-side { padding-top: 9cqh; } /* room for the spinning corner logo above the team card */
+
+/* ---- a picture question alone on the TV: the picture fills the screen edge to edge (only the scores underneath) ---- */
+.q-card.pic-only .q-pic { overflow: hidden; }
+.q-card.pic-only .q-pic img.q-pic-bg { display: none; }
+.stage .q-wrap.pic.alone { margin: -3.2cqh -3.2cqw 0; }
+.stage .q-wrap.pic.alone .q-main, .stage .q-wrap.pic.alone .q-card.pic-only { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; }
+.stage .q-wrap.pic.alone .q-main::before, .stage .q-wrap.pic.alone .q-main::after, .stage .q-wrap.pic.alone .q-card::before, .stage .q-wrap.pic.alone .q-card::after { display: none; }
+.stage .q-wrap.pic.alone .q-pic img.q-pic-main { border: 0; border-radius: 0; box-shadow: 0 0 6cqh rgba(0, 0, 0, .7); }
+.stage .q-wrap.pic.alone .q-pic img.q-pic-bg { display: block; position: absolute; inset: -4%; width: 108%; height: 108%; max-width: none; max-height: none; object-fit: cover; filter: blur(3cqh) brightness(.45) saturate(1.2); border: 0; border-radius: 0; box-shadow: none; animation: none; }
+.stage .q-wrap { transition: grid-template-columns calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1), gap calc(.9s / var(--anim-speed, 1)), margin calc(.9s / var(--anim-speed, 1)) cubic-bezier(.2, .8, .2, 1); }
