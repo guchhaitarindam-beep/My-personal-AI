@@ -256,6 +256,20 @@ const UI = {
     this.renderClock();
     if (focusKey) { const [a, g] = focusKey.split('|'); const f = $$('[data-act="' + a + '"]', host).find((x) => (x.dataset.arg || '') === g); if (f) f.focus(); }
   },
+  /** Go to any part of the show at once — every round's start, board and scores (scores are never touched). */
+  jumpBar(s, rd, i) {
+    const at = (pred) => rd.findIndex(pred);
+    const btn = (k, label, cls = '') => (k >= 0 ? '<button class="btn sm ' + cls + (k === i ? ' on' : '') + '" data-act="goStep" data-arg="' + k + '">' + label + '</button>' : '');
+    let h = btn(0, '🏁 Start') + btn(at((x) => x.scene === 'PRELIM_RULES' || x.scene === 'PRELIM_RESULT'), '📝 Prelim') + btn(at((x) => x.scene === 'WELCOME'), '👋 Teams') + btn(at((x) => x.scene === 'MAIN_COUNTDOWN'), '⏱ Main countdown');
+    s.rounds.forEach((r, ri) => {
+      if (!r.enabled || !Sel.roundQuestions(r.id).length) return;
+      const st = at((x) => x.params && x.params.roundId === r.id && x.scene === 'ROUND_INTRO'); if (st < 0) return;
+      const inRound = rd[i] && rd[i].params && rd[i].params.roundId === r.id;
+      h += '<span class="jb-round' + (inRound ? ' cur' : '') + '"><b>' + esc(r.name) + '</b>' + btn(st, '▶ Start') + btn(at((x) => x.params && x.params.roundId === r.id && x.scene === 'GRID'), '🔢 Board') + btn(at((x) => x.params && x.params.roundId === r.id && x.scene === 'SCOREBOARD'), '📊 Scores') + '</span>';
+    });
+    h += btn(at((x) => x.scene === 'FINAL'), '🏆 Final result') + btn(at((x) => x.scene === 'WINNER'), '🥇 Champion') + btn(at((x) => x.scene === 'END'), '🙏 End');
+    return '<div class="card jumpbar"><div class="deck-sep">⤴ Go to — any part of the show, any time (scores stay as they are; Ctrl+Z goes back)</div><div class="jb">' + h + '</div></div>';
+  },
   liveHtml() {
     const s = Store.state;
     const rd = Show.rundown(); const i = Show.index();
@@ -265,6 +279,7 @@ const UI = {
     let out = s.show.blackout ? '<div class="card blackout-alert"><b>⚠ The TV screen is black now (Blackout)</b><span>The audience sees nothing.</span>' + b('blackout', '▶ Show on TV again', 'lg good', '', 'B') + '</div>' : '';
     out += '<div class="card"><div class="now"><div><div class="scene-name">' + esc(cur ? cur.label : SCENE_LABELS[s.show.scene] || SCENES[s.show.scene] || s.show.scene) + '</div><div class="scene-sub">Step ' + (i + 1) + ' / ' + rd.length + (nxt ? ' • Next: ' + esc(nxt.label) : '') + '</div></div><span></span><div class="bigtime" id="bigTime">60</div></div>';
     out += '<div class="deck" style="margin-top:.6rem">' + b('prev', '◀ Previous', 'lg', '', '←') + b('next', 'Next ▶', 'lg primary', '', '→') + b('timerToggle', '▶ Start', 'lg', '', '') + b('replay', '↻ Replay scene', '') + b('scoreboard', '📊 Scoreboard', '', '', 'S') + '</div></div>';
+    out += this.jumpBar(s, rd, i);
     out = this.heroHtml(s, b) + out;
     if (s.settings.coach) out += Coach.html(s);
     out += this.contextDeck(s, b);

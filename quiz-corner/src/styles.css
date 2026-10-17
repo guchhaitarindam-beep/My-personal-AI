@@ -1693,3 +1693,8 @@ fieldset.lockset[disabled] { opacity: .75; }
 .clip-path { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .4rem 0; }
 .clip-path code { font-size: 1rem; padding: .3rem .6rem; border-radius: 6px; background: rgba(0, 0, 0, .35); user-select: all; word-break: break-all; }
 .warnbox { border: 2px solid var(--warn); }
+.jumpbar .jb { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .4rem; }
+.jumpbar .jb-round { display: inline-flex; gap: .25rem; align-items: center; padding: .2rem .4rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .15); }
+.jumpbar .jb-round.cur { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.jumpbar .jb-round b { font-size: .85rem; margin-right: .2rem; }
+.jumpbar .btn.on { outline: 2px solid var(--gold); }
