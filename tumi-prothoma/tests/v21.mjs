@@ -23,6 +23,15 @@ ok(await p.evaluate(() => JSON.stringify(window.DIDI.standings().map((r) => r.to
 await p.click('#panel .jumpbar [data-v="r2"]'); await p.waitForTimeout(800);
 ok(await tv.evaluate(() => window.DIDI.S().scene) === 'r2', 'TV window follows the jump');
 await p.screenshot({ path: out + '/jump.png' });
+// scores: exact totals, ranks with ties, undo, and the TV scoreboard shows the same numbers
+await p.evaluate(() => { const A = window.DIDI.A; [['t1', 10], ['t2', 5], ['t3', 10], ['t2', 5], ['t4', -5]].forEach(([t, d]) => A.adj({ dataset: { t, d } })); });
+const st = await p.evaluate(() => window.DIDI.standings().map((r) => [r.t.id, r.tot, r.rank]));
+ok(JSON.stringify(st.slice(0, 3)) === JSON.stringify([['t1', 10, 1], ['t2', 10, 1], ['t3', 10, 1]]) && st[7][1] === -5 && st[7][2] === 8, 'totals and tied ranks ' + JSON.stringify(st));
+await p.evaluate(() => window.DIDI.A.undo()); ok(await p.evaluate(() => window.DIDI.total('t4')) === 0, 'undo takes back the last score');
+await p.evaluate(() => { window.DIDI.go('final'); window.DIDI.A.finAll(); }); await tv.waitForTimeout(1200);
+const rows = await tv.evaluate(() => [...document.querySelectorAll('.sb-r')].map((r) => r.querySelector('.sb-n').textContent + '=' + r.querySelector('.sb-tot').textContent));
+ok(rows.length === 8 && rows.filter((r) => /=১০$/.test(r)).length === 3, 'TV final scoreboard matches ' + rows.join(' '));
+await p.evaluate(() => { window.DIDI.A.finNext && 0; });
 await p.click('[data-a="preCheck"]'); await p.waitForTimeout(300);
 ok(await p.locator('#pcov:not([hidden]) .pcl span').count() >= 20, 'pre-show check opens with rows');
 await p.click('#pcov [data-a="preMedia"]'); await p.waitForFunction(() => /OK/.test(document.querySelector('#pcov h2').textContent) && !/Testing/.test((document.querySelector('#pcmsg') || {}).textContent || ''), null, { timeout: 120000 });
