@@ -622,6 +622,17 @@ const SelfTest = {
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
       T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R5')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R5'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return /রাউন্ড [০-৯]/.test(h); })(); });
+      T('PowerPoint import: question → 4 options → 2 options → answer slides become one question with the right option; a picture slide with a picture-filled box on click is a picture question; buttons and numbers are ignored; the round comes from the file name', () => {
+        const S = 100 * 100; const box = (x) => Object.assign({ x: 0, y: 0, w: 10, h: 10, anim: false, id: '' }, x);
+        const t1 = { n: 1, pics: [], fills: [], media: [], texts: [box({ text: 'ভারতের সংবিধানের রক্ষক হিসেবে কোন প্রতিষ্ঠানকে অভিহিত  করা হয় .' }), box({ text: '3' }), box({ text: 'ANSWER' })] };
+        const t2 = { n: 2, pics: [], fills: [], media: [], texts: t1.texts.slice(0, 1).concat(['A. জেলা কোর্ট', 'B. হাইকোর্ট', 'C. রাষ্ট্রপতি', 'D. সুপ্রিম কোর্ট।'].map((x) => box({ text: x }))) };
+        const t3 = { n: 3, pics: [], fills: [], media: [], texts: t1.texts.slice(0, 1).concat([box({ text: 'সুপ্রিম কোর্ট।', anim: true }), box({ text: 'NEXT' })]) };
+        const p1 = { n: 4, texts: [box({ text: 'ANSWER' })], media: [], pics: [box({ path: 'q.jpg', w: 100, h: 90 })], fills: [box({ path: 'a.jpg', w: 80, h: 10, anim: true })] };
+        const list = PptxImport.merge([t1, t2, t3, p1].map((x) => PptxImport.classify(x, S)).filter(Boolean));
+        const q = list[0]; const p = list[1];
+        const rounds = Store.state.rounds;
+        return (list.length === 2 && q.kind === 'text' && q.slides.join() === '1,2,3' && q.options[q.answer] === 'সুপ্রিম কোর্ট' && q.text.endsWith('করা হয়?') && p.kind === 'pic' && p.image.path === 'q.jpg' && p.answerImage.path === 'a.jpg' && PptxImport.roundFromName('2ND_ROUND.pptx', rounds) === 'R2' && PptxImport.roundFromName('quiz রাউন্ড ৩.pptx', rounds) === 'R3' && PptxImport.roundFromName('First round', rounds) === 'R1') || JSON.stringify(list.map((x) => [x.kind, x.slides, x.options, x.answer, x.text])).slice(0, 300);
+      });
       T('Score strip: the leader wears a crown, two correct answers in a row show a flame; a wrong answer ends the run', () => {
         const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
         try {
@@ -771,6 +782,6 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix, PptxImport, PptxUI });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

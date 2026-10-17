@@ -1653,3 +1653,14 @@ fieldset.lockset[disabled] { opacity: .75; }
 /* brighter, crisper pictures on the TV */
 .stage .q-pic img.q-pic-main, .stage .answer-bar .ans-img img { image-rendering: auto; filter: saturate(1.06) contrast(1.03); }
 @media (prefers-reduced-motion: reduce) { .stage .scell .crown, .stage .scell .flame, .stage .team-card .hot { animation: none; } }
+
+/* ---- PowerPoint import window ---- */
+.pptx-deck { margin-top: .6rem; }
+.pptx-list { max-height: 46vh; overflow: auto; }
+.pptx-it { display: grid; grid-template-columns: auto 96px 1fr; gap: .6rem; align-items: center; cursor: pointer; }
+.pptx-it.off { opacity: .45; }
+.pptx-th { width: 96px; height: 60px; object-fit: contain; border-radius: 6px; background: rgba(255, 255, 255, .06); display: grid; place-items: center; font-size: 1.6rem; }
+.pptx-ans { display: block; font-size: .85rem; margin-top: .2rem; }
+.pptx-ans img { height: 28px; vertical-align: middle; border-radius: 4px; }
+.pptx-ans.ok { color: var(--correct); }
+.pptx-ans.warn { color: var(--warn); }
