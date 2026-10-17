@@ -1664,3 +1664,28 @@ fieldset.lockset[disabled] { opacity: .75; }
 .pptx-ans img { height: 28px; vertical-align: middle; border-radius: 4px; }
 .pptx-ans.ok { color: var(--correct); }
 .pptx-ans.warn { color: var(--warn); }
+
+/* ---- a question's audio / video first, full screen (only the scores underneath) ---- */
+.stage .q-clipfull { flex: 1 1 auto; min-height: 0; margin: -3.2cqh -3.2cqw 0; position: relative; overflow: hidden; background: #000; display: grid; place-items: center; }
+.stage .layer:has(> .q-clipfull) { padding-bottom: 1.2cqh; }
+.stage .layer:has(> .q-clipfull) > .sstrip { margin-top: .8cqh; }
+.stage .q-clipfull video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.stage .q-clipfull.audio { background: radial-gradient(ellipse at center, color-mix(in srgb, var(--gold) 22%, #0a1030), #050814 75%); }
+.stage .q-clipfull .cf-bg { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; filter: blur(3cqh) brightness(.45); }
+.stage .cf-audio { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3cqh; color: #fff; }
+.stage .cf-note { font-size: 34cqh; line-height: 1; color: var(--gold); text-shadow: 0 0 6cqh color-mix(in srgb, var(--gold) 70%, transparent); animation: cfNote 1.6s ease-in-out infinite; }
+@keyframes cfNote { 0%, 100% { transform: scale(1) rotate(-4deg); } 50% { transform: scale(1.08) rotate(4deg); } }
+.stage .cf-eq { display: flex; gap: 1.4cqw; align-items: flex-end; height: 16cqh; }
+.stage .cf-eq i { display: block; width: 2.6cqw; height: 100%; border-radius: 1cqh; background: linear-gradient(0deg, var(--gold), #fff3b0); transform-origin: bottom; animation: cfBar calc(.7s + var(--i) * .07s) ease-in-out calc(var(--i) * -.13s) infinite alternate; }
+@keyframes cfBar { from { transform: scaleY(.15); } to { transform: scaleY(1); } }
+.stage .cf-audio b { font-size: 7cqh; font-weight: 900; letter-spacing: .05em; text-shadow: 0 .5cqh 2cqh rgba(0, 0, 0, .6); }
+.stage .clip-hidden { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---- audio / video page ---- */
+.clip-list { max-height: 52vh; overflow: auto; }
+.clip-row { grid-template-columns: auto 1fr auto; }
+.clip-row.has { border-color: color-mix(in srgb, var(--correct) 60%, transparent); }
+.clip-row.over, .clip-bulk.over { outline: 3px dashed var(--gold); outline-offset: 2px; background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.clip-has { color: var(--correct); font-weight: 700; }
+.clip-bulk { margin-top: .5rem; }
+.home-card.media { border-color: color-mix(in srgb, var(--gold) 70%, transparent); }

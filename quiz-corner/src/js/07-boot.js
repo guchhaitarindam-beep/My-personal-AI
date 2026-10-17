@@ -633,6 +633,22 @@ const SelfTest = {
         const rounds = Store.state.rounds;
         return (list.length === 2 && q.kind === 'text' && q.slides.join() === '1,2,3' && q.options[q.answer] === 'সুপ্রিম কোর্ট' && q.text.endsWith('করা হয়?') && p.kind === 'pic' && p.image.path === 'q.jpg' && p.answerImage.path === 'a.jpg' && PptxImport.roundFromName('2ND_ROUND.pptx', rounds) === 'R2' && PptxImport.roundFromName('quiz রাউন্ড ৩.pptx', rounds) === 'R3' && PptxImport.roundFromName('First round', rounds) === 'R1') || JSON.stringify(list.map((x) => [x.kind, x.slides, x.options, x.answer, x.text])).slice(0, 300);
       });
+      T('Audio / video question: plays by itself full screen first (no card, no badge); Next brings the question alone, then the team photo and timer; a video stops, audio goes on', () => {
+        const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
+        try {
+          const q = Sel.roundQuestions('R2')[2]; q.clip = 'test-song.mp3';
+          Game.load(q.id, Sel.finalistIds()[0]);
+          const h0 = Scenes.QUESTION(s(), { qid: q.id }).html;
+          const a = Sel.qClip() && s().live.clip.action === 'play' && h0.includes('q-clipfull audio') && !h0.includes('q-wrap') && h0.includes('sstrip') && h0.includes('data-clip');
+          Actions.next(); const h1 = Scenes.QUESTION(s(), { qid: q.id }).html;
+          const b = !Sel.qClip() && Sel.qAlone() && s().live.clipDone && s().live.clip.action === 'play' && h1.includes('q-wrap clean alone') && h1.includes('aclip-' + q.id);
+          Actions.next(); const c = s().live.panel === true;
+          const v = Sel.roundQuestions('R2')[3]; v.clip = 'test-film.mp4'; Game.load(v.id, Sel.finalistIds()[1]);
+          const hv = Scenes.QUESTION(s(), { qid: v.id }).html; Actions.next();
+          const d = hv.includes('q-clipfull video') && hv.includes('<video data-clip') && s().live.clip.action === 'stop' && Sel.qAlone();
+          return (a && b && c && d) || [a, b, c, d].join();
+        } finally { Store.state = keep; }
+      });
       T('Score strip: the leader wears a crown, two correct answers in a row show a flame; a wrong answer ends the run', () => {
         const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
         try {
@@ -704,6 +720,22 @@ const SelfTest = {
    AUTHORITY CLOCK — only the Control window decides timeouts and
    countdown beeps, so two windows can never double-fire a cue.
    ===================================================================== */
+/** How long a question's audio / video lasts (read once from the file, in the control window). */
+const ClipLen = {
+  ms: {},
+  get(id) {
+    if (id in this.ms) return this.ms[id];
+    this.ms[id] = 0;
+    Promise.resolve(Media.url(id)).then((u) => {
+      if (!u) return;
+      const el = document.createElement(Sel.clipKind({ clip: id }) === 'audio' ? 'audio' : 'video'); el.preload = 'metadata'; el.muted = true;
+      el.onloadedmetadata = () => { this.ms[id] = Number.isFinite(el.duration) ? Math.round(el.duration * 1000) : 0; el.removeAttribute('src'); el.load(); };
+      el.src = u;
+    }).catch(() => {});
+    return 0;
+  },
+};
+
 const Authority = {
   cdKey: '',
   cdStep: -1,
@@ -711,7 +743,12 @@ const Authority = {
     setInterval(() => safe('authority', () => this.tick()), 100);
   },
   /** rounds 1–3: after the question has been alone on the TV for a while, the team photo and the timer come in by themselves */
-  qPanel(s) { if (Sel.qAlone(s) && now() - s.live.deliverAt >= int(s.settings.qAloneSec, 12, 0, 120) * 1000) Store.commit('q-panel', (st) => { st.live.panel = true; }, { undo: false }); },
+  qPanel(s) {
+    const l = s.live;
+    // audio / video first: when it has played to the end, the question comes by itself
+    if (Sel.qClip(s)) { const q = Sel.question(l.qid); const ms = ClipLen.get(q.clip); if (ms && l.clip && l.clip.action === 'play' && now() - l.clip.at >= ms + 700) Game.clipDone(); return; }
+    if (Sel.qAlone(s) && now() - (l.clipAt || l.deliverAt) >= int(s.settings.qAloneSec, 12, 0, 120) * 1000) Store.commit('q-panel', (st) => { st.live.panel = true; }, { undo: false });
+  },
   tick() {
     if (Store.sandbox) return;
     Timer.tick();

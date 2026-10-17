@@ -143,7 +143,7 @@ const TabRender = {
         '<div class="row">' + F.check(p + '.picOnly', 'Picture question — the TV shows only the picture (no typed words)', q.picOnly) + F.check(p + '.answerWide', 'Answer picture is a strip — shown under the question picture', q.answerWide) + '</div>' +
         '<div class="row">' + F.media(p + '.image', 'Question picture', q.image) + F.media(p + '.answerImage', 'Answer picture (only after the answer button)', q.answerImage) + F.media(p + '.clip', 'Audio / video clip', q.clip, 'audio/*,video/*', 'video') + '<div class="deck" style="flex:1">' + F.btn('showQ', '▶ Show on stage', 'good', q.id) + F.btn('qEdit', 'Close', '', '') + '</div></div>');
     }
-    return editor + F.card('Question manager', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ New question', 'primary') + F.btn('importOpen', '⇧ Import (CSV / Excel / JSON / text)', 'warn') + F.btn('pptxOpen', '📊 Import old PowerPoints (.pptx) — one, many or a folder', 'primary') + F.btn('qMediaBulk', '🖼 All pictures / audio / video at once (name: R1-5.jpg)', 'primary') + F.btn('voiceList', '🎙 Recording list (what to read in each file)') + F.btn('csvTemplate', '⇩ Blank CSV template') + F.btn('exportQuestionsCsv', '⇩ Questions CSV') + F.btn('exportQuestions', '⇩ Questions JSON') + F.btn('bankAudit', '🔎 Spelling & question-bank check') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="Time (seconds)">' + F.btn('setTimeAll', '⏱ Set this time for ' + (filter ? 'this round\'s' : 'all') + ' questions') + F.btn('setTimeClear', 'Time back to round default') + F.btn('shuffleAnswers', '🔀 Shuffle answer positions') + F.btn('resetBoard', '♻ Clear all "used" marks') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">No questions in this round</p>') + '</div>');
+    return editor + F.card('Question manager', filt + '<div class="row" style="margin:.5rem 0">' + F.btn('qNew', '+ New question', 'primary') + F.btn('importOpen', '⇧ Import (CSV / Excel / JSON / text)', 'warn') + F.btn('pptxOpen', '📊 Import old PowerPoints (.pptx) — one, many or a folder', 'primary') + F.btn('clipPage', '🎬 Audio / Video for questions', 'primary') + F.btn('qMediaBulk', '🖼 All pictures / audio / video at once (name: R1-5.jpg)', 'primary') + F.btn('voiceList', '🎙 Recording list (what to read in each file)') + F.btn('csvTemplate', '⇩ Blank CSV template') + F.btn('exportQuestionsCsv', '⇩ Questions CSV') + F.btn('exportQuestions', '⇩ Questions JSON') + F.btn('bankAudit', '🔎 Spelling & question-bank check') + '</div><div class="row" style="margin:.5rem 0"><input id="allTime" type="number" min="5" max="600" value="60" style="width:90px" aria-label="Time (seconds)">' + F.btn('setTimeAll', '⏱ Set this time for ' + (filter ? 'this round\'s' : 'all') + ' questions') + F.btn('setTimeClear', 'Time back to round default') + F.btn('shuffleAnswers', '🔀 Shuffle answer positions') + F.btn('resetBoard', '♻ Clear all "used" marks') + '</div><div class="list" data-keep-scroll="ql" style="max-height:62vh;overflow:auto">' + (rows || '<p class="muted">No questions in this round</p>') + '</div>');
   },
 
   /* ---------------- ROUNDS ---------------- */
@@ -433,8 +433,13 @@ Object.assign(Actions, {
   /** All pictures / sounds / videos for the questions in one go: a file named R1-5.jpg goes to round 1, question 5. */
   qMediaBulk() {
     const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,audio/*,video/*,.mp3,.m4a,.wav,.ogg,.webm';
-    inp.onchange = async () => {
-      const files = Array.from(inp.files || []); if (!files.length) return;
+    inp.onchange = () => Actions.qMediaBulkFiles(Array.from(inp.files || []));
+    inp.click();
+  },
+  /** Files named R1-5.jpg / R2-3-clip.mp4 / R3-7-উত্তর.jpg … go to their questions (picked or dropped). */
+  qMediaBulkFiles(files, asClip = false) { // asClip: from the audio / video page — a plain R1-5.mp3 is the question's sound, not a reading
+    const run = async () => {
+      if (!files.length) return;
       const done = []; const skipped = [];
       for (const f of files) {
         const m = bulkMediaTarget(f.name);
@@ -443,7 +448,7 @@ Object.assign(Actions, {
         const kind = /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif)$/i.test(f.name) ? 'image' : /^audio\//.test(f.type) || /\.(mp3|wav|m4a|ogg)$/i.test(f.name) ? 'audio' : 'video';
         try {
           const id = await Media.add(f, kind);
-          const field = kind === 'image' ? 'image' : kind === 'audio' && m.voice !== 'clip' ? VOICE_FIELD[m.voice] : 'clip';
+          const field = kind === 'image' ? 'image' : kind === 'audio' && m.voice !== 'clip' && !(asClip && m.voice === 'q') ? VOICE_FIELD[m.voice] : 'clip';
           // rounds 1–3: a picture is the whole question (its words are in the picture); "…-উত্তর" / "-ans" is the answer picture
           const rd = Sel.round(q.roundId); const picRound = kind === 'image' && rd && rd.type !== 'rapid';
           let wide = false; if (picRound && m.voice === 'ans') { try { const bm = await createImageBitmap(f); wide = bm.width / bm.height > 2.5; if (bm.close) bm.close(); } catch (e) { wide = false; } }
@@ -454,7 +459,7 @@ Object.assign(Actions, {
       }
       UI.modal('Pictures / audio / video at once', '<p class="ok">' + done.length + ' file(s) placed on questions.</p>' + (done.length ? '<div class="list" style="max-height:30vh;overflow:auto">' + done.map((x) => '<div class="li">✔ ' + esc(x) + '</div>').join('') + '</div>' : '') + (skipped.length ? '<p class="badge-warn">' + skipped.length + ' file name(s) did not say which question — name files like this: R1-5.jpg (round 1, question 5 — picture), R1-5.mp3 (question reading), R1-5-opt.mp3 (options), R1-5-ans.mp3 (answer), R1-5-clip.mp3 (sound clip)</p><div class="list">' + skipped.map((x) => '<div class="li">✘ ' + esc(x) + '</div>').join('') + '</div>' : ''));
     };
-    inp.click();
+    run();
   },
   async musicPick(slot) { const id = await pickMedia('audio/*,.mp3,.wav,.m4a', 'audio'); if (id) Store.commit('music-pick', (s) => { s.audio.music[slot].media = id; }); },
   musicReset(slot) { Store.commit('music-reset', (s) => { s.audio.music[slot].media = { theme: 'asset:theme', welcome: 'asset:welcome' }[slot] || ''; }); },

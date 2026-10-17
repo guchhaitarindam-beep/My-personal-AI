@@ -340,6 +340,9 @@ const Sel = {
     return this.round(s.live.roundId) || this.round(s.show.params.roundId) || s.rounds.find((r) => r.enabled) || s.rounds[0];
   },
   liveQuestion() { return this.question(Store.state.live.qid); },
+  /** Rounds 1–3: a question with audio / video plays it full screen first (before the question itself is shown). */
+  qClip(s = Store.state) { const l = s.live; const q = this.question(l.qid); return !!(q && q.clip) && !l.clipDone && this.qAlone(s); },
+  clipKind(q) { if (!q || !q.clip) return ''; const m = Media.index.find((x) => x.id === q.clip); return (m && m.kind) || (/\.(mp3|wav|m4a|ogg|aac|wma)$/i.test(q.clip) ? 'audio' : 'video'); },
   /** Rounds 1–3 (not the buzzer round): the question is first alone on the TV, full screen, with only the scores underneath.
       True while it still is — the team photo and the timer come in after settings.qAloneSec, on Next, or as soon as play starts. */
   qAlone(s = Store.state) {
@@ -814,6 +817,13 @@ const Game = {
     if (Store.state.live.revealed) { Cue.play('reveal'); Speech.readAnswer(); }
     return true;
   },
+  /** The full-screen audio / video has ended (or Next was pressed): now the question itself, full screen. A video stops; audio may go on. */
+  clipDone() {
+    const q = Sel.liveQuestion(); if (!q) return false;
+    const video = Sel.clipKind(q) !== 'audio';
+    Store.commit('clip-done', (s) => { s.live.clipDone = true; s.live.clipAt = now(); if (video) s.live.clip = { action: 'stop', at: now() }; }, { undo: false });
+    return true;
+  },
   /** Load a main-round question onto the stage. */
   load(qid, teamId) {
     const q = Sel.question(qid);
@@ -826,6 +836,7 @@ const Game = {
       const owner = rapid ? '' : (teamId || Sel.turnTeam(r));
       s.live = Object.assign(emptyLive(), { qid, roundId: q.roundId, active: rapid ? (teamId || '') : owner, owner, audience: !rapid && !owner && Sel.finalistIds().length > 0, deliverAt: now(), drone });
       s.board.played[qid] = owner || true; // which team played it (true: an audience question) — the board shows the team's code
+      if (q.clip && !rapid) s.live.clip = { action: 'play', at: now() }; // rounds 1–3: the question's audio / video starts by itself, full screen
       // rapid fire plays with two options: a four-option question is cut to two; a question that has only two is never cut (that would leave only the answer)
       if (r && r.features.twoOptions) { const w = this.wrongIndexes(q); s.live.eliminated = q.options.filter(Boolean).length > 2 ? w.slice(0, Math.max(0, q.options.filter(Boolean).length - 2)) : []; }
       if (r && (r.type === 'rapid' || (!r.features.judgeOptions && r.features.options && !r.features.challenge))) s.live.optionsShown = r.type === 'rapid';

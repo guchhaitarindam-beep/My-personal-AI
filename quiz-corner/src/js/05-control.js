@@ -301,7 +301,7 @@ const UI = {
       const pc = Game.pointsFor('correct'); const pw = Game.pointsFor('wrong');
       h += '<div class="card"><h3>Question controls <span class="hint">' + esc(r ? r.name : '') + ' • ' + Game.flowName(l.flow) + (ans ? ' • Answering: ' + esc(ans.name) : '') + '</span></h3>';
       if (q) h += '<div class="qm-box"><div class="q">' + esc(q.text) + '</div>' + this.ansHtml((q.options[q.answer] && !q.answerText ? OPT_LABELS[q.answer] + ') ' : '') + (q.answerText || q.options[q.answer] || '—'), s) + '</div>';
-      if (q && q.clip) h += '<div class="deck" style="margin-top:.5rem"><div class="deck-sep">🎬 Question audio / video</div>' + b('clip', '▶ Play', 'good', 'play') + b('clip', '⏸ Pause', '', 'pause') + b('clip', '⟲ From start', '', 'restart') + b('clip', '■ Stop', 'bad', 'stop') + '</div>';
+      if (q && q.clip) h += '<div class="deck" style="margin-top:.5rem"><div class="deck-sep">🎬 Question audio / video' + (Sel.qClip() ? ' — <b>playing full screen</b>: the question comes when it ends, or press Next ▶' : '') + '</div>' + b('clip', '▶ Play', 'good', 'play') + b('clip', '⏸ Pause', '', 'pause') + b('clip', '⟲ From start', '', 'restart') + b('clip', '■ Stop', 'bad', 'stop') + '</div>';
       h += '<div class="deck" style="margin-top:.6rem">' + b('judge', '✓ Correct ' + signed(pc), 'lg good', 'correct', 'C') + b('judge', '✗ Wrong ' + (pw ? signed(pw) : ''), 'lg bad', 'wrong', 'X') + b('judge', '○ No score', 'lg', 'noscore', 'N') + b('reveal', l.revealed ? '🙈 Hide answer' : '👁 Show answer', 'lg gold', '', 'R') + b('lock', l.locked ? '🔒 Locked (click to unlock)' : '🔓 Lock', l.locked ? 'lock-on' : '', '', 'L') + b('replay', '⟲ Reset question');
       h += '<div class="deck-sep">Flow</div>' + b('pass', (r && r.type === 'bonus' ? '➜ Bonus: next team' : '➜ Pass: next team') + ' (' + Timer.durationFor('pass') + 's)', 'violet span2', '', 'P', r && !r.features.pass) + b('challengePick', '⚔ Challenge', 'warn' + (this.picker === 'challenge' ? ' on' : ''), '', 'H', r && !r.features.challenge) + b('options', l.optionsShown ? 'Hide options' : 'Show 4 options (' + (r ? r.scoring.options4 : 5) + ')', '', '', 'V', !q || q.options.filter(Boolean).length < 2 || (r && !r.features.options)) + (r && r.features.cutToTwo === false ? '' : b('twoOptions', 'Cut to 2 options (' + (r ? r.scoring.options2 : 3) + ')', '', '', '⇧V', !q || (r && !r.features.options) || l.eliminated.length >= 2));
       if (q && l.optionsShown) h += '<div class="deck-sep">Option chosen by the team' + (r && r.features.judgeOptions ? ' (judged instantly)' : '') + '</div>' + q.options.map((o, i) => (o ? b('pick', OPT_LABELS[i] + ') ' + esc(o.slice(0, 22)), l.picked === i ? 'on' : '', String(i), '', l.eliminated.includes(i)) : '')).join('');
@@ -489,6 +489,8 @@ function HomeCards(s) {
     card('newGame', '✚', 'New Event', 'Scores back to zero — teams, questions and photos kept', 'warn') +
     card('rehearsalToggle', '🎭', Store.rehearsal ? 'End Rehearsal' : 'Rehearsal Mode', Store.rehearsal ? 'Back to the real event exactly as it was' : 'Practise freely — the real event stays safe', 'reh' + (Store.rehearsal ? ' on' : '')) +
     card('skipToMain', '⏭', 'Skip to Main Round', 'Straight to the main-round opening and countdown') +
+    card('clipPage', '🎬', 'Audio / Video', 'অডিও / ভিডিও — give a question its sound or film (plays full screen first)', 'media') +
+    card('pptxOpen', '📊', 'Import PowerPoints', 'পুরনো কুইজের .pptx — one, many or a whole folder') +
     '</section><h4 class="home-sub">Event settings</h4>';
 }
 function SettingsHome(s) {
@@ -614,7 +616,7 @@ const Actions = {
   stopAudio() { AudioDirector.stopAll(); Cue.music('theme', 'stop'); Cue.music('welcome', 'stop'); Cue.music('winner', 'stop'); Cue.music('background', 'stop'); Speech.stop(); },
   shortcuts() { UI.modal('Keyboard shortcuts', '<div class="kbd-grid">' + SHORTCUTS.map(([k, d]) => '<div><kbd>' + esc(k) + '</kbd><span>' + esc(d) + '</span></div>').join('') + '</div>'); },
   prev() { Show.prev(); },
-  next() { if (Sel.qAlone()) { Store.commit('q-panel', (s) => { s.live.panel = true; }, { undo: false }); return; } Show.next(); }, // first Next on a question: the team photo and the timer come in
+  next() { if (Sel.qClip()) { Game.clipDone(); return; } if (Sel.qAlone()) { Store.commit('q-panel', (s) => { s.live.panel = true; }, { undo: false }); return; } Show.next(); }, // first Next on a question: the team photo and the timer come in
   replay() { const rd = Show.rundown(); const st = rd[Show.index()] || { key: Show.currentKey(), scene: Store.state.show.scene, params: Store.state.show.params }; if (st.scene === 'QUESTION') { Game.load(st.params.qid, Store.state.live.active); Store.commit('replay', (s) => { s.show.startedAt = now(); }, { undo: false }); } else Show.go(st); },
   goStep(i) { const st = Show.rundown()[int(i)]; if (st) Show.go(st); },
   jump(scene) { if (scene === 'SCOREBOARD') Show.scoreboard(); else Show.jump(scene); },

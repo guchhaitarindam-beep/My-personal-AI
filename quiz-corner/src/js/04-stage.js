@@ -342,10 +342,14 @@ const Scenes = {
     else side = H.teamCard(active, flowTag, active ? Sel.score(active.id) : 0);
     const hands = l.hands.length ? H.part('hands', '<div class="hands-title">✋ ' + (r && r.features.singleChallenger ? 'বাজার চেপে চ্যালেঞ্জ' : 'চ্যালেঞ্জ / হাত তুলেছে') + '</div>' + l.hands.map((id) => { const t = Sel.team(id); const j = l.handsJudged[id]; return t ? '<span class="hand ' + (j || '') + '" style="' + H.teamVars(t) + '">' + (j === 'right' ? '✓' : j === 'wrong' ? '✕' : '✋') + ' ' + H.tn(t) + '</span>' : ''; }).join(''), 'hands-rack glass') : '';
     const lifelines = s.settings.showLifelines && r && r.features.lifelines && active ? H.part('life', [['fifty', '50:50'], ['poll', 'POLL'], ['flip', 'FLIP']].map(([k, lab]) => '<span class="' + (Sel.lifelineUsed(active.id, k) ? 'used' : '') + '">' + lab + '</span>').join(''), 'lifeline-row') : '';
-    const clipKind = q.clip ? ((Media.index.find((m) => m.id === q.clip) || {}).kind || (/\.(mp3|wav|m4a|ogg)$/i.test(q.clip) ? 'audio' : 'video')) : '';
-    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const clean = !!r && r.type !== 'rapid';
+    const clipKind = Sel.clipKind(q);
+    // rounds 1–3: the audio element lives outside the card (one element through every phase, so the music never restarts)
+    const audioPart = clean && clipKind === 'audio' ? H.part('aclip-' + q.id, '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio>', 'clip-hidden') : '';
+    const clipFirst = clean && Sel.qClip(s);
+    const img = q.clip ? '<div class="q-img">' + (clipKind === 'audio' && clean ? '<div class="clip-audio">♪</div>' : clipKind === 'audio' ? '<div class="clip-audio">♪<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio></div>' : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>') + '</div>' : q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
     // a picture question: only the picture on the card (the words are in the picture); the answer picture appears only after the reveal
-    const pic = q.picOnly && q.image && !q.clip;
+    const pic = q.picOnly && q.image && (clean || !q.clip);
     const picNow = pic && l.revealed && q.answerImage && !q.answerWide ? q.answerImage : q.image;
     const showOpts = l.optionsShown && q.options.filter(Boolean).length >= 2;
     const opts = showOpts ? H.part('opts', q.options.map((o, i) => {
@@ -361,15 +365,18 @@ const Scenes = {
     const qFont = r && r.design.questionFont ? 'font-family:' + esc(FONT_MAP[r.design.questionFont] || r.design.questionFont) + ';' : '';
     const oFont = r && r.design.optionFont ? '--font-opt:' + esc(FONT_MAP[r.design.optionFont] || r.design.optionFont) + ';' : '';
     const qScale = r && r.design.qScale && r.design.qScale !== 1 ? r.design.qScale : 1;
-    const clean = !!r && r.type !== 'rapid';
+    // the audio / video first, full screen (only the scores underneath): a video fills the screen, audio shows a big moving sound picture
+    const clipHtml = clipFirst ? H.part('clipfull-' + q.id, clipKind === 'audio'
+      ? (q.image ? '<img class="cf-bg" data-media="' + esc(q.image) + '" alt="" aria-hidden="true">' : '') + '<div class="cf-audio"><div class="cf-note">♪</div><div class="cf-eq">' + Array.from({ length: 9 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div><b>শুনুন…</b></div>'
+      : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>', 'q-clipfull ' + (clipKind === 'audio' ? 'audio' : 'video')) + H.strip(s, l.active) + audioPart : '';
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
       // rounds 1–3: no title line (round name, JUNIOR GENIUS SEASON 4, question number) — the question has the whole screen
-      html: (clean ? '' : H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>')) +
+      html: clipFirst ? clipHtml : (clean ? '' : H.head(s, '<span class="round-tag">' + (n > 0 ? 'রাউন্ড ' + bn(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + bn(r.multiplier) + ' পয়েন্ট</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>')) +
         '<div class="q-wrap' + (clean ? ' clean' : '') + (pic ? ' pic' : '') + (Sel.qAlone(s) ? ' alone' : '') + '" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + (pic ? H.part('card-' + (picNow === q.image ? 'q' : 'a'), '<div class="q-pic' + (picNow === q.image ? '' : ' is-answer') + '"><img class="q-pic-bg" data-media="' + esc(picNow) + '" alt="" aria-hidden="true"><img class="q-pic-main" data-media="' + esc(picNow) + '" alt=""></div>', 'q-card glass pic-only' + (dr.delivered ? ' delivered' : '')) : H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + ((clean ? 10.5 : 7.6) * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : ''))) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +
         (dr.delivered || clean ? '' : H.part('qintro-' + l.deliverAt, H.brand(s, 'jg-small') + '<b>QUESTION ' + String(q.number).padStart(2, '0') + '</b>', 'q-intro')) +
-        (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(pic ? picNow : q.image) + '" alt="">', 'q-zoom') : ''),
+        (l.zoomPic && q.image ? H.part('zoom', '<img data-media="' + esc(pic ? picNow : q.image) + '" alt="">', 'q-zoom') : '') + audioPart,
     };
   },
   standingsRows(s, rows, rid, revealFrom = 0, titles = false) {
@@ -667,8 +674,9 @@ class StageView {
   clip(s) {
     const el = $('.layer:not(.exiting) [data-clip]', this.stage);
     const c = s.live.clip || {};
-    if (!el || c.at === this.clipAt) return;
-    this.clipAt = c.at;
+    if (!el || (c.at === this.clipAt && el === this.clipEl)) return;
+    const fresh = el !== this.clipEl; this.clipAt = c.at; this.clipEl = el;
+    if (fresh && c.action !== 'play' && c.action !== 'restart') return; // a new element: only a playing clip is picked up
     if (this.opts.preview) el.muted = true;
     safe('clip', () => {
       if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => Log.err('clip', e)); }
