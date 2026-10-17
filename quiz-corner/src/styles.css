@@ -1689,3 +1689,7 @@ fieldset.lockset[disabled] { opacity: .75; }
 .clip-has { color: var(--correct); font-weight: 700; }
 .clip-bulk { margin-top: .5rem; }
 .home-card.media { border-color: color-mix(in srgb, var(--gold) 70%, transparent); }
+.clip-folder { border: 2px solid color-mix(in srgb, var(--gold) 70%, transparent); background: color-mix(in srgb, var(--gold) 8%, transparent); }
+.clip-path { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .4rem 0; }
+.clip-path code { font-size: 1rem; padding: .3rem .6rem; border-radius: 6px; background: rgba(0, 0, 0, .35); user-select: all; word-break: break-all; }
+.warnbox { border: 2px solid var(--warn); }

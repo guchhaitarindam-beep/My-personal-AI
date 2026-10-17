@@ -8,9 +8,9 @@
 # and the event data stays in one place.  With no TV both windows open side by side on the laptop.
 # A log of every start is kept in %LOCALAPPDATA%\QuizCorner\launcher_log.txt.
 
-# QC-LAUNCHER: 20261012-2000
+# QC-LAUNCHER: 20261017-1200
 $ErrorActionPreference = 'Continue'
-$LauncherStamp = '20261012-2000'
+$LauncherStamp = '20261017-1200'
 # Bengali messages are kept as UTF-8 Base64 so this file is plain ASCII and reads the same in every Windows PowerShell
 function T($b) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b)) }
 $myPs1 = $MyInvocation.MyCommand.Path
@@ -112,6 +112,9 @@ if (-not $html) { Fail (T '4KaV4KeB4KaH4Kac4KeH4KawIEhUTUwg4Kar4Ka+4KaH4Kay4Kaf4
 $url = ([System.Uri]$html.FullName).AbsoluteUri
 $build = BuildOf $html
 Say ('Quiz file : ' + $html.FullName + '  [build ' + $build + ', ' + [int]($html.Length / 1MB) + ' MB]')
+# the folder for big, high-quality audio / video next to the quiz file (the quiz plays them straight from the disk)
+$mediaDir = Join-Path (Split-Path -Parent $html.FullName) 'QuizCorner_Media'
+if (-not (Test-Path -LiteralPath $mediaDir)) { try { [void](New-Item -ItemType Directory -Path $mediaDir -Force); Say ('Media folder created: ' + $mediaDir) } catch { Say ('Media folder could not be created: ' + $mediaDir) } } else { Say ('Media folder : ' + $mediaDir) }
 Write-Host ''
 Write-Host ('  OPENING THE QUIZ FILE OF ' + (Human $build)) -ForegroundColor Black -BackgroundColor Yellow
 Write-Host ('  ' + $html.FullName)

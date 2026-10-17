@@ -119,7 +119,8 @@ const Media = {
     if (this.pending.has(key)) return this.pending.get(key);
     const p = (async () => {
       let u = '';
-      if (id.startsWith('asset:')) {
+      if (id.startsWith('file:')) u = Media.folderUrl(id.slice(5)); // a file in the QuizCorner_Media folder next to the quiz: played straight from the laptop's disk
+      else if (id.startsWith('asset:')) {
         const data = this.builtin(id.slice(6));
         if (data) {
           // Large embedded audio decodes faster as a Blob URL than as a data URI.
@@ -139,6 +140,20 @@ const Media = {
     return p;
   },
   urlSync(id) { return (id && this.cache.get(id)) || ''; },
+  /** The folder for big, high-quality audio / video: QuizCorner_Media, next to the quiz file (no copy, no compression, any length). */
+  FOLDER: 'QuizCorner_Media',
+  folderUrl(name) { return new URL(this.FOLDER + '/' + String(name).split('/').map(encodeURIComponent).join('/'), location.href).href; },
+  folderPath() { try { const p = decodeURIComponent(new URL('.', location.href).pathname).replace(/^\/([A-Za-z]:)/, '$1'); return (/^[A-Za-z]:/.test(p) ? p.replace(/\//g, '\\') : p) + this.FOLDER; } catch (e) { return this.FOLDER; } },
+  /** Does this file exist in the folder (and can the browser play it)? → its length in ms, or -1 */
+  probe(name, timeout = 6000) {
+    return new Promise((resolve) => {
+      const el = document.createElement(/\.(mp3|m4a|wav|ogg|aac|wma|opus)$/i.test(name) ? 'audio' : 'video'); el.preload = 'metadata'; el.muted = true;
+      let t = 0; const done = (v) => { clearTimeout(t); el.onloadedmetadata = el.onerror = null; el.removeAttribute('src'); try { el.load(); } catch (e) { /* ignore */ } resolve(v); };
+      el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? Math.round(el.duration * 1000) : 0);
+      el.onerror = () => done(-1); t = setTimeout(() => done(-1), timeout);
+      el.src = this.folderUrl(name);
+    });
+  },
   /** Fill every [data-media] element inside root. Missing media keeps its styled fallback. */
   hydrate(root) {
     $$('[data-media]', root).forEach((el) => {

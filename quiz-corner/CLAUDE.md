@@ -27,6 +27,8 @@ Reply to the organiser in Bengali. Questions, rules and everything on the TV sta
 3. On Next (or after `settings.qAloneSec`, 12 s, or when the timer starts): the question shrinks to the side;
    the corner logo, the answering team's card (one photo of both children, 4:3), the timer come in;
    options (where a round has them) and everything else after that.
+- Big / long / high-quality audio and video play straight from the `QuizCorner_Media` folder next to the quiz
+  file (clip id `file:<name>`, files named `R1-5.mp4` …); small clips may be copied into the engine.
 - The score strip is always at the bottom. Round-end scoreboards and the champion screens stay as they are
   (or better).
 

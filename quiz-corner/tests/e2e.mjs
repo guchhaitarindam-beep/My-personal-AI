@@ -81,7 +81,7 @@ if (hasSongs) check('Built-in theme + welcome songs resolve', await ctl.evaluate
 await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-img1', (s) => { s.questions.find((q) => q.id === 'Q01').image = 'asset:logo'; }); QC.Show.go(QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.qid === 'Q01')); QC.Store.commit('test-panel', (s) => { s.live.panel = true; }); }); // the timer and team photo in (as after Next)
 await stage.waitForTimeout(1500);
 check('Question image renders', await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .q-img img, .layer:not(.exiting) .q-pic img'); return !!i && i.naturalWidth > 0; }));
-check('Timer ring fully inside stage', await stage.evaluate(() => { const st = document.querySelector('.stage').getBoundingClientRect(); const c = document.querySelector('.layer:not(.exiting) .timer .ring').getBoundingClientRect(); return c.bottom <= st.bottom + 1 && c.right <= st.right + 1 && c.width > 50; }));
+check('Timer ring fully inside stage', await stage.waitForFunction(() => { const st = document.querySelector('.stage').getBoundingClientRect(); const c = document.querySelector('.layer:not(.exiting) .timer .ring').getBoundingClientRect(); return c.bottom <= st.bottom + 1 && c.right <= st.right + 1 && c.width > 50; }, null, { timeout: 4000 }).then(() => true).catch(() => false)); // after the team photo and timer have slid in
 check('Every scene type visited', [...want].every((s) => shot.has(s)), [...want].filter((s) => !shot.has(s)).join(','));
 check('Control → Stage sync on every step', syncIssues === 0, syncIssues + ' late');
 check('No text overflow / off-stage elements', overflowIssues.length === 0, overflowIssues.join(' || '));

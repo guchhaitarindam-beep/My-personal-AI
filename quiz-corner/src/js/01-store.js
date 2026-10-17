@@ -342,7 +342,7 @@ const Sel = {
   liveQuestion() { return this.question(Store.state.live.qid); },
   /** Rounds 1–3: a question with audio / video plays it full screen first (before the question itself is shown). */
   qClip(s = Store.state) { const l = s.live; const q = this.question(l.qid); return !!(q && q.clip) && !l.clipDone && this.qAlone(s); },
-  clipKind(q) { if (!q || !q.clip) return ''; const m = Media.index.find((x) => x.id === q.clip); return (m && m.kind) || (/\.(mp3|wav|m4a|ogg|aac|wma)$/i.test(q.clip) ? 'audio' : 'video'); },
+  clipKind(q) { if (!q || !q.clip) return ''; const m = Media.index.find((x) => x.id === q.clip); return (m && m.kind) || (/\.(mp3|wav|m4a|ogg|aac|wma|opus)$/i.test(q.clip) ? 'audio' : 'video'); },
   /** Rounds 1–3 (not the buzzer round): the question is first alone on the TV, full screen, with only the scores underneath.
       True while it still is — the team photo and the timer come in after settings.qAloneSec, on Next, or as soon as play starts. */
   qAlone(s = Store.state) {

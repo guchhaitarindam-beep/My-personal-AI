@@ -678,6 +678,8 @@ class StageView {
     const fresh = el !== this.clipEl; this.clipAt = c.at; this.clipEl = el;
     if (fresh && c.action !== 'play' && c.action !== 'restart') return; // a new element: only a playing clip is picked up
     if (this.opts.preview) el.muted = true;
+    // the file may still be on its way (its address comes a moment later): autoplay starts it as soon as it is there
+    el.autoplay = c.action === 'play' || c.action === 'restart';
     safe('clip', () => {
       if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => Log.err('clip', e)); }
       else if (c.action === 'pause') el.pause();
