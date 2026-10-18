@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 30;
+const RULES_VERSION = 31;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -230,7 +230,7 @@ function questionFromSeed(q, i) {
 }
 
 function defaultPrelim() {
-  const base = arr(SEED.prelim).map((p) => ({ id: uid('P'), text: str(p.text), answer: str(p.answer, 400), star: !!p.star, image: '', source: 'v100' }));
+  const base = arr(SEED.prelim).map((p) => ({ id: uid('P'), text: str(p.text), answer: str(p.answer, 400), star: !!p.star, image: '', clip: str(p.clip, 200), source: 'v100' }));
   // Default is 20 preliminary questions; the V100 event shipped 15, so the
   // remaining slots are filled from its rehearsal (test) bank and flagged.
   const tests = arr(SEED.testQuestions);
@@ -274,8 +274,8 @@ function defaultState() {
     prelim: {
       count: 15, points: 5, finalistCount: 8, rules: str(show.prelimRules), questions: defaultPrelim(),
       useMatrix: true, drone: true,
-      // 13 Oct: the prelim was held earlier by another teacher — the show starts from its results (school names, scores)
-      onStage: false,
+      // the selection round is played on the TV (15 questions, ★ 3·6·9·12·15, a video and a song) — switch off when it is held elsewhere
+      onStage: true,
     },
     finalists: [], finalistsLocked: false,
     // podium lottery after the welcome: queue = finalists in the order they choose, picks = { card, team, podium }
@@ -318,7 +318,7 @@ function defaultState() {
     live: emptyLive(),
     timer: { mode: 'direct', duration: 60000, base: 60000, startedAt: 0, remaining: 60000, running: false, token: 0, expired: false },
     board: { played: {}, prevRanks: {} },
-    prelimLive: { idx: 0, reveal: false, deliverAt: 0 },
+    prelimLive: { idx: 0, reveal: false, deliverAt: 0, clipDone: false },
     finalReveal: 0,
     lifelines: {},
   };
@@ -345,6 +345,8 @@ function mergeDefaults(def, src) {
 
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
 function upgradeRules(s, def, from = 0) {
+  // v31: the new selection round (15 questions with a video and a song), played on the TV
+  if (from < 31 && isObj(s.prelim)) { s.prelim.questions = def.prelim.questions; s.prelim.count = 15; s.prelim.onStage = true; }
   // versions 13–14 kept the main-round title in event.brandEn (the QUIZ CORNER brand): give the brand back, the title has its own field
   if (isObj(s.event) && str(s.event.brandEn).trim().toUpperCase() === 'JUNIOR GENIUS SEASON 4') { s.event.brandEn = def.event.brandEn; if (!str(s.event.mainTitle).trim()) s.event.mainTitle = def.event.mainTitle; }
   // the calm TV look (Midnight Blue · Ivory · Soft Gold) replaces the old neon default — only where the operator had not chosen colours

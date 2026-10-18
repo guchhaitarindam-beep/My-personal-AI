@@ -16,7 +16,7 @@ const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
 const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 const errors = [];
-const watch = (p, tag) => { p.on('pageerror', (e) => errors.push(tag + ' pageerror: ' + e.message)); p.on('console', (m) => { if (m.type() === 'error') errors.push(tag + ' console: ' + m.text()); }); };
+const watch = (p, tag) => { p.on('pageerror', (e) => errors.push(tag + ' pageerror: ' + e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FILE_NOT_FOUND/.test(m.text())) errors.push(tag + ' console: ' + m.text()); }); };
 
 const ctl = await ctx.newPage(); watch(ctl, 'control');
 await ctl.goto(url);

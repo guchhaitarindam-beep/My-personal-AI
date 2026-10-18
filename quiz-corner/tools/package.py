@@ -10,6 +10,10 @@ files = [(os.path.join(D, 'Quiz_Corner_V66_FINAL_Broadcast_Engine.html'), 'Quiz_
          (os.path.join(L, 'README_BANGLA.txt'), 'README_BANGLA.txt'),
          # the folder for big audio / video, next to the quiz file, with a note on how to use it
          (os.path.join(L, 'MEDIA_FOLDER_README.txt'), 'QuizCorner_Media/এখানে_ভিডিও_অডিও_রাখুন.txt')]
+# the show's own audio / video (played straight from the folder, full quality): media/S-8.mp4 … → QuizCorner_Media/
+M = os.path.join(ROOT, 'media')
+if os.path.isdir(M):
+    files += [(os.path.join(M, f), 'QuizCorner_Media/' + f) for f in sorted(os.listdir(M)) if not f.startswith('.')]
 out = os.path.join(D, 'QuizCorner_13Oct_Package.zip')
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for src, name in files:

@@ -74,7 +74,7 @@ const Show = {
       s.show.scene = step.scene; s.show.params = clone(step.params || {}); s.show.startedAt = now(); s.show.blackout = false;
       const sr = Show.subRange(step.scene, s.show.params);
       if (sr) s.show.params.sub = sub === 'end' ? sr[1] : sr[0];
-      if (step.scene === 'PRELIM_Q') { s.prelimLive = { idx: step.params.idx, reveal: false, deliverAt: now() }; const pq = s.prelim.questions[step.params.idx]; s.live.clip = { action: pq && pq.clip ? 'play' : 'stop', at: now() }; }
+      if (step.scene === 'PRELIM_Q') { s.prelimLive = { idx: step.params.idx, reveal: false, deliverAt: now(), clipDone: false }; const pq = s.prelim.questions[step.params.idx]; s.live.clip = { action: pq && pq.clip ? 'play' : 'stop', at: now() }; }
       if (step.scene === 'FINAL') s.finalReveal = 0;
       if (step.scene !== 'QUESTION' && step.scene !== 'SCOREBOARD') {
         // Leaving the question flow: make sure no orphan timer keeps running on another scene.

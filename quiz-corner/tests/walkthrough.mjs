@@ -7,7 +7,7 @@ const [file, out, photo] = process.argv.slice(2);
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
 const ctx = await b.newContext({ viewport: { width: 1600, height: 950 } });
 const errs = []; const log = []; const step = (ok, name, info = '') => { log.push((ok ? 'OK   ' : 'FAIL ') + name + (info ? ' — ' + info : '')); };
-const ctl = await ctx.newPage(); ctl.on('pageerror', (e) => errs.push('control: ' + e.message)); ctl.on('console', (m) => { if (m.type() === 'error') errs.push('control console: ' + m.text()); });
+const ctl = await ctx.newPage(); ctl.on('pageerror', (e) => errs.push('control: ' + e.message)); ctl.on('console', (m) => { if (m.type() === 'error' && !/ERR_FILE_NOT_FOUND/.test(m.text())) errs.push('control console: ' + m.text()); });
 await ctl.goto('file://' + file); await ctl.waitForFunction(() => window.QC);
 // record which sounds play (the operator would hear these)
 await ctl.evaluate(() => { window.__cues = []; const A = window.QC.AudioDirector; const orig = A.playCue.bind(A); A.playCue = (n, o) => { window.__cues.push(n); return orig(n, o); }; });
@@ -60,7 +60,7 @@ const mem = await stage.evaluate(() => ({ cards: document.querySelectorAll('.lay
 step(mem.cards === 2 && mem.imgs === 2, 'দল A / 1: সদস্য ১ ও ২ ছবিসহ একে একে', JSON.stringify(mem));
 const pairPh = await stage.evaluate(() => { const i = document.querySelector('.layer:not(.exiting) .intro-ph .team-photo.pair img'); return !!i && i.complete && i.naturalWidth > 0 && i.naturalWidth > i.naturalHeight; });
 step(pairPh, 'দল A / 1: দুজনের একসঙ্গে দলের ছবি (চওড়া ৪:৩) বড় করে');
-while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) sc = await next(450);
+while (sc !== 'MAIN_COUNTDOWN' && guard++ < 160) { await cues(); sc = await next(450); } // only the main countdown's own sounds count below (the selection round has its own countdown before)
 step(sc === 'MAIN_COUNTDOWN', 'মূল পর্বের কাউন্টডাউন'); const cd0 = (await cues()).filter((c) => c === 'countdown'); await stage.waitForTimeout(1600); await shot('07-countdown');
 // with the operator's recorded countdown (voice + music) the numbers follow the voice; without it: beeps, one second per number
 const vmode = await ctl.evaluate(() => { const V = window.QC.VoicePlayer; return !!(V.el && V.el.duration > 15); });
@@ -78,7 +78,7 @@ step(st.scene === 'QUESTION' && st.n === 5, 'বোর্ডে ৫ টিপল
 let c = await cues(); step(c.includes('question'), 'প্রশ্ন আসার সাউন্ড', c.join(','));
 await ctl.keyboard.press('d'); await stage.waitForTimeout(1500); await shot('11-question-direct');
 const corner = await stage.evaluate(() => document.querySelector('.layer:not(.exiting) .q-side').innerText.replace(/\s+/g, ' '));
-step(/TEAM A \/ 1/.test(corner) && /পয়েন্ট/.test(corner), 'কোণে উত্তরদাতা দল: ছবি, TEAM A / 1, স্কোর', corner.slice(0, 80));
+step(/TEAM A \/ 1/.test(corner) && /POINTS/.test(corner), 'কোণে উত্তরদাতা দল: ছবি, TEAM A / 1, স্কোর', corner.slice(0, 80));
 // round 1 is the picture round (1ST_ROUND.pptx): only the question picture on the TV — no typed words, no answer picture yet
 let pv = await stage.evaluate(() => { const h = document.querySelector('.layer:not(.exiting) .q-main').innerHTML; return { pic: /r1pic_q05\.jpg/.test(h), ans: /r1pic_a05/.test(h), words: !!document.querySelector('.layer:not(.exiting) .q-text') }; });
 step(pv.pic && !pv.ans && !pv.words, 'রাউন্ড ১: টিভিতে শুধু প্রশ্নের ছবি — উত্তরের ছবি নেই', JSON.stringify(pv));

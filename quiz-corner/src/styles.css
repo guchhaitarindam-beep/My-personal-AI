@@ -1707,3 +1707,21 @@ fieldset.lockset[disabled] { opacity: .75; }
 .q-card:has(.q-img.pclip) { flex-direction: column !important; }
 .q-card .q-img.pclip { flex: 1 1 64% !important; width: 100% !important; max-width: none !important; max-height: none !important; align-self: stretch !important; }
 .q-card:has(.q-img.pclip) .q-text-box { flex: 0 1 auto; min-height: 0; }
+
+/* selection round: the question alone, full screen — its number (★ on star questions), no timer, no scores */
+.pq-full { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 1.6cqh; padding: 2.4cqh 2.4cqw; }
+.pq-badge { display: inline-flex; align-items: baseline; gap: .7cqw; align-self: flex-start; padding: .6cqh 1.8cqw; border-radius: 99cqh; background: rgba(255,210,63,.12); border: .3cqh solid var(--gold); color: var(--gold); font-family: var(--font-en); font-weight: 800; line-height: 1; z-index: 3; }
+.pq-badge .pq-no { font-size: 7cqh; }
+.pq-badge .pq-star { font-size: 6.4cqh; color: #ffd23f; text-shadow: 0 0 1.6cqh rgba(255,210,63,.9); }
+.pq-badge .pq-of { font-size: 3.4cqh; opacity: .75; }
+.pq-card { flex: 1 1 auto !important; min-height: 0; display: flex; flex-direction: column !important; justify-content: center; align-items: stretch; padding: 3cqh 3.4cqw !important; }
+.pq-full.star .pq-card { box-shadow: 0 0 0 .35cqh var(--gold), 0 0 5cqh rgba(255,210,63,.35); }
+.pq-card .q-text-box { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.pq-card .q-text { text-align: center; font-weight: 700; line-height: 1.38; text-wrap: balance; }
+.pq-img { flex: 0 1 46%; min-height: 0; display: grid; place-items: center; }
+.pq-img img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1.2cqh; }
+.pq-ans { flex: 0 0 auto; }
+.pq-clipfull { position: absolute; inset: 0; background: #000; }
+.pq-clipfull video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.pq-clipfull ~ .pq-badge { position: absolute; top: 2.4cqh; left: 2.4cqw; background: rgba(0,0,0,.55); }
+.pq-card .pclip-aud { font-size: 3.4cqh; padding: .4em 1.2em; margin-top: 1.2cqh; }

@@ -232,7 +232,7 @@ const SelfTest = {
       const bad = [];
       rd.forEach((step) => { Store.state.show.scene = step.scene; Store.state.show.params = step.params; if (step.scene === 'QUESTION') Store.state.live.qid = step.params.qid; try { const out = (Scenes[step.scene])(Store.state, step.params); if (!out || typeof out.html !== 'string' || !out.key) bad.push(step.key); } catch (e) { bad.push(step.key + ': ' + e.message); } });
       T('Render: every rundown scene (' + rd.length + ')', () => (bad.length ? bad.slice(0, 3).join('; ') && false : true));
-      T('Rundown: prelim questions skipped on the day (results only)', () => !rd.some((x) => /^PRELIM_(RULES|COUNTDOWN|Q)$/.test(x.scene)) && rd.some((x) => x.scene === 'PRELIM_RESULT'));
+      T('Rundown: the selection round is played on the TV (rules, countdown, 15 questions, results)', () => ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_RESULT'].every((k) => rd.some((x) => x.scene === k)) && rd.filter((x) => x.scene === 'PRELIM_Q').length === 15);
       T('Rundown: prelim questions return when switched on', () => { Store.state.prelim.onStage = true; const ok = ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q'].every((k) => Show.rundown().some((x) => x.scene === k)); Store.state.prelim.onStage = false; return ok && !Show.rundown().some((x) => x.scene === 'PRELIM_Q'); });
       T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
       T('Rundown: the 3 main rounds and the rapid-fire round', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3,R5');
@@ -592,7 +592,15 @@ const SelfTest = {
       });
       T('Question picture: Z shows it full screen on the TV, a new question starts without it', () => { const def = emptyLive(); return def.zoomPic === false && typeof Actions.zoomPic === 'function'; });
       T('Rules recordings: rounds 2 and 3 read their rules; round 1 (rule changed: no pass, challenge) stays silent until re-recorded', () => !RULES_VOICE.R1 && ['R2', 'R3'].every((id) => RULES_VOICE[id] === 'asset:rules-r' + id.slice(1) && Media.builtin('rules-r' + id.slice(1)).startsWith('data:audio/mpeg') && Sel.round(id) && str(Sel.round(id).rules).trim()));
-      T('Prelim (final list): 20 questions stored, the first 15 played, 5 kept in reserve', () => { const d = defaultState(); return d.prelim.questions.length === 20 && d.prelim.count === 15 && d.prelim.questions[0].answer === 'প্রায় ৮ মিনিট' && d.prelim.questions[14].answer === 'পাই (π)' && d.prelim.questions[19].answer === 'আমাজন'; });
+      T('Selection round: 15 questions, ★ on 3·6·9·12·15, a video (8) and a song (15) from the media folder', () => { const d = defaultState().prelim; const q = d.questions.slice(0, 15); return d.count === 15 && d.onStage && q.every((x) => x.text && x.answer) && q.map((x, i) => (x.star ? i + 1 : 0)).filter(Boolean).join() === '3,6,9,12,15' && q[7].clip === 'file:S-8.mp4' && q[14].clip === 'file:S-15.mp3' && q[14].star && /নজরুল/.test(q[14].answer); });
+      T('Selection screen: number (★), full screen, no timer, no scores; a video first, then the question', () => {
+        const st = Store.state; const keep = [st.show.scene, st.show.params, clone(st.prelimLive)];
+        st.show.scene = 'PRELIM_Q'; st.prelimLive = { idx: 7, reveal: false, deliverAt: 1, clipDone: false };
+        const v = Scenes.PRELIM_Q(st, { idx: 7 }).html; const clipOn = Sel.prelimClip(st);
+        st.prelimLive.clipDone = true; const q = Scenes.PRELIM_Q(st, { idx: 7 }).html; const s3 = Scenes.PRELIM_Q(st, { idx: 2 }).html;
+        [st.show.scene, st.show.params, st.prelimLive] = keep;
+        return clipOn && v.includes('pq-clipfull') && v.includes('S-8.mp4') && !v.includes('q-text') && q.includes('pq-full') && !q.includes('<video') && !/timer-ring|class="timer|sb-row|strip/.test(q) && s3.includes('pq-star') && /pq-no">3</.test(s3);
+      });
       T('Older save: an operator\'s own question and own recording stay; an untouched old question becomes the new one', () => {
         const d = defaultState(); const old = clone(d); old.rulesVersion = 16; const sd = (n) => SEED.questions.find((q) => q.roundId === 'R1' && q.number === n);
         const q1 = old.questions.find((q) => q.id === sd(1).id); const q5 = old.questions.find((q) => q.id === sd(5).id);
@@ -600,10 +608,10 @@ const SelfTest = {
         const n = normalizeState(old); const g = (q) => n.questions.find((x) => x.id === q.id);
         return g(q1).text === sd(1).text && g(q5).text === 'আমার নিজের প্রশ্ন' && g(q5).voiceQ === 'm_mine';
       });
-      T('Opening (prelim held earlier): no count of every registered team; the all-teams screen shows the finalists only', () => {
+      T('Opening (when the prelim is held elsewhere): no count of every registered team; the all-teams screen shows the finalists only', () => {
         const st = Store.state; const extra = Object.assign(clone(st.teams[0]), { id: 'TX9', name: 'X' }); st.teams.push(extra);
-        const ov = Scenes.OVERVIEW(st).html; const ta = Scenes.TEAMS_ALL(st).html; st.teams.pop();
-        return !st.prelim.onStage && !ov.includes('অংশগ্রহণকারী দল') && (ta.match(/class="team-tile/g) || []).length === Sel.finalistIds().length;
+        const was = st.prelim.onStage; st.prelim.onStage = false; const ov2 = Scenes.OVERVIEW(st).html; const ta = Scenes.TEAMS_ALL(st).html; st.prelim.onStage = was; st.teams.pop();
+        return !ov2.includes('TEAMS TAKING PART') && (ta.match(/class="team-tile/g) || []).length === Sel.finalistIds().length;
       });
       T('Podium lottery: default is প্রিয় পশুপাখি with a picture on all 8 cards; 6 themes', () => { const d = defaultState().draw; return d.theme === 'animals' && d.items.length === 8 && d.items.every((x) => /^asset:draw_/.test(x.image)) && Object.keys(DRAW_THEMES).length === 6; });
       T('Theme: default is Midnight Royal Blue · Warm White · Champagne Gold', () => { const c = defaultState().design.colors; return defaultState().design.theme === 'midnight' && c.bg === '#071a3d' && c.bg2 === '#102d63' && c.text === '#fff9e8' && c.head === '#ffffff' && c.gold === '#f4d27a'; });
@@ -746,6 +754,7 @@ const Authority = {
   qPanel(s) {
     const l = s.live;
     // audio / video first: when it has played to the end, the question comes by itself
+    if (Sel.prelimClip(s)) { const pq = Sel.prelimQuestions()[s.prelimLive.idx]; const ms = ClipLen.get(pq.clip); if (ms && l.clip && l.clip.action === 'play' && now() - l.clip.at >= ms + 700) Actions.prelimClipDone(); return; }
     if (Sel.qClip(s)) { const q = Sel.question(l.qid); const ms = ClipLen.get(q.clip); if (ms && l.clip && l.clip.action === 'play' && now() - l.clip.at >= ms + 700) Game.clipDone(); return; }
     if (Sel.qAlone(s) && now() - (l.clipAt || l.deliverAt) >= int(s.settings.qAloneSec, 12, 0, 120) * 1000) Store.commit('q-panel', (st) => { st.live.panel = true; }, { undo: false });
   },

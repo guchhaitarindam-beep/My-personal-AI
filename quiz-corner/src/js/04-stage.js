@@ -219,21 +219,22 @@ const Scenes = {
     const path = { left: 'droneLeft', right: 'droneRight', top: 'droneTop' }[Store.state.settings.drone.path] || 'droneLeft';
     return { html: '<div class="drone-wrap" data-part="drone"><div class="drone" style="--drone-path:' + path + '">' + DRONE_SVG + '</div></div>', style: '--drone-ms:' + ms + ';', delivered: true };
   },
+  /** Selection round: the question alone, full screen, its number (★ on star questions) — no timer, no scores.
+      A video plays full screen first (Next, or its end, brings the question); a song plays under the question. */
   PRELIM_Q(s, p) {
     const qs = Sel.prelimQuestions();
     const i = clamp(int(p.idx), 0, Math.max(0, qs.length - 1));
     const q = qs[i];
-    if (!q || !q.text) return { key: 'PQ:' + i, html: H.head(s, '<span class="round-tag">PRELIM ROUND</span>', '<span class="qnum">QUESTION ' + String(i + 1) + '</span>') + H.part('body', '<div class="s-sub">QUESTION ' + String(i + 1) + ' IS NOT WRITTEN YET</div>', 'center-col') };
-    const dr = Scenes.drone(s.prelimLive.deliverAt, s.prelim.drone);
+    if (!q || !q.text) return { key: 'PQ:' + i, html: H.part('body', '<div class="s-sub">QUESTION ' + String(i + 1) + ' IS NOT WRITTEN YET</div>', 'center-col') };
     const pk = q.clip ? Sel.clipKind(q) : '';
-    const img = pk === 'video' ? '<div class="q-img pclip' + (str(q.text).length > 90 ? ' long' : '') + '"><video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video></div>' // the selection question's video, in the card
-      : (q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : '') + (pk === 'audio' ? '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio><div class="pclip-aud">🎵 LISTEN AND ANSWER</div>' : ''); // a long question gets a smaller picture: the words come first
-    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="4.6">' + esc(q.answer) + '</div></div>', 'answer-bar') : '';
+    const badge = '<div class="pq-badge" data-part="pqb"><span class="pq-no">' + String(i + 1) + '</span>' + (q.star ? '<span class="pq-star">★</span>' : '') + '<span class="pq-of">/ ' + String(qs.length) + '</span></div>';
+    if (pk === 'video' && !s.prelimLive.clipDone) return { key: 'PQV:' + i + ':' + s.prelimLive.deliverAt, anim: 'fade', html: H.part('pqclip-' + i, '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>', 'pq-clipfull') + badge };
+    const img = q.image ? '<div class="pq-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
+    const aud = pk === 'audio' ? '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio><div class="pclip-aud">🎵 LISTEN AND ANSWER</div>' : '';
+    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="5">' + esc(q.answer) + '</div></div>', 'answer-bar pq-ans') : '';
     return {
-      key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: dr.style,
-      html: H.head(s, '<span class="round-tag">PRELIM ROUND</span>' + (q.star ? '<span class="star-badge">★ STAR QUESTION</span>' : ''), '<span class="qnum">QUESTION ' + String(i + 1) + ' / ' + String(qs.length) + '</span>') +
-        '<div class="q-wrap" data-part="wrap" data-morph style="grid-template-columns:1fr 22cqw"><div class="q-main" data-part="main" data-morph>' + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="6.4">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : '')) + ans + '</div>' +
-        '<div class="q-side" data-part="side" data-morph>' + H.part('info', '<div class="flowtag" style="background:var(--gold)">PRELIMINARY</div><div class="tname">WRITE ON YOUR ANSWER SHEET</div><div class="tschool">' + String(s.prelim.points) + ' POINTS FOR EACH CORRECT ANSWER</div>', 'team-card glass') + H.timer() + '</div></div>' + dr.html,
+      key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: s.design.anim,
+      html: '<div class="pq-full' + (q.star ? ' star' : '') + '" data-part="pq">' + badge + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="12">' + esc(q.text) + '</div></div>' + aud, 'q-card glass pq-card') + ans + '</div>',
     };
   },
   PRELIM_RESULT(s) {
@@ -572,7 +573,7 @@ class StageView {
     const c = s.design.corner; const el = $('.corner-logo', this.stage);
     // on every screen, from the first to the last — except while a question is alone on the TV (it has the whole screen);
     // the badge flies in again with the team photo and the timer
-    const hide = !c.show || s.show.blackout || Sel.qAlone(s);
+    const hide = !c.show || s.show.blackout || Sel.qAlone(s) || s.show.scene === 'PRELIM_Q'; // the selection question has the whole screen
     const was = !el.hidden;
     el.hidden = hide;
     el.dataset.pos = c.pos;
