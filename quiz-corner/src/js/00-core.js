@@ -449,7 +449,7 @@ function normalizeState(raw) {
   s.rounds = arr(s.rounds).map((r, i) => mergeDefaults(roundFromSeed({ id: r && r.id }, i), r));
   s.questions = arr(s.questions).map((q, i) => mergeDefaults(questionFromSeed({}, i), q));
   s.testQuestions = arr(s.testQuestions).map((q, i) => mergeDefaults(questionFromSeed({}, i), q));
-  s.prelim.questions = arr(s.prelim.questions).map((p) => mergeDefaults({ id: uid('P'), text: '', answer: '', star: false, image: '', source: '' }, p));
+  s.prelim.questions = arr(s.prelim.questions).map((p) => mergeDefaults({ id: uid('P'), text: '', answer: '', star: false, image: '', clip: '', source: '' }, p));
   s.prelim.count = int(s.prelim.count, 20, 1, 100);
   s.prelim.finalistCount = int(s.prelim.finalistCount, 8, 2, 12);
   s.ledger = arr(s.ledger).filter((e) => isObj(e) && e.team);

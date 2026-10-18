@@ -1,0 +1,50 @@
+// The selection (prelim) round: its own audio / video (from the QuizCorner_Media folder: S-1.mp4 …) and a PowerPoint deck straight into it.
+// Usage: copy the built html into a folder with QuizCorner_Media/S-1.webm (a video) and QuizCorner_Media/S-2.mp3, then
+//        node tests/prelim.mjs <that copy of the html> <shot-dir> <SELECTION.pptx>
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PW_PATH);
+const [file, out, deck] = process.argv.slice(2);
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
+const ctx = await b.newContext({ viewport: { width: 1600, height: 950 } });
+const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+let fails = 0; const ok = (n, v, d = '') => { console.log((v ? 'PASS ' : 'FAIL ') + n + (d ? ' ' + d : '')); if (!v) fails++; };
+await p.goto('file://' + file); await p.waitForFunction(() => window.QC && window.QC.Store.state);
+await p.mouse.click(400, 300);
+const [stage] = await Promise.all([ctx.waitForEvent('page'), p.keyboard.press('o')]);
+stage.on('pageerror', (e) => errs.push('stage ' + e.message));
+await stage.setViewportSize({ width: 1920, height: 1080 }); await stage.waitForTimeout(1200);
+await p.evaluate(() => window.QC.Store.commit('t-prelim', (s) => { s.prelim.onStage = true; }));
+await p.evaluate(() => window.QC.Actions.clipPage('R1'));
+await p.click('[data-act="clipScan"]');
+await p.waitForFunction(() => /linked|No R1/.test((document.getElementById('clipScanOut') || {}).textContent || ''), null, { timeout: 180000 });
+const cl = await p.evaluate(() => window.QC.Store.state.prelim.questions.slice(0, 2).map((q) => q.clip));
+ok('folder scan links S-1.webm and S-2.mp3 to selection questions 1 and 2', cl[0] === 'file:S-1.webm' && cl[1] === 'file:S-2.mp3', JSON.stringify(cl));
+await p.keyboard.press('Escape');
+const go = (idx) => p.evaluate((idx) => { const rd = window.QC.Show.rundown(); window.QC.Actions.goStep(rd.findIndex((x) => x.scene === 'PRELIM_Q' && x.params.idx === idx)); }, idx);
+await go(0); await stage.waitForTimeout(3000);
+const v = await stage.evaluate(() => { const e = document.querySelector('.layer:not(.exiting) .q-img.pclip video'); return { on: !!e, playing: !!e && !e.paused && e.currentTime > 0, txt: !!document.querySelector('.layer:not(.exiting) .q-text') }; });
+ok('selection question 1: its video plays by itself in the question card, question text beside it', v.on && v.playing && v.txt, JSON.stringify(v));
+await stage.screenshot({ path: out + '/prelim-video.png' });
+ok('control panel has Play / Pause / From the start / Stop', await p.locator('[data-act="clip"][data-arg="pause"]').count() === 1);
+await p.click('[data-act="clip"][data-arg="pause"]'); await stage.waitForTimeout(600);
+ok('Pause pauses it on the TV', await stage.evaluate(() => document.querySelector('.layer:not(.exiting) .q-img.pclip video').paused));
+await go(1); await stage.waitForTimeout(2500);
+const a = await stage.evaluate(() => { const e = document.querySelector('.layer:not(.exiting) audio[data-clip]'); return { on: !!e, playing: !!e && !e.paused && e.currentTime > 0, badge: !!document.querySelector('.layer:not(.exiting) .pclip-aud'), vid: !!document.querySelector('.layer:not(.exiting) .q-img.pclip') }; });
+ok('selection question 2: its audio plays, with a "listen" badge, no video box', a.on && a.playing && a.badge && !a.vid, JSON.stringify(a));
+await go(2); await stage.waitForTimeout(1500);
+const q3 = await stage.evaluate(() => [...document.querySelectorAll('[data-clip]')].map((e) => [e.tagName, e.paused, !!e.closest('.exiting'), e.isConnected]));
+ok('question 3 (no clip): nothing plays', !q3.some((x) => !x[1]), JSON.stringify(q3));
+// a PowerPoint deck named …SELECTION… goes to the selection round
+await p.evaluate(() => window.QC.Actions.pptxOpen());
+const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-act="pptxChoose"]')]);
+await fc.setFiles(deck);
+await p.waitForSelector('[data-act="pptxApply"]', { timeout: 120000 });
+ok('the deck is set to the selection round by its name', await p.evaluate(() => document.querySelector('[data-pptx-round="0"]').value === 'PRELIM'));
+await p.click('[data-act="pptxApply"]');
+await p.waitForFunction(() => window.QC.Store.state.prelim.questions.some((q) => q.source === 'pptx'), null, { timeout: 120000 });
+const pr = await p.evaluate(() => { const s = window.QC.Store.state.prelim; return { n: s.questions.length, count: s.count, q1: s.questions[0].text, a1: s.questions[0].answer, src: s.questions.every((q) => q.source === 'pptx') }; });
+ok('the deck replaced the selection questions (with their options and answers)', pr.n >= 5 && pr.count === pr.n && pr.src && /\n.*ক\)/.test(pr.q1) && !!pr.a1, JSON.stringify(pr));
+await p.evaluate(() => window.QC.Actions.undo ? window.QC.Actions.undo() : 0);
+ok('no JS errors', !errs.length, errs.join(' | '));
+console.log(fails ? 'FAILED ' + fails : 'ALL OK'); await b.close(); process.exit(fails ? 1 : 0);

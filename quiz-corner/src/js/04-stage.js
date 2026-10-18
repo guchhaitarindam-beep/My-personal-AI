@@ -225,7 +225,9 @@ const Scenes = {
     const q = qs[i];
     if (!q || !q.text) return { key: 'PQ:' + i, html: H.head(s, '<span class="round-tag">বাছাই পর্ব</span>', '<span class="qnum">প্রশ্ন ' + bn(i + 1) + '</span>') + H.part('body', '<div class="s-sub">প্রশ্ন ' + bn(i + 1) + ' এখনও লেখা হয়নি</div>', 'center-col') };
     const dr = Scenes.drone(s.prelimLive.deliverAt, s.prelim.drone);
-    const img = q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : ''; // a long question gets a smaller picture: the words come first
+    const pk = q.clip ? Sel.clipKind(q) : '';
+    const img = pk === 'video' ? '<div class="q-img pclip' + (str(q.text).length > 90 ? ' long' : '') + '"><video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video></div>' // the selection question's video, in the card
+      : (q.image ? '<div class="q-img' + (str(q.text).length > 90 ? ' long' : '') + (/^asset:topic_/.test(q.image) ? ' icon' : '') + '"><img data-media="' + esc(q.image) + '" alt=""></div>' : '') + (pk === 'audio' ? '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio><div class="pclip-aud">🎵 শুনে উত্তর দিন</div>' : ''); // a long question gets a smaller picture: the words come first
     const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">সঠিক উত্তর</span><div class="ans-box"><div class="ans" data-fit="4.6">' + esc(q.answer) + '</div></div>', 'answer-bar') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: dr.style,
@@ -673,6 +675,7 @@ class StageView {
   /** Question audio / video clips, controlled from the operator panel. */
   clip(s) {
     const el = $('.layer:not(.exiting) [data-clip]', this.stage);
+    $$('.layer.exiting [data-clip]', this.stage).forEach((e) => { if (e !== el && !e.paused) e.pause(); }); // the screen going away stops its sound at once
     const c = s.live.clip || {};
     if (!el || (c.at === this.clipAt && el === this.clipEl)) return;
     const fresh = el !== this.clipEl; this.clipAt = c.at; this.clipEl = el;

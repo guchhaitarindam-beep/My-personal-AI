@@ -246,7 +246,7 @@ const PptxUI = {
     for (const f of files) {
       try {
         const d = await PptxImport.read(f);
-        d.round = PptxImport.roundFromName(f.name, rounds) || (rounds.find((r) => r.type !== 'rapid' && !Sel.roundQuestions(r.id).length) || rounds[0]).id;
+        d.round = (/select|prelim|বাছাই/i.test(f.name) ? 'PRELIM' : '') || PptxImport.roundFromName(f.name, rounds) || (rounds.find((r) => r.type !== 'rapid' && !Sel.roundQuestions(r.id).length) || rounds[0]).id;
         d.mode = 'replace'; this.decks.push(d);
       } catch (e) { this.decks.push({ name: f.name, error: e.message || String(e), list: [] }); }
     }
@@ -261,7 +261,7 @@ const PptxUI = {
       if (d.error) { h += '<div class="card"><b>' + esc(d.name) + '</b><p class="badge-warn">✘ ' + esc(d.error) + '</p></div>'; continue; }
       const n = d.list.filter((x) => x.use && x.kind !== 'rules').length;
       h += '<div class="card pptx-deck"><div class="row"><b>📊 ' + esc(d.name) + '</b><span class="muted">' + d.slides + ' slides → ' + n + ' question(s)</span></div>' +
-        '<div class="row"><label class="field"><span>Round</span><select data-pptx-round="' + di + '">' + rounds.map((r) => '<option value="' + esc(r.id) + '"' + (r.id === d.round ? ' selected' : '') + '>' + esc(r.name) + (r.type === 'rapid' ? ' (buzzer)' : '') + '</option>').join('') + '</select></label>' +
+        '<div class="row"><label class="field"><span>Round</span><select data-pptx-round="' + di + '"><option value="PRELIM"' + (d.round === 'PRELIM' ? ' selected' : '') + '>বাছাই পর্ব (selection round)</option>' + rounds.map((r) => '<option value="' + esc(r.id) + '"' + (r.id === d.round ? ' selected' : '') + '>' + esc(r.name) + (r.type === 'rapid' ? ' (buzzer)' : '') + '</option>').join('') + '</select></label>' +
         '<label class="field"><span>How</span><select data-pptx-mode="' + di + '"><option value="replace"' + (d.mode === 'replace' ? ' selected' : '') + '>Replace this round\'s questions</option><option value="add"' + (d.mode === 'add' ? ' selected' : '') + '>Add after this round\'s questions</option></select></label></div><div class="list pptx-list">';
       for (let i = 0; i < d.list.length; i++) {
         const it = d.list[i];
@@ -282,6 +282,28 @@ const PptxUI = {
       if (t.dataset.pptxMode) this.decks[int(t.dataset.pptxMode)].mode = t.value;
     };
   },
+  /** a deck for the selection round: question text (options written into it), the answer, the picture and the audio / video */
+  async applyPrelim(d, withMedia) {
+    const stem = d.name.replace(/\.pptx$/i, '').replace(/[^\wঀ-৿-]+/g, '_').slice(0, 40); const qs = []; let rules = '';
+    let n = d.mode === 'add' ? Store.state.prelim.questions.length : 0;
+    for (const it of d.list) {
+      if (!it.use) continue;
+      if (it.kind === 'rules') { rules = it.text; continue; }
+      n += 1;
+      const pic = async (p, tag) => { if (!p) return ''; const f = await PptxImport.pictureFile(d.z, p, stem + '-S' + n + tag); return f ? Media.add(f, 'image') : ''; };
+      const opts = it.kind === 'text' ? it.options.filter(Boolean) : [];
+      const text = it.kind === 'pic' ? 'ছবিটি দেখে উত্তর দিন' : it.text + (opts.length ? '\n' + opts.map((o, k) => OPT_LABELS[k] + ') ' + o).join('   ') : '');
+      const answer = it.kind === 'text' && opts.length && it.answerKnown ? OPT_LABELS[it.answer] + ') ' + it.options[it.answer] : it.answerText || '';
+      let clip = ''; if (withMedia && it.media) { const f = await PptxImport.mediaFile(d.z, it.media, stem + '-S' + n); if (f) clip = await Media.add(f, it.media.kind); }
+      qs.push({ id: uid('P'), text, answer, star: false, image: await pic(it.image, '-q'), clip, source: 'pptx' });
+    }
+    if (!qs.length && !rules) return 0;
+    Store.commit('pptx-prelim', (s) => {
+      if (qs.length) { s.prelim.questions = d.mode === 'add' ? s.prelim.questions.concat(qs) : qs; s.prelim.count = s.prelim.questions.length; }
+      if (rules) s.prelim.rules = rules;
+    });
+    return qs.length;
+  },
   async apply() {
     const withMedia = !!($('#pptxMedia') || {}).checked;
     const btn = $('[data-act="pptxApply"]'); if (btn) { btn.disabled = true; btn.textContent = '⏳ Putting the questions in…'; }
@@ -289,6 +311,7 @@ const PptxUI = {
     try {
       for (const d of this.decks) {
         if (d.error) continue;
+        if (d.round === 'PRELIM') { const k = await this.applyPrelim(d, withMedia); if (k) made.push(k + ' → বাছাই পর্ব'); continue; }
         const qs = [];
         let n = d.mode === 'add' ? Sel.roundQuestions(d.round).reduce((m, q) => Math.max(m, q.number), 0) : 0;
         const r = Sel.round(d.round); const stem = d.name.replace(/\.pptx$/i, '').replace(/[^\wঀ-৿-]+/g, '_').slice(0, 40);

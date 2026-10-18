@@ -739,7 +739,7 @@ const PreShow = {
   backupDone: false,
   media: null, // { 'file:R1-5.mp4': ms or -1 } after the 🎬 check
   async probeAll(s) {
-    const names = [...new Set(s.questions.flatMap((q) => ['image', 'clip', 'answerImage'].map((k) => q[k])).filter((id) => id && id.startsWith('file:')))];
+    const names = [...new Set(s.questions.concat(s.prelim.questions).flatMap((q) => ['image', 'clip', 'answerImage'].map((k) => q[k])).filter((id) => id && id.startsWith('file:')))];
     const res = {}; for (const id of names) res[id] = await Media.probe(id.slice(5), 8000);
     this.media = res; return res;
   },
@@ -774,7 +774,7 @@ const PreShow = {
     add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
     // Question pictures / audio / video: engine copies must exist; folder files are checked with the 🎬 button (it plays each file's start silently)
     const qs = s.questions.filter((q) => played.some((r) => r.id === q.roundId));
-    const ids = []; qs.forEach((q) => ['image', 'clip', 'answerImage'].forEach((k) => { if (q[k]) ids.push([q, q[k]]); }));
+    const ids = []; qs.concat(s.prelim.onStage ? Sel.prelimQuestions().map((q, i) => Object.assign({}, q, { roundId: 'S', number: i + 1 })) : []).forEach((q) => ['image', 'clip', 'answerImage'].forEach((k) => { if (q[k]) ids.push([q, q[k]]); }));
     const lost = ids.filter(([, id]) => !id.startsWith('file:') && !(id.startsWith('asset:') ? Media.builtin(id.slice(6)) : Media.index.some((m) => m.id === id)));
     add(!lost.length, lost.length ? lost.length + ' picture/clip(s) missing inside the engine: ' + lost.slice(0, 6).map(([q]) => q.roundId + '-' + q.number).join(', ') : 'Every picture / clip inside the engine is present');
     const files = ids.filter(([, id]) => id.startsWith('file:'));

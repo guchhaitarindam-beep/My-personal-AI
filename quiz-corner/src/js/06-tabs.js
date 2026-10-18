@@ -68,7 +68,7 @@ const TabRender = {
       return '<div class="li' + (live ? ' active' : '') + '" style="grid-template-columns:auto 1fr"><span class="n">' + String(i + 1) + (q.star ? '★' : '') + '</span><div class="t" style="display:flex;flex-direction:column;gap:.35rem">' +
         '<textarea rows="2" data-bind="prelim.questions.' + i + '.text" aria-label="Question ' + (i + 1) + '">' + esc(q.text) + '</textarea>' +
         '<div class="row"><input type="text" data-bind="prelim.questions.' + i + '.answer" value="' + esc(q.answer) + '" placeholder="Answer" style="flex:2 1 180px" aria-label="Answer ' + (i + 1) + '">' + F.check('prelim.questions.' + i + '.star', '★ Star', q.star, true) + (q.source === 'test' ? '<span class="badge-warn">Test</span>' : '') + '</div>' +
-        '<div class="row">' + F.btn('prelimShow', '❓ Show question ' + (i + 1), 'sm primary', String(i)) + F.btn('prelimReveal', '✅ Answer ' + (i + 1) + ' (ANSWER)', 'sm gold', String(i)) + F.btn('prelimImg', q.image ? '🖼 Change picture' : '🖼 Picture', 'sm', String(i)) + (q.image ? F.btn('clearMedia', 'Delete picture', 'sm', 'prelim.questions.' + i + '.image') : '') + F.btn('prelimQMove', '↑', 'sm', i + '|-1') + F.btn('prelimQMove', '↓', 'sm', i + '|1') + F.btn('prelimQDel', '🗑', 'sm bad', String(i)) + '</div></div></div>';
+        '<div class="row">' + F.btn('prelimShow', '❓ Show question ' + (i + 1), 'sm primary', String(i)) + F.btn('prelimReveal', '✅ Answer ' + (i + 1) + ' (ANSWER)', 'sm gold', String(i)) + F.btn('prelimImg', q.image ? '🖼 Change picture' : '🖼 Picture', 'sm', String(i)) + (q.image ? F.btn('clearMedia', 'Delete picture', 'sm', 'prelim.questions.' + i + '.image') : '') + F.btn('prelimClip', q.clip ? '🎬 ' + esc(q.clip.replace(/^file:/, '').slice(0, 24)) : '🎬 Audio / video', q.clip ? 'sm good' : 'sm', String(i)) + (q.clip ? F.btn('clearMedia', '✕ Audio / video', 'sm', 'prelim.questions.' + i + '.clip') : '') + F.btn('prelimQMove', '↑', 'sm', i + '|-1') + F.btn('prelimQMove', '↓', 'sm', i + '|1') + F.btn('prelimQDel', '🗑', 'sm bad', String(i)) + '</div></div></div>';
     }).join('');
     const missing = p.count - qs.length;
     const list = rows + (missing > 0 ? '<p class="badge-warn">⚠ ' + missing + ' more question(s) needed.</p>' : '') + '<div class="row">' + F.btn('prelimQAdd', '+ New prelim question', 'primary') + '</div>';
@@ -305,6 +305,19 @@ Object.assign(Actions, {
   },
   clearMedia(path) { if (TeamLock.guards(path)) return TeamLock.refuse(); Store.commit('media-clear:' + path, (s) => setPath(s, path, '')); },
   prelimCount(n) { Store.commit('prelim-count', (s) => { s.prelim.count = int(n, 20); }); },
+  /** a selection question's audio / video: played from the QuizCorner_Media folder when it is there (any size), otherwise copied into the engine */
+  prelimClip(i) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*,video/*,.mp3,.m4a,.wav,.mp4,.webm,.mov';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      const len = await Media.probe(f.name, 4000);
+      const id = len >= 0 ? 'file:' + f.name : await Media.add(f, /^audio\//.test(f.type) || /\.(mp3|m4a|wav|ogg|aac)$/i.test(f.name) ? 'audio' : 'video');
+      if (!id) return UI.toast('Could not add ' + f.name, 'err');
+      Store.commit('prelim-clip', (s) => { const q = s.prelim.questions[int(i)]; if (q) q.clip = id; });
+      UI.toast(len >= 0 ? '📁 ' + f.name + ' — plays from the laptop folder ✓' : '＋ ' + f.name + ' copied into the engine ✓', 'ok'); UI.renderTab(true);
+    };
+    inp.click();
+  },
   prelimQAdd() { Store.commit('prelim-add', (s) => { s.prelim.questions.push({ id: uid('P'), text: '', answer: '', star: (s.prelim.questions.length + 1) % 3 === 0, image: '', source: '' }); if (s.prelim.count < s.prelim.questions.length) s.prelim.count = s.prelim.questions.length; }); },
   prelimQDel(i) { if (!confirm('Delete question ' + (int(i) + 1) + '?')) return; Store.commit('prelim-del', (s) => { s.prelim.questions.splice(int(i), 1); s.teams.forEach((t) => { if (Array.isArray(t.prelim.marks)) t.prelim.marks.splice(int(i), 1); }); }); },
   prelimQMove(arg) { const [i, d] = arg.split('|').map((x) => int(x)); Store.commit('prelim-move', (s) => { const q = s.prelim.questions; const j = i + d; if (j < 0 || j >= q.length) return false; [q[i], q[j]] = [q[j], q[i]]; s.teams.forEach((t) => { const m = t.prelim.marks; [m[i], m[j]] = [m[j], m[i]]; }); }); },

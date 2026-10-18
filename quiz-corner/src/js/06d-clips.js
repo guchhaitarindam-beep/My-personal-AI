@@ -35,9 +35,16 @@ const ClipUI = {
       }
       checked += 1; if (out) out.textContent = 'Looking… ' + checked + ' / ' + qs.length;
     });
+    // the selection (prelim) round: S-1.mp4 (or P-1.mp4) for question 1 …
+    Store.state.prelim.questions.forEach((q, i) => jobs.push(async () => {
+      for (const stem of ['S-' + (i + 1), 'P-' + (i + 1), 's-' + (i + 1)]) for (const ext of CLIP_EXT) {
+        const len = await Media.probe(stem + '.' + ext, 2500);
+        if (len >= 0) { found.push({ pid: q.id, name: stem + '.' + ext, len }); return; }
+      }
+    }));
     const run = async () => { while (jobs.length) await jobs.shift()(); };
     await Promise.all(Array.from({ length: 6 }, run));
-    if (found.length) Store.commit('clip-scan', (s) => { found.forEach((f) => { const q = s.questions.find((x) => x.id === f.id); if (q) q.clip = 'file:' + f.name; }); });
+    if (found.length) Store.commit('clip-scan', (s) => { found.forEach((f) => { const q = f.pid ? s.prelim.questions.find((x) => x.id === f.pid) : s.questions.find((x) => x.id === f.id); if (q) q.clip = 'file:' + f.name; }); });
     found.forEach((f) => { this.lens['file:' + f.name] = f.len; });
     this.render();
     const o = $('#clipScanOut'); if (o) o.innerHTML = found.length ? '<b class="ok">✔ ' + found.length + ' file(s) linked:</b> ' + found.map((f) => esc(f.name) + ' (' + fmtLen(f.len) + ')').join(', ') : '⚠ No R1-5.mp4 … files found in the folder.';

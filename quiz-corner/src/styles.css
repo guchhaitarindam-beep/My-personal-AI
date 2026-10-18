@@ -1698,3 +1698,12 @@ fieldset.lockset[disabled] { opacity: .75; }
 .jumpbar .jb-round.cur { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
 .jumpbar .jb-round b { font-size: .85rem; margin-right: .2rem; }
 .jumpbar .btn.on { outline: 2px solid var(--gold); }
+
+/* selection (prelim) question with its own video / audio */
+.q-img.pclip video{width:100%;height:100%;object-fit:contain;background:#000;border-radius:inherit}
+.pclip-aud{align-self:center;margin:.4em auto 0;padding:.15em .8em;border-radius:99px;background:rgba(255,210,63,.18);border:1px solid var(--gold);color:var(--gold);font-weight:700;font-size:clamp(14px,2.2cqh,40px)}
+.q-card .q-img.pclip { flex: 0 0 56%; align-self: stretch; max-height: none; }
+/* the video goes big on top (16:9), the question below it */
+.q-card:has(.q-img.pclip) { flex-direction: column !important; }
+.q-card .q-img.pclip { flex: 1 1 64% !important; width: 100% !important; max-width: none !important; max-height: none !important; align-self: stretch !important; }
+.q-card:has(.q-img.pclip) .q-text-box { flex: 0 1 auto; min-height: 0; }
