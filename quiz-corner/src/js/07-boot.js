@@ -158,7 +158,7 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: ±5', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
-      T('Rapid (buzzer round): no board, no turn, never an audience question — the TV says BUZZER / বাজার টিপুন!', () => { const rd = Show.rundown(); const q = Sel.roundQuestions('R5')[2]; Game.load(q.id); const html = Scenes.QUESTION(s(), { qid: q.id }).html; return !rd.some((x) => x.scene === 'GRID' && x.params.roundId === 'R5') && !s().live.active && !s().live.audience && Sel.turnTeam(Sel.round('R5')) === '' && html.includes('BUZZER') && html.includes('বাজার টিপুন'); });
+      T('Rapid (buzzer round): no board, no turn, never an audience question — the TV says BUZZER / PRESS THE BUZZER!', () => { const rd = Show.rundown(); const q = Sel.roundQuestions('R5')[2]; Game.load(q.id); const html = Scenes.QUESTION(s(), { qid: q.id }).html; return !rd.some((x) => x.scene === 'GRID' && x.params.roundId === 'R5') && !s().live.active && !s().live.audience && Sel.turnTeam(Sel.round('R5')) === '' && html.includes('BUZZER') && html.includes('PRESS THE BUZZER'); });
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: a two-option question shows both options — none is removed (that would give the answer away)', () => s().live.eliminated.length === 0 && Sel.liveQuestion().options.filter(Boolean).length === 2);
       Game.toggleLock();
@@ -484,7 +484,7 @@ const SelfTest = {
         const free = () => Sel.roundQuestions(rid).filter((q) => !s().board.played[q.id]);
         for (let k = 0; k < 6; k++) { Actions.gridKey(free()[0].number); Show.next(); }
         T('Board: each of the 8 teams gets exactly one turn (A / 1 … H / 8)', () => R(rid).turnsTaken.join() === ids.join() && Game.turnFor(rid) === '');
-        T('Board: after H / 8 the board says "audience question"', () => s().show.scene === 'GRID' && Scenes.GRID(s(), s().show.params).html.includes('দর্শকদের প্রশ্ন'));
+        T('Board: after H / 8 the board says "audience question"', () => s().show.scene === 'GRID' && Scenes.GRID(s(), s().show.params).html.includes('AUDIENCE QUESTION'));
         const led = s().ledger.length;
         Actions.gridKey(free()[0].number);
         T('Audience question: no team, judging gives no points', () => s().live.audience === true && !s().live.active && Game.judge('correct') === false && s().ledger.length === led);
@@ -621,7 +621,7 @@ const SelfTest = {
         const b = defaultState(); b.rulesVersion = 12; b.design.theme = 'broadcast'; b.design.colors = Object.assign({}, THEMES.broadcast);
         return normalizeState(a).design.colors.bg === '#071a3d' && normalizeState(b).design.theme === 'broadcast';
       });
-      T('Numbers on the TV in English digits (scores, points, ranks, board), Bengali stays in the sentences', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R5')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R5'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return /রাউন্ড [০-৯]/.test(h); })(); });
+      T('TV in English (scores, points, ranks, board, round tag); Bengali stays in the questions', () => { const st = s(); const sb = Scenes.SCOREBOARD(st, { roundId: 'R1', sub: 1 }).html; const g = Scenes.GRID(st, { roundId: 'R1' }).html; return !/class="tot">[^<]*[০-৯]/.test(sb) && /class="t-num">10</.test(g) && (() => { const q = Sel.roundQuestions('R5')[0]; const keep = [st.live.qid, st.live.roundId]; st.live.qid = q.id; st.live.roundId = 'R5'; const h = Scenes.QUESTION(st, { qid: q.id }).html; [st.live.qid, st.live.roundId] = keep; return /ROUND [0-9]/.test(h) && !/[০-৯]/.test(h.replace(/<div class="q-text[^]*?<\/div>|<div class="opt[^]*?<\/div>/g, '')); })(); });
       T('PowerPoint import: question → 4 options → 2 options → answer slides become one question with the right option; a picture slide with a picture-filled box on click is a picture question; buttons and numbers are ignored; the round comes from the file name', () => {
         const S = 100 * 100; const box = (x) => Object.assign({ x: 0, y: 0, w: 10, h: 10, anim: false, id: '' }, x);
         const t1 = { n: 1, pics: [], fills: [], media: [], texts: [box({ text: 'ভারতের সংবিধানের রক্ষক হিসেবে কোন প্রতিষ্ঠানকে অভিহিত  করা হয় .' }), box({ text: '3' }), box({ text: 'ANSWER' })] };

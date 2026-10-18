@@ -304,6 +304,7 @@ const Sel = {
     });
     return notes;
   },
+  rankTitleEn(rank) { return ['CHAMPION', '1ST RUNNER-UP', '2ND RUNNER-UP'][rank - 1] || 'FINALIST'; }, // on the TV: scoreboards and results in English
   rankTitle(rank) { return ['চ্যাম্পিয়ন', 'প্রথম রানার্স-আপ', 'দ্বিতীয় রানার্স-আপ'][rank - 1] || 'ফাইনালিস্ট'; },
   /** Per-team counts from the ledger (own correct, hands-up right/wrong, bonus, wrong, manual, per round). */
   teamStats(tid) {

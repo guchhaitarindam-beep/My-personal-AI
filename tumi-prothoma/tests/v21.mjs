@@ -30,7 +30,7 @@ ok(JSON.stringify(st.slice(0, 3)) === JSON.stringify([['t1', 10, 1], ['t2', 10, 
 await p.evaluate(() => window.DIDI.A.undo()); ok(await p.evaluate(() => window.DIDI.total('t4')) === 0, 'undo takes back the last score');
 await p.evaluate(() => { window.DIDI.go('final'); window.DIDI.A.finAll(); }); await tv.waitForTimeout(1200);
 const rows = await tv.evaluate(() => [...document.querySelectorAll('.sb-r')].map((r) => r.querySelector('.sb-n').textContent + '=' + r.querySelector('.sb-tot').textContent));
-ok(rows.length === 8 && rows.filter((r) => /=১০$/.test(r)).length === 3, 'TV final scoreboard matches ' + rows.join(' '));
+ok(rows.length === 8 && rows.filter((r) => /=10$/.test(r)).length === 3, 'TV final scoreboard matches ' + rows.join(' '));
 await p.evaluate(() => { window.DIDI.A.finNext && 0; });
 await p.click('[data-a="preCheck"]'); await p.waitForTimeout(300);
 ok(await p.locator('#pcov:not([hidden]) .pcl span').count() >= 20, 'pre-show check opens with rows');

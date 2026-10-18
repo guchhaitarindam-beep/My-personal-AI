@@ -1,5 +1,5 @@
 """Builds the download package: dist/QuizCorner_13Oct_Package.zip
-(the full quiz file, the one-click launcher, the Bengali guide and the Tumi Prothoma game show, in one folder).
+(the full quiz file, the one-click launcher and the Bengali guide, in one folder).
 Usage: python3 -I tools/package.py   (run tools/build.py first)"""
 import os, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,11 +10,6 @@ files = [(os.path.join(D, 'Quiz_Corner_V66_FINAL_Broadcast_Engine.html'), 'Quiz_
          (os.path.join(L, 'README_BANGLA.txt'), 'README_BANGLA.txt'),
          # the folder for big audio / video, next to the quiz file, with a note on how to use it
          (os.path.join(L, 'MEDIA_FOLDER_README.txt'), 'QuizCorner_Media/এখানে_ভিডিও_অডিও_রাখুন.txt')]
-# the Tumi Prothoma game show sits in the same folder (its media folder is QuizCorner_Media/Tumi_Prothoma)
-TP = os.path.join(os.path.dirname(ROOT), 'tumi-prothoma')
-if os.path.exists(os.path.join(TP, 'Tumi_Prothoma_Game_Show.html')):
-    files += [(os.path.join(TP, 'Tumi_Prothoma_Game_Show.html'), 'Tumi_Prothoma_Game_Show-22.html'),
-              (os.path.join(TP, 'README_BANGLA.txt'), 'Tumi_Prothoma_README_BANGLA.txt')]
 out = os.path.join(D, 'QuizCorner_13Oct_Package.zip')
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for src, name in files:

@@ -1,13 +1,18 @@
 # Quiz Corner — standing rules (from the organiser, অরিন্দম গুছাইত)
 
 Offline single-HTML quiz engine for "জুনিয়র জিনিয়াস". Control panel on the laptop, stage on the TV.
-Reply to the organiser in Bengali. Questions, rules and everything on the TV stay in Bengali.
+Reply to the organiser in Bengali. On the TV (both engines): the questions, answers and the numbers inside them stay in
+Bengali (as written; round, team and school names too); everything else — countdown, scoreboards, results, labels, scores,
+question numbers — is in English.
+Quiz Corner and Tumi Prothoma are two separate shows: deliver each as its own file, never bundled together.
 
 ## Every delivery
 - Build (`python3 tools/build.py`, and `--lite`), run the self-test and the Playwright suites in `tests/`
   (one at a time; they share the CPU), commit, push to the session's branch, then send:
   `dist/Quiz_Corner_V66_FINAL_Broadcast_Engine.html`, `launcher/START_QUIZ_CORNER.bat`,
   `launcher/QuizCorner_Launcher.ps1` and `dist/QuizCorner_13Oct_Package.zip` (`python3 -I tools/package.py`).
+- Tumi Prothoma (`../tumi-prothoma/`): its own HTML (patched with `tools/patch_v2x.py` from the organiser's file), sent on its own
+  (zipped when large), with its own `README_BANGLA.txt`; test with `tests/v21.mjs`.
 - Keep `launcher/README_BANGLA.txt` (CRLF) up to date with anything new.
 - Everything stays on the organiser's one laptop; nothing needs to move to another computer.
 
