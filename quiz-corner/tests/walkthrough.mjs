@@ -23,7 +23,7 @@ const shot = (n) => stage.screenshot({ path: out + '/' + n + '.png' });
 const next = async (ms = 900) => { await ctl.keyboard.press('ArrowRight'); await stage.waitForTimeout(ms); return scene(); };
 const logoVisible = () => stage.evaluate(() => !document.querySelector('.corner-logo').hidden);
 // 2. opening: organiser banner → … → finalists
-let sc = await scene(); step(sc === 'ORGANIZER', 'শুরু: আয়োজক ব্যানার', sc); await shot('01-organizer');
+let sc = await scene(); step(sc === 'LOGO', 'শুরু: লোগো (আয়োজক/অনুষ্ঠানের নাম নেই)', sc); await shot('01-logo');
 const seen = [sc]; let guard = 0;
 while (sc !== 'FINALIST_INTRO' && guard++ < 60) { sc = await next(sc === 'PRELIM_COUNTDOWN' ? 5200 : 700); if (seen[seen.length - 1] !== sc) seen.push(sc); }
 step(true, 'ক্রম', seen.join(' → '));
@@ -39,7 +39,6 @@ for (const k of ['3', '1', '8', '2', '6', '4', '7', '5']) { await ctl.keyboard.p
 await stage.waitForTimeout(2000); await shot('03c-draw-done');
 const dr = await ctl.evaluate(() => { const { Store, Sel } = window.QC; return { n: Store.state.draw.picks.length, ok: Store.state.draw.picks.every((p) => Sel.teamIndex(p.team) === p.podium), first: Sel.code(Sel.team(Store.state.draw.picks[0].team)), school: Sel.team(Store.state.draw.picks[0].team).school }; });
 step(dr.n === 8 && dr.ok && dr.school === 'উত্তর কলমদান প্রাথমিক বিদ্যালয়', 'লটারি: বাছাইয়ে প্রথম দল প্রথমে বাছে, ৮ দল ৮ পোডিয়ামে, কোড = পোডিয়াম', JSON.stringify(dr));
-sc = await next(1500); step(sc === 'IDENTITY', 'আমাদের পরিচয়', sc); await shot('04-identity');
 sc = await next(1500); step(sc === 'CREW', 'আমাদের টিম', sc);
 await stage.waitForTimeout(2800 * 5); const crewSub = await ctl.evaluate(() => window.QC.Store.state.show.params.sub); step(crewSub >= await ctl.evaluate(() => window.QC.Sel.crew().length), 'আমাদের টিমের কার্ড নিজে নিজে একে একে আসে', 'দেখা গেল ' + crewSub + 'টি'); await shot('05-crew');
 sc = await next(1200); step(sc === 'TEAMS_ALL', 'সব দল', sc);

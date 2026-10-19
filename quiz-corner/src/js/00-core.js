@@ -314,7 +314,7 @@ function defaultState() {
       operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, qAloneSec: 12, giftScenes: false, autoApplause: true, photoFix: true,
     },
     ledger: [],
-    show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },
+    show: { scene: 'LOGO', step: 0, params: {}, blackout: false, startedAt: 0 },
     live: emptyLive(),
     timer: { mode: 'direct', duration: 60000, base: 60000, startedAt: 0, remaining: 60000, running: false, token: 0, expired: false },
     board: { played: {}, prevRanks: {} },
@@ -348,6 +348,7 @@ function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
   if (from < 33) {
+    if (isObj(s.show) && ['ORGANIZER', 'PROGRAMME', 'IDENTITY', 'MAIN_TITLE'].includes(s.show.scene)) Object.assign(s.show, { scene: 'LOGO', step: 0, params: {} });
     if (isObj(s.event)) ['programme', 'subtitle', 'mainTitle', 'season', 'year', 'organizer', 'venue', 'conductedBy', 'credits', 'welcomeNote'].forEach((k) => { s.event[k] = def.event[k]; });
     if (Array.isArray(s.crew)) s.crew = s.crew.filter((c) => isObj(c) && ['অরিন্দম গুছাইত', 'সঞ্জয় মণ্ডল'].includes(str(c.name).trim()));
     if (s.groupPhoto === 'asset:group') s.groupPhoto = ''; s.groupCaption = '';

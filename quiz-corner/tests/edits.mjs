@@ -76,17 +76,17 @@ await type('event.mainTitle', 'JUNIOR GENIUS SEASON 4 TEST');
 await go('ROUND_INTRO', { roundId: 'R2' });
 txt = flat(await tvText(2200));
 step(txt.includes('JUNIOR GENIUS SEASON 4 TEST'), 'Event details: Main-round title বদলালে টিভিতে বদলায়', txt.slice(0, 80));
-await go('PROGRAMME');
+await go('LOGO');
 txt = flat(await tvText(1800));
-step(/QUIZ CORNER presents/i.test(txt) && !/JUNIOR GENIUS/.test(txt), 'Brand আলাদা: অনুষ্ঠান পরিচিতিতে QUIZ CORNER presents', txt.slice(0, 80));
-await page('event'); await ctl.waitForTimeout(300); await type('event.mainTitle', 'JUNIOR GENIUS SEASON 4');
+step(/QUIZ CORNER/i.test(txt) && !/JUNIOR GENIUS/.test(txt), 'Brand আলাদা: লোগো-পর্দায় শুধু QUIZ CORNER', txt.slice(0, 80));
+await page('event'); await ctl.waitForTimeout(300); await type('event.mainTitle', '');
 
 // 6. crew name and a lottery card name (Event page)
-await type('crew.1.name', 'সুব্রত মাইতি (পরীক্ষা)');
+await type('crew.1.name', 'সঞ্জয় মণ্ডল (পরীক্ষা)');
 await go('CREW'); await ctl.evaluate(() => { for (let i = 0; i < 8; i++) window.QC.Show.sub(1); });
 txt = flat(await tvText(2600));
-step(txt.includes('সুব্রত মাইতি (পরীক্ষা)'), 'আমাদের টিম: নাম বদলালে টিভিতে বদলায়', '');
-await page('event'); await ctl.waitForTimeout(300); await type('crew.1.name', 'সুব্রত মাইতি');
+step(txt.includes('সঞ্জয় মণ্ডল (পরীক্ষা)'), 'আমাদের টিম: নাম বদলালে টিভিতে বদলায়', '');
+await page('event'); await ctl.waitForTimeout(300); await type('crew.1.name', 'সঞ্জয় মণ্ডল');
 const hasDraw = await ctl.locator('[data-bind="draw.items.0.label"]').count();
 if (hasDraw) { await type('draw.items.0.label', 'রয়্যাল বেঙ্গল টাইগার'); await go('DRAW'); txt = flat(await tvText(2000)); step(txt.includes('রয়্যাল বেঙ্গল টাইগার'), 'লটারি: কার্ডের নাম বদলালে টিভিতে বদলায়'); await page('event'); await ctl.waitForTimeout(300); await type('draw.items.0.label', 'বাঘ'); }
 else step(false, 'লটারি: কার্ডের নাম বদলানোর ঘর পাওয়া যায়নি');
@@ -108,7 +108,7 @@ step(undone === before + 7, 'Ctrl+Z: শেষ সংশোধন ফেরা�
 await ctl.waitForTimeout(1500);
 await ctl.reload(); await ctl.waitForFunction(() => window.QC && document.querySelector('.dock'));
 const kept = await ctl.evaluate(() => { const s = window.QC.Store.state; return [s.teams[0].school, s.teams[0].captain, s.teams[0].players[0], s.event.mainTitle, s.event.brandEn].join(' | '); });
-step(kept === 'খেজুরি আদর্শ প্রাথমিক বিদ্যালয় | রিয়া মাইতি | অয়ন মণ্ডল | JUNIOR GENIUS SEASON 4 | QUIZ CORNER', 'সব বদল নিজে থেকে সেভ — আবার খুললেও থাকে', kept);
+step(kept === 'খেজুরি আদর্শ প্রাথমিক বিদ্যালয় | রিয়া মাইতি | অয়ন মণ্ডল |  | QUIZ CORNER', 'সব বদল নিজে থেকে সেভ — আবার খুললেও থাকে', kept);
 
 step(!errs.length, 'কোনো JS ত্রুটি নেই', errs.join(' | '));
 console.log(log.join('\n'));

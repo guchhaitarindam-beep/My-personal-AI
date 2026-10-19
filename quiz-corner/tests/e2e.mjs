@@ -40,7 +40,7 @@ check('Stage shows no operator controls', await stage.evaluate(() => !document.q
 await ctl.evaluate(() => window.QC.Store.commit('test-prelim-on', (s) => { s.prelim.onStage = true; }));
 const rd = await ctl.evaluate(() => window.QC.Show.rundown().map((s) => ({ key: s.key, scene: s.scene })));
 check('Rundown length', rd.length > 60, rd.length + ' steps');
-const want = new Set(['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'IDENTITY', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
+const want = new Set(['LOGO', 'THEME', 'CREW', 'TEAMS_ALL', 'TEAM_INTRO', 'PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'ROUND_RULES', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'TOP3', 'WINNER', 'END', 'OVERVIEW']);
 const shot = new Set();
 let overflowIssues = [];
 let syncIssues = 0;
@@ -391,7 +391,7 @@ await ctl.evaluate(() => { window.QC.Store.undo(); window.QC.Store.undo(); }); /
 check('Question picture shows and the question text stays large (≥ 85% of text-only size)', hasImg && withImg >= noImg * 0.85, withImg.toFixed(1) + 'px with picture vs ' + noImg.toFixed(1) + 'px without');
 // the spinning badge is in the corner of every screen, first to last
 const noLogo = [];
-for (const sc of ['ORGANIZER', 'LOGO', 'THEME', 'IDENTITY', 'TEAM_INTRO', 'ROUND_RULES', 'QUESTION', 'SCOREBOARD', 'WINNER', 'END']) {
+for (const sc of ['LOGO', 'THEME', 'CREW', 'TEAM_INTRO', 'ROUND_RULES', 'QUESTION', 'SCOREBOARD', 'WINNER', 'END']) {
   await ctl.evaluate((sc) => { const QC = window.QC; const st = QC.Show.rundown().find((x) => x.scene === sc); if (st) QC.Show.go(st); else QC.Show.jump(sc); }, sc);
   if (sc === 'QUESTION') { // a question alone on the TV has the whole screen (no badge); with the team photo and timer the badge is back
     await stage.waitForTimeout(500); if (await stage.evaluate(() => window.QC.Sel.qAlone() && !document.querySelector('.corner-logo').hidden)) noLogo.push('QUESTION alone shows the badge');

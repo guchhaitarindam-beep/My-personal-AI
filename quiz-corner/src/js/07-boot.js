@@ -823,7 +823,7 @@ function boot() {
     window.addEventListener('beforeunload', (e) => {
       Store.persist();
       // closing the control window by mistake mid-show asks first (everything is saved either way)
-      if (MODE === 'control' && Store.state.show.scene !== 'ORGANIZER') { e.preventDefault(); e.returnValue = ''; }
+      if (MODE === 'control' && !['ORGANIZER', 'LOGO'].includes(Store.state.show.scene)) { e.preventDefault(); e.returnValue = ''; }
     });
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');

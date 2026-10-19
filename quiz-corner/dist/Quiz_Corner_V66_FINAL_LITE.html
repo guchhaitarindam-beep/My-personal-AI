@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261019-1018 -->
+<!-- QC-BUILD: 20261019-1027 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 10:18</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 10:27</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -2329,7 +2329,7 @@ function defaultState() {
       operatorVoice: false, hostAnswer: 'click', coach: true, keyLayout: 'v66', crewAuto: true, crewStepMs: 2800, qAloneSec: 12, giftScenes: false, autoApplause: true, photoFix: true,
     },
     ledger: [],
-    show: { scene: 'ORGANIZER', step: 0, params: {}, blackout: false, startedAt: 0 },
+    show: { scene: 'LOGO', step: 0, params: {}, blackout: false, startedAt: 0 },
     live: emptyLive(),
     timer: { mode: 'direct', duration: 60000, base: 60000, startedAt: 0, remaining: 60000, running: false, token: 0, expired: false },
     board: { played: {}, prevRanks: {} },
@@ -2363,6 +2363,7 @@ function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
   if (from < 33) {
+    if (isObj(s.show) && ['ORGANIZER', 'PROGRAMME', 'IDENTITY', 'MAIN_TITLE'].includes(s.show.scene)) Object.assign(s.show, { scene: 'LOGO', step: 0, params: {} });
     if (isObj(s.event)) ['programme', 'subtitle', 'mainTitle', 'season', 'year', 'organizer', 'venue', 'conductedBy', 'credits', 'welcomeNote'].forEach((k) => { s.event[k] = def.event[k]; });
     if (Array.isArray(s.crew)) s.crew = s.crew.filter((c) => isObj(c) && ['অরিন্দম গুছাইত', 'সঞ্জয় মণ্ডল'].includes(str(c.name).trim()));
     if (s.groupPhoto === 'asset:group') s.groupPhoto = ''; s.groupCaption = '';
@@ -6774,7 +6775,7 @@ const TabRender = {
   show(s) {
     const rd = Show.rundown(); const ci = Show.index();
     const list = rd.map((st, i) => '<div class="rd' + (i === ci ? ' cur' : '') + '" data-act="goStep" data-arg="' + i + '" role="button" tabindex="0"><span class="i">' + String(i + 1) + '</span><span>' + esc(st.label) + '</span><span class="k">' + esc(st.scene) + '</span></div>').join('');
-    const jumps = [['ORGANIZER', 'Banner'], ['LOGO', 'Logo'], ['PROGRAMME', 'Event'], ['THEME', 'Theme song'], ['TEAMS_ALL', 'All teams'], ['PRELIM_RESULT', 'Prelim result'], ['FINALISTS', 'Final 8'], ['WELCOME', 'Welcome'], ['PODIUM', 'Podium'], ['MAIN_COUNTDOWN', 'Countdown'], ['SCOREBOARD', 'Scoreboard'], ['FINAL', 'Final result'], ['WINNER', 'Winner'], ['END', 'Closing']];
+    const jumps = [['LOGO', 'Logo'], ['THEME', 'Theme song'], ['TEAMS_ALL', 'All teams'], ['PRELIM_RESULT', 'Prelim result'], ['FINALISTS', 'Final 8'], ['WELCOME', 'Welcome'], ['PODIUM', 'Podium'], ['MAIN_COUNTDOWN', 'Countdown'], ['SCOREBOARD', 'Scoreboard'], ['FINAL', 'Final result'], ['WINNER', 'Winner'], ['END', 'Closing']];
     const gallery = s.gallery.length ? '<div class="deck">' + s.gallery.map((id) => '<button class="btn" data-act="galleryShow" data-arg="' + esc(id) + '"><span class="thumb" style="width:34px;height:34px"><img data-media="' + esc(id) + '" alt=""></span> Show</button>').join('') + '</div>' : '<p class="muted">Add pictures to the gallery in the Media tab.</p>';
     return F.card('Show rundown (full running order)', '<div class="rundown" data-keep-scroll="rd">' + list + '</div>', 'Click a step to send that scene to the stage') +
       F.card('Quick jump', '<div class="deck">' + jumps.map(([k, l]) => F.btn('jump', l, '', k)).join('') + '</div>') +
@@ -9371,7 +9372,7 @@ function boot() {
     window.addEventListener('beforeunload', (e) => {
       Store.persist();
       // closing the control window by mistake mid-show asks first (everything is saved either way)
-      if (MODE === 'control' && Store.state.show.scene !== 'ORGANIZER') { e.preventDefault(); e.returnValue = ''; }
+      if (MODE === 'control' && !['ORGANIZER', 'LOGO'].includes(Store.state.show.scene)) { e.preventDefault(); e.returnValue = ''; }
     });
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');

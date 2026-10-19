@@ -47,7 +47,7 @@ const TabRender = {
   show(s) {
     const rd = Show.rundown(); const ci = Show.index();
     const list = rd.map((st, i) => '<div class="rd' + (i === ci ? ' cur' : '') + '" data-act="goStep" data-arg="' + i + '" role="button" tabindex="0"><span class="i">' + String(i + 1) + '</span><span>' + esc(st.label) + '</span><span class="k">' + esc(st.scene) + '</span></div>').join('');
-    const jumps = [['ORGANIZER', 'Banner'], ['LOGO', 'Logo'], ['PROGRAMME', 'Event'], ['THEME', 'Theme song'], ['TEAMS_ALL', 'All teams'], ['PRELIM_RESULT', 'Prelim result'], ['FINALISTS', 'Final 8'], ['WELCOME', 'Welcome'], ['PODIUM', 'Podium'], ['MAIN_COUNTDOWN', 'Countdown'], ['SCOREBOARD', 'Scoreboard'], ['FINAL', 'Final result'], ['WINNER', 'Winner'], ['END', 'Closing']];
+    const jumps = [['LOGO', 'Logo'], ['THEME', 'Theme song'], ['TEAMS_ALL', 'All teams'], ['PRELIM_RESULT', 'Prelim result'], ['FINALISTS', 'Final 8'], ['WELCOME', 'Welcome'], ['PODIUM', 'Podium'], ['MAIN_COUNTDOWN', 'Countdown'], ['SCOREBOARD', 'Scoreboard'], ['FINAL', 'Final result'], ['WINNER', 'Winner'], ['END', 'Closing']];
     const gallery = s.gallery.length ? '<div class="deck">' + s.gallery.map((id) => '<button class="btn" data-act="galleryShow" data-arg="' + esc(id) + '"><span class="thumb" style="width:34px;height:34px"><img data-media="' + esc(id) + '" alt=""></span> Show</button>').join('') + '</div>' : '<p class="muted">Add pictures to the gallery in the Media tab.</p>';
     return F.card('Show rundown (full running order)', '<div class="rundown" data-keep-scroll="rd">' + list + '</div>', 'Click a step to send that scene to the stage') +
       F.card('Quick jump', '<div class="deck">' + jumps.map(([k, l]) => F.btn('jump', l, '', k)).join('') + '</div>') +
