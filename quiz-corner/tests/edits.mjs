@@ -72,10 +72,10 @@ await tv.screenshot({ path: path.join(out, 'edit-question.png') });
 
 // 5. Event details: the main-round title; the QUIZ CORNER brand is a separate field and stays
 await page('event'); await ctl.waitForTimeout(400);
-await type('event.mainTitle', 'JUNIOR GENIUS SEASON 4 TEST');
+await type('event.mainTitle', 'MAIN TITLE TEST');
 await go('ROUND_INTRO', { roundId: 'R2' });
 txt = flat(await tvText(2200));
-step(txt.includes('JUNIOR GENIUS SEASON 4 TEST'), 'Event details: Main-round title বদলালে টিভিতে বদলায়', txt.slice(0, 80));
+step(txt.includes('MAIN TITLE TEST'), 'Event details: Main-round title বদলালে টিভিতে বদলায়', txt.slice(0, 80));
 await go('LOGO');
 txt = flat(await tvText(1800));
 step(/QUIZ CORNER/i.test(txt) && !/JUNIOR GENIUS/.test(txt), 'Brand আলাদা: লোগো-পর্দায় শুধু QUIZ CORNER', txt.slice(0, 80));

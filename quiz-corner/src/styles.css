@@ -1255,7 +1255,7 @@ body.live-mode .live-col { padding-bottom: 180px; }
 body.fx-premium .stage .sb-row { background: linear-gradient(90deg, color-mix(in srgb, var(--team) 30%, var(--panel-solid)), color-mix(in srgb, var(--panel-solid) 90%, #000)); }
 
 /* =====================================================================
-   JUNIOR GENIUS SEASON 4 — the main rounds' title (event.brandEn)
+   the main rounds' title (event.brandEn)
    ===================================================================== */
 .stage .s-head .spacer { display: flex; justify-content: center; align-items: center; min-width: 0; }
 .stage .jg { position: relative; overflow: hidden; display: inline-flex; align-items: center; white-space: nowrap; max-width: 100%; font-family: var(--font-en); font-weight: 800; font-size: 2.5cqh; letter-spacing: .24em; color: var(--gold); padding: .55cqh 1.6cqw; border-radius: 99cqh; border: .2cqh solid color-mix(in srgb, var(--gold) 60%, transparent); background: color-mix(in srgb, var(--gold) 8%, transparent); box-shadow: 0 0 1.6cqh color-mix(in srgb, var(--gold) 25%, transparent); }

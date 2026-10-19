@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 33;
+const RULES_VERSION = 34;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -248,7 +248,6 @@ function defaultState() {
   const ev = isObj(show.event) ? show.event : {};
   const bannerLines = str(ev.banner).split('\n');
   const rounds = arr(show.rounds).length ? arr(show.rounds).map(roundFromSeed) : Array.from({ length: 7 }, (_, i) => roundFromSeed({}, i));
-  while (rounds.length < 7) rounds.push(roundFromSeed({ id: 'R' + (rounds.length + 1) }, rounds.length));
   const crewPhotos = { 'অরিন্দম গুছাইত': 'asset:crew0', 'সঞ্জয় মণ্ডল': 'asset:crew4' };
   return {
     schema: SCHEMA, rulesVersion: RULES_VERSION, rev: 0, updatedAt: 0,
@@ -283,7 +282,7 @@ function defaultState() {
     rounds,
     questions: arr(SEED.questions).map(questionFromSeed),
     testQuestions: arr(SEED.testQuestions).map(questionFromSeed),
-    flipPool: 'R6',
+    flipPool: '',
     giftCategories: GIFT_CATEGORIES.slice(),
     sceneFx: {}, // per-scene overrides: { SCENE: { anim, bg, cue } }
     design: {
@@ -347,6 +346,8 @@ function mergeDefaults(def, src) {
 function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
+  // version 34: the main rounds keep only their picture questions — the spare text-question rounds (4, 6, 7) and their questions go
+  if (from < 34) { const gone = ['R4', 'R6', 'R7']; if (Array.isArray(s.rounds)) s.rounds = s.rounds.filter((r) => !(isObj(r) && gone.includes(r.id))); if (Array.isArray(s.questions)) s.questions = s.questions.filter((q) => !(isObj(q) && gone.includes(q.roundId))); }
   if (from < 33) {
     if (isObj(s.show) && ['ORGANIZER', 'PROGRAMME', 'IDENTITY', 'MAIN_TITLE'].includes(s.show.scene)) Object.assign(s.show, { scene: 'LOGO', step: 0, params: {} });
     if (isObj(s.event)) ['programme', 'subtitle', 'mainTitle', 'season', 'year', 'organizer', 'venue', 'conductedBy', 'credits', 'welcomeNote'].forEach((k) => { s.event[k] = def.event[k]; });

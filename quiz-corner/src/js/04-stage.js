@@ -9,7 +9,7 @@ function firstGrapheme(t) {
   try { if (window.Intl && Intl.Segmenter) { const it = new Intl.Segmenter('bn', { granularity: 'grapheme' }).segment(t)[Symbol.iterator]().next(); if (!it.done) return it.value.segment; } } catch (e) { /* older browser */ }
   return t.charAt(0);
 }
-/** Main-round screens that carry the JUNIOR GENIUS SEASON 4 title in their header. */
+/** Main-round screens that carry the main-round title in their header. */
 /** Screens that keep their own, bigger entrance animation. */
 const BIG_MOMENTS = ['MAIN_TITLE', 'ROUND_INTRO', 'DRAW', 'FINAL', 'TOP3', 'WINNER', 'END', 'THEME', 'LOGO'];
 /** 13 Oct: every kind of screen arrives in its own way, slowly; questions, the board and team introductions take turns
@@ -55,7 +55,7 @@ const H = {
     const mid = MAIN_BRAND_SCENES.includes(s.show.scene) ? H.brand(s) : '';
     return '<div class="s-head" data-part="head">' + (s.design.corner.show ? '' : H.logo(s)) + left + '<span class="spacer">' + mid + '</span>' + right + '</div>';
   },
-  /** JUNIOR GENIUS SEASON 4 — the main rounds' English title (event.mainTitle), always the exact same words. */
+  /** The main rounds' English title (event.mainTitle), always the exact same words. */
   brand(s, cls = '') { const b = str(s.event.mainTitle).trim(); return b ? '<span class="jg ' + cls + '"><span class="jg-t">' + esc(b) + '</span></span>' : ''; },
   part(name, html, cls = '', style = '') { return '<div data-part="' + name + '" class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + html + '</div>'; },
   timer() {
@@ -205,7 +205,7 @@ const Scenes = {
   },
   PRELIM_COUNTDOWN(s) { return Scenes.countdown(s, 'PRELIM ROUND STARTS IN'); },
   MAIN_COUNTDOWN(s) { return Scenes.countdown(s, 'MAIN ROUND STARTS IN'); },
-  /** Main-round opening: gold particles gather → a golden light sweeps → JUNIOR GENIUS SEASON 4 comes out of the depth,
+  /** Main-round opening: gold particles gather → a golden light sweeps → the main-round title comes out of the depth,
       grows a little and settles inside a luminous double frame → MAIN ROUND. */
   MAIN_TITLE(s) {
     const b = str(s.event.mainTitle).trim() || str(s.event.brandEn).trim() || 'QUIZ CORNER';
@@ -374,7 +374,7 @@ const Scenes = {
       : '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>', 'q-clipfull ' + (clipKind === 'audio' ? 'audio' : 'video')) + H.strip(s, l.active) + audioPart : '';
     return {
       key: 'Q:' + q.id + ':' + l.deliverAt, anim: dr.delivered ? 'none' : s.design.anim, style: H.roundVars(r) + dr.style + oFont + (active ? H.teamVars(active) : ''), bg: r && r.design.bg,
-      // rounds 1–3: no title line (round name, JUNIOR GENIUS SEASON 4, question number) — the question has the whole screen
+      // rounds 1–3: no title line (round name, title, question number) — the question has the whole screen
       html: clipFirst ? clipHtml : (clean ? '' : H.head(s, '<span class="round-tag">' + (n > 0 ? 'ROUND ' + String(n) + ' • ' : '') + esc(r ? r.name : '') + '</span>', (r && r.multiplier > 1 ? '<span class="mult">×' + String(r.multiplier) + ' POINTS</span>' : '') + '<span class="qnum qtag">QUESTION ' + String(q.number).padStart(2, '0') + '</span>')) +
         '<div class="q-wrap' + (clean ? ' clean' : '') + (pic ? ' pic' : '') + (Sel.qAlone(s) ? ' alone' : '') + '" data-part="wrap" data-morph><div class="q-main" data-part="main" data-morph>' + (pic ? H.part('card-' + (picNow === q.image ? 'q' : 'a'), '<div class="q-pic' + (picNow === q.image ? '' : ' is-answer') + '"><img class="q-pic-bg" data-media="' + esc(picNow) + '" alt="" aria-hidden="true"><img class="q-pic-main" data-media="' + esc(picNow) + '" alt=""></div>', 'q-card glass pic-only' + (dr.delivered ? ' delivered' : '')) : H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="' + ((clean ? 10.5 : 7.6) * qScale).toFixed(2) + '" style="' + qFont + '">' + esc(q.text) + '</div></div>', 'q-card glass' + (dr.delivered ? ' delivered' : ''))) + opts + poll + ans + '</div>' +
         '<div class="q-side" data-part="side" data-morph>' + side + hands + lifelines + H.timer() + '</div></div>' + H.strip(s, l.flow === 'challenge' ? l.challenger : l.active) + stamp + dr.html +

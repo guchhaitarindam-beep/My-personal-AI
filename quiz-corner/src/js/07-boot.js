@@ -85,12 +85,12 @@ const SelfTest = {
     try {
       Store.state = normalizeState(defaultState()); typedR1();
       const s = () => Store.state;
-      T('Default: 7 rounds', () => s().rounds.length === 7);
+      T('Default: 4 rounds (3 main rounds and the buzzer round)', () => s().rounds.length === 4);
       T('Default: direct timer 60 s (all rounds), rapid fire 15 s', () => s().rounds.every((r) => r.timers.direct === (r.type === 'rapid' ? 15 : 60)) && Sel.round('R5').timers.direct === 15);
       T('Default: pass/bonus timer 45 s (all rounds)', () => s().rounds.every((r) => r.timers.pass === 45));
       T('Default: 15 prelim questions (latest rules), each has an answer', () => Sel.prelimQuestions().length === 15 && Sel.prelimQuestions().every((q) => q.text && q.answer));
       T('Default: top 8 teams go to the final', () => s().prelim.finalistCount === 8 && Sel.finalistIds().length === 8);
-      T('V100 question bank preserved', () => s().questions.length >= 70 ? 'প্রশ্ন: ' + s().questions.length : false);
+      T('Question bank: rounds 1–3 (10 each) and the buzzer round (16)', () => s().questions.length === 46 ? 'প্রশ্ন: ' + s().questions.length : false);
       T('Normalising corrupted data', () => { const n = normalizeState({ teams: 'x', rounds: [null], questions: [{}], ledger: [1, null], timer: { duration: 'abc' } }); return n.teams.length > 0 && n.rounds.length === 1 && n.timer.duration === 60000; });
 
       // ---- timer ----
@@ -143,10 +143,10 @@ const SelfTest = {
       Game.useLifeline('poll');
       T('Audience poll: totals 100%', () => s().live.poll.reduce((x, y) => x + y, 0) === 100);
       const before = s().live.qid;
-      Game.useLifeline('flip');
+      Store.state.flipPool = 'R2'; Game.useLifeline('flip'); // no reserve round in the show: tried with round 2 as the pool for a moment
       T('Flip: swaps to a reserve question', () => s().live.qid !== before && Sel.question(s().live.qid).roundId === s().flipPool);
-      Sel.round('R1').features.lifelines = false;
-      Game.load(Sel.roundQuestions('R4')[0].id, a);
+      Store.state.flipPool = ''; Sel.round('R1').features.lifelines = false;
+      Game.load(Sel.roundQuestions('R1')[5].id, a);
       Game.challenge(b);
       Game.judge('wrong');
       T('Challenge: wrong costs the challenger −5', () => Sel.score(b) === -5);
@@ -158,6 +158,7 @@ const SelfTest = {
       const r5 = Sel.round('R5'); r5.type = 'rapid';
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: ±5', () => Game.pointsFor('correct') === 5 && Game.pointsFor('wrong') === -5);
+      T('Rapid (buzzer round): the 15 s timer starts by itself as the question comes up', () => s().timer.running && s().timer.mode === 'direct' && s().timer.duration === 15000);
       T('Rapid (buzzer round): no board, no turn, never an audience question — the TV says BUZZER / PRESS THE BUZZER!', () => { const rd = Show.rundown(); const q = Sel.roundQuestions('R5')[2]; Game.load(q.id); const html = Scenes.QUESTION(s(), { qid: q.id }).html; return !rd.some((x) => x.scene === 'GRID' && x.params.roundId === 'R5') && !s().live.active && !s().live.audience && Sel.turnTeam(Sel.round('R5')) === '' && html.includes('BUZZER') && html.includes('PRESS THE BUZZER'); });
       Game.load(Sel.roundQuestions('R5')[0].id, a);
       T('Rapid: a two-option question shows both options — none is removed (that would give the answer away)', () => s().live.eliminated.length === 0 && Sel.liveQuestion().options.filter(Boolean).length === 2);
@@ -175,15 +176,15 @@ const SelfTest = {
       T('Redo: applied again', () => Sel.score(a) === sa + 7);
       T('Ledger: before/after are continuous', () => { const tot = {}; return s().ledger.every((e) => { const b = tot[e.team] || 0; const ok = e.before === b && e.after === b + e.delta; tot[e.team] = e.after; return ok; }); });
       // hands-up: several teams, each judged once
-      Store.state.rounds.find((r) => r.id === 'R4').features.singleChallenger = false;
-      Game.load(Sel.roundQuestions('R4')[1].id, a);
+      Store.state.rounds.find((r) => r.id === 'R1').features.singleChallenger = false;
+      Game.load(Sel.roundQuestions('R1')[6].id, a);
       Game.raiseHand(b); Game.raiseHand(c);
       T('Hands up: several teams', () => s().live.hands.length === 2 && Game.raiseHand(a) === false);
       const sb0 = Sel.score(b); const sc0 = Sel.score(c);
       Game.judgeHand(b, true); Game.judgeHand(c, false);
       T('Hands up: correct +10, wrong −5, each judged once', () => Sel.score(b) === sb0 + 10 && Sel.score(c) === sc0 - 5 && Game.judgeHand(b, true) === false);
-      Store.state.rounds.find((r) => r.id === 'R4').features.singleChallenger = true;
-      Game.load(Sel.roundQuestions('R4')[2].id, a);
+      Store.state.rounds.find((r) => r.id === 'R1').features.singleChallenger = true;
+      Game.load(Sel.roundQuestions('R1')[7].id, a);
       Game.raiseHand(b);
       T('Single buzzer: a second team cannot raise a hand', () => Game.raiseHand(c) === false);
       // multiplier
@@ -241,7 +242,7 @@ const SelfTest = {
       Store.state = normalizeState(defaultState()); typedR1();
       const R = (id) => Sel.round(id);
       T('Rules: names of the 3 main-stage rounds', () => R('R1').name === 'মজার মিশেল' && R('R2').name === 'চিন্তা ও চয়েস' && R('R3').name === 'বুদ্ধির টক্কর');
-      T('Rules: rounds 1–3 and the rapid-fire round (R5, 16 two-option class-XII questions) enabled; 4, 6, 7 in the file but disabled', () => ['R1', 'R2', 'R3', 'R5'].every((id) => R(id).enabled) && ['R4', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled) && R('R5').type === 'rapid' && Sel.roundQuestions('R5').length === 16 && Sel.roundQuestions('R5').every((q) => q.options.filter(Boolean).length === 2 && q.options[q.answer]) && Sel.roundQuestions('R5').find((q) => q.number === 16).options[Sel.roundQuestions('R5').find((q) => q.number === 16).answer] === 'বৃক্ক' && /১৬টি/.test(R('R5').rules));
+      T('Rules: rounds 1–3 and the rapid-fire round (R5, 16 two-option class-XII questions) enabled; the spare rounds 4, 6, 7 are gone', () => ['R1', 'R2', 'R3', 'R5'].every((id) => R(id).enabled) && s().rounds.map((r) => r.id).join() === 'R1,R2,R3,R5' && s().questions.every((q) => ['R1', 'R2', 'R3', 'R5'].includes(q.roundId)) && ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).length === 10) && R('R5').type === 'rapid' && Sel.roundQuestions('R5').length === 16 && Sel.roundQuestions('R5').every((q) => q.options.filter(Boolean).length === 2 && q.options[q.answer]) && Sel.roundQuestions('R5').find((q) => q.number === 16).options[Sel.roundQuestions('R5').find((q) => q.number === 16).answer] === 'বৃক্ক' && /১৬টি/.test(R('R5').rules));
       T('Rules: rule text says 60 seconds (round 2 also 45 for the pass)', () => ['R1', 'R2', 'R3'].every((id) => R(id).rules.includes('৬০ সেকেন্ড')) && R('R2').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: no old 30/15 seconds anywhere', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
@@ -262,7 +263,7 @@ const SelfTest = {
       T('Questions: every round 2 question has four options and an answer among them', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2'].every((id) => RQ(id).every((q) => q.options.filter(Boolean).length === 4 && q.options[q.answer])); });
       T('Questions: round 2 shows no picture beside the question (the words come first)', () => { const d0 = normalizeState(defaultState()); const RQ = (rid) => d0.questions.filter((q) => q.roundId === rid).sort((a, b) => a.number - b.number); return ['R2'].every((id) => RQ(id).every((q) => !q.image)); });
       T('Questions: old saves lose the subject pictures beside the question; the operator\'s own picture stays', () => { const old = defaultState(); delete old.rulesVersion; const a = old.questions.find((q) => q.roundId === 'R1'); const b = old.questions.find((q) => q.roundId === 'R2'); a.image = 'asset:topic_telescope.png'; b.image = 'm_mine'; const n = normalizeState(old); return n.questions.find((q) => q.id === a.id).image === '' && n.questions.find((q) => q.id === b.id).image === 'm_mine'; });
-      T('Questions: none of the original 70 dropped (total ' + s().questions.length + ')', () => Array.from({ length: 70 }, (_, i) => 'Q' + String(i + 1).padStart(2, '0')).every((id) => Sel.question(id)) && new Set(s().questions.map((q) => q.id)).size === s().questions.length);
+      T('Questions: every main-round and buzzer question kept (total ' + s().questions.length + ')', () => ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).length === 10) && Sel.roundQuestions('R5').length === 16 && new Set(s().questions.map((q) => q.id)).size === s().questions.length);
       T('Questions: every correct answer is among the options (picture questions: the answer is a picture)', () => normalizeState(defaultState()).questions.every((q) => q.picOnly ? q.answerImage || q.answerText : q.options[q.answer]));
       {
         const [ta, tb, tc] = Sel.finalistIds();
@@ -365,7 +366,7 @@ const SelfTest = {
       T('Old save: gets new rules, names and question layout, team photos intact', () => {
         const old = defaultState(); delete old.rulesVersion;
         old.rounds[2].name = 'দেখো তো চিনতে পারো কিনা'; old.rounds[2].type = 'bonus'; old.rounds[0].label = 'সাধারণ জ্ঞান ও চ্যালেঞ্জ'; old.rounds[0].rules = 'সময় ৩০ সেকেন্ড';
-        old.questions[0].roundId = 'R7'; old.questions[0].text = 'নিজের লেখা'; old.teams[0].name = 'আমার দল'; old.teams[0].captainPhoto = 'm_keep';
+        old.questions[0].roundId = 'R3'; old.questions[0].text = 'নিজের লেখা'; old.teams[0].name = 'আমার দল'; old.teams[0].captainPhoto = 'm_keep';
         old.prelim.count = 20; old.audio.cues.correct.vol = 0.3;
         const n = normalizeState(old); const d = defaultState();
         return n.rounds[2].name === 'বুদ্ধির টক্কর' && n.rounds[2].type === 'standard' && n.rounds[0].label === d.rounds[0].label && n.rounds[0].rules === d.rounds[0].rules && n.questions[0].roundId === d.questions[0].roundId && n.questions[0].text === 'নিজের লেখা' && n.teams[0].name === 'আমার দল' && n.teams[0].captainPhoto === 'm_keep' && n.prelim.count === 15 && n.audio.cues.correct.vol === 1 && n.rulesVersion === RULES_VERSION;
@@ -374,7 +375,7 @@ const SelfTest = {
         const old = defaultState(); delete old.rulesVersion;
         const seedOld = arr(SEED.questions).find((q) => arr(q.prevText).length);
         const a = old.questions.find((q) => q.id === seedOld.id); a.text = seedOld.prevText[0]; a.options = ['১', '২', '৩', '৪']; a.voiceQ = 'm_oldvoice';
-        const mine = old.questions.find((q) => !arr((arr(SEED.questions).find((x) => x.id === q.id) || {}).prevText).length); mine.text = 'আমার নিজের প্রশ্ন';
+        const mine = old.questions.find((q) => q.roundId === 'R2' && q.id !== seedOld.id); mine.text = 'আমার নিজের প্রশ্ন';
         const n = normalizeState(old); const d = defaultState();
         const na = n.questions.find((q) => q.id === seedOld.id);
         return na.text === d.questions.find((q) => q.id === seedOld.id).text && na.options[0] !== '১' && na.voiceQ !== 'm_oldvoice' && na.voiceQ === d.questions.find((q) => q.id === seedOld.id).voiceQ && n.questions.find((q) => q.id === mine.id).text === 'আমার নিজের প্রশ্ন';
@@ -554,6 +555,7 @@ const SelfTest = {
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
       T('Brand stays QUIZ CORNER; no programme / competition name, organiser or main-round title by default', () => { const d = defaultState().event; return d.brandEn === 'QUIZ CORNER' && !d.mainTitle && !d.programme && !d.subtitle && !d.organizer && !d.conductedBy; });
+      T('Old save: the spare text-question rounds (4, 6, 7) and their questions go; rounds 1–3 keep 10 picture-round questions each', () => { const o = defaultState(); o.rulesVersion = 33; o.rounds.push({ id: 'R4', name: 'সূত্র সন্ধান', type: 'standard' }, { id: 'R7', name: 'সংরক্ষিত', type: 'standard' }); o.questions.push({ id: 'X1', roundId: 'R4', number: 1, text: 'পুরনো', options: ['ক', 'খ'], answer: 0 }, { id: 'X2', roundId: 'R7', number: 1, text: 'পুরনো ২', options: ['ক', 'খ'], answer: 0 }); const n = normalizeState(o); return n.rounds.map((r) => r.id).join() === 'R1,R2,R3,R5' && !n.questions.some((q) => ['X1', 'X2'].includes(q.id)) && ['R1', 'R2', 'R3'].every((id) => n.questions.filter((q) => q.roundId === id).length === 10); });
       T('Old save (title stored as brand) gets QUIZ CORNER back', () => { const o = defaultState(); o.rulesVersion = 14; o.event.brandEn = 'JUNIOR GENIUS SEASON 4'; const n = normalizeState(o); return n.event.brandEn === 'QUIZ CORNER' && !n.event.mainTitle; });
       T('No main-round title anywhere on the TV (round intro, team intro, scoreboard, board); with one typed in, its opening comes before the countdown', () => {
         const st = Store.state; const keep = [st.show.scene, st.show.params, st.event.mainTitle]; const r1 = st.rounds[0]; const team = st.teams[0];

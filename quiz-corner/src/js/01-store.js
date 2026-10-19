@@ -773,7 +773,7 @@ const Game = {
       Store.commit('lifeline-poll', (st) => { st.live.optionsShown = true; st.live.poll = this.makePoll(q, st.live.eliminated); this.markLifeline(st, team, kind); });
     } else if (kind === 'flip') {
       const next = this.flipCandidate();
-      if (!next) { UI.toast('No reserve question left for Flip (round ' + s.flipPool + ')', 'err'); return false; }
+      if (!next) { UI.toast(s.flipPool ? 'No reserve question left for Flip (round ' + s.flipPool + ')' : 'Flip needs a reserve round (none is set)', 'err'); return false; }
       Store.commit('lifeline-flip', (st) => {
         const old = st.live.qid;
         delete st.board.played[old];
@@ -850,7 +850,8 @@ const Game = {
     setTimeout(() => Cue.play('question'), drone ? Show.droneMs() * 0.6 : 250);
     const rn = Store.state.rounds.filter((x) => x.enabled).indexOf(r) + 1;
     if (rn > 0) setTimeout(() => Cue.play('rq' + Math.min(6, rn)), (drone ? Show.droneMs() * 0.6 : 250) + 120);
-    if (Store.state.settings.autoTimer) Timer.start('direct', Timer.durationFor('direct'), drone ? Show.droneMs() : 900);
+    // the buzzer round's timer starts by itself as the question comes up
+    if (Store.state.settings.autoTimer || (r && r.type === 'rapid')) Timer.start('direct', Timer.durationFor('direct'), drone ? Show.droneMs() : 900);
     const sp = Store.state.speech;
     VoicePlayer.stop(); // the last question's reading never runs on over a new question
     if (sp.autoQuestion || (sp.rec && q.voiceQ)) setTimeout(() => Speech.readQuestion(sp.autoQuestion), drone ? Show.droneMs() : 800);

@@ -22,7 +22,7 @@ step(/holiday\.jpg/.test(bulk.modal) && /R1-5\.jpg/.test(bulk.modal), 'নাম
 await p.keyboard.press('Escape');
 // 2. questions out to CSV and back in, replacing the bank (another event)
 const csv = await p.evaluate(async () => { const QC = window.QC; let blob; const orig = window.URL.createObjectURL; return new Promise((res) => { window.URL.createObjectURL = (bb) => { blob = bb; window.URL.createObjectURL = orig; blob.text().then(res); return orig(bb); }; QC.Actions.exportQuestionsCsv(); }); });
-step(csv.split('\n').length > 70, 'প্রশ্ন CSV নামানো যায়', (csv.split('\n').length - 1) + ' সারি');
+step(csv.split('\n').length > 40, 'প্রশ্ন CSV নামানো যায়', (csv.split('\n').length - 1) + ' সারি');
 await p.evaluate(() => window.QC.Actions.importOpen()); await p.waitForTimeout(300);
 const lines = csv.split('\n'); const small = [lines[0]].concat(lines.slice(1).filter((l) => !/^"?R1"?,/.test(l)).slice(0, 5)).join('\n'); // typed questions (round 1 is pictures, no options)
 await p.fill('#importText', small); await p.click('[data-act="importPreview"]'); await p.waitForTimeout(800);
@@ -31,7 +31,7 @@ const n = await p.evaluate(() => window.QC.Store.state.questions.length);
 step(n === 5, 'অন্য অনুষ্ঠানের জন্য: CSV থেকে পুরো প্রশ্ন-ব্যাংক বদলানো', n + 'টি প্রশ্ন');
 await p.keyboard.press('Control+z'); await p.waitForTimeout(500);
 const back = await p.evaluate(() => window.QC.Store.state.questions.length);
-step(back > 70, 'Ctrl+Z দিয়ে আগের প্রশ্ন-ব্যাংক ফেরে', back + 'টি প্রশ্ন');
+step(back === 46, 'Ctrl+Z দিয়ে আগের প্রশ্ন-ব্যাংক ফেরে', back + 'টি প্রশ্ন');
 // 3. our team: add a member with name, role, about and photo
 await p.evaluate(() => window.QC.Actions.tab('event')); await p.waitForTimeout(500);
 await p.click('[data-act="crewAdd"]'); await p.waitForTimeout(400);

@@ -16,7 +16,7 @@ const SCENE_LABELS = {
   ORGANIZER: 'Organizer banner', LOGO: 'Quiz Corner logo', PROGRAMME: 'Programme intro', THEME: 'Theme song', IDENTITY: 'About us', CREW: 'Our team',
   TEAMS_ALL: 'Participating teams', TEAM_INTRO: 'Team intro', OVERVIEW: "Today's programme", PRELIM_RULES: 'Prelim rules', PRELIM_COUNTDOWN: 'Prelim countdown', PRELIM_Q: 'Prelim question',
   PRELIM_RESULT: 'Prelim results', FINALISTS: 'Final 8', FINALIST_INTRO: 'Call to stage', WELCOME: 'Welcome music', DRAW: 'Podium lottery', GIFT: 'Special presentation', PODIUM: 'Podium',
-  MAIN_TITLE: 'Main round opening (JUNIOR GENIUS SEASON 4)', MAIN_COUNTDOWN: 'Main rounds countdown', ROUND_INTRO: 'Round intro', ROUND_RULES: 'Round rules', GRID: 'Question board', QUESTION: 'Question', SCOREBOARD: 'Scoreboard',
+  MAIN_TITLE: 'Main round opening title', MAIN_COUNTDOWN: 'Main rounds countdown', ROUND_INTRO: 'Round intro', ROUND_RULES: 'Round rules', GRID: 'Question board', QUESTION: 'Question', SCOREBOARD: 'Scoreboard',
   FINAL: 'Final results', TOP3: 'Top 3 (2-1-3)', WINNER: 'Winner', END: 'Closing logo', GRAPHIC: 'Graphic',
 };
 

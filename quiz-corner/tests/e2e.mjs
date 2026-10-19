@@ -120,8 +120,8 @@ const passState = await ctl.evaluate(() => ({ flow: window.QC.Store.state.live.f
 check('Round 2: Wrong then P passes with 45s timer', passState.flow === 'pass' && passState.dur === 45000 && passState.running, JSON.stringify(passState));
 await stage.waitForTimeout(900);
 await stage.screenshot({ path: path.join(shots, '91-pass.png') });
-// challenge in R4
-const chKey = await ctl.evaluate(() => { const QC = window.QC; QC.Store.commit('test-enable-r4', (s) => { QC.Sel.round('R4').enabled = true; }); const st = QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.roundId === 'R4'); QC.Show.go(st); const act = QC.Store.state.live.active; const id = QC.Sel.finalistIds().find((x) => x !== act); return String(QC.Sel.teamIndex(id) + 1); });
+// challenge in round 3
+const chKey = await ctl.evaluate(() => { const QC = window.QC; const st = QC.Show.rundown().find((s) => s.scene === 'QUESTION' && s.params.roundId === 'R3'); QC.Show.go(st); const act = QC.Store.state.live.active; const id = QC.Sel.finalistIds().find((x) => x !== act); return String(QC.Sel.teamIndex(id) + 1); });
 await ctl.keyboard.press('h');
 await ctl.keyboard.press(chKey);
 const ch = await ctl.evaluate(() => window.QC.Store.state.live);
@@ -267,8 +267,8 @@ const tools = await ctl.evaluate(async () => {
   const r2 = await QC.NexusImport.preview({ text: plain, defaultRound: 'R1', rounds, legacy: () => [] });
   out.plain = r2.list.length === 1 && r2.list[0].answer === 0;
   const ai = '```json\n[{"question":"2+2?","options":["3","4","5","6"],"answer_index":1}]\n```';
-  const r3 = await QC.NexusImport.preview({ text: ai, defaultRound: 'R4', rounds, legacy: () => [] });
-  out.ai = r3.list.length === 1 && r3.list[0].answer === 1 && r3.list[0].roundId === 'R4';
+  const r3 = await QC.NexusImport.preview({ text: ai, defaultRound: 'R3', rounds, legacy: () => [] });
+  out.ai = r3.list.length === 1 && r3.list[0].answer === 1 && r3.list[0].roundId === 'R3';
   const enc = new TextEncoder();
   const sheet = '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>question</t></is></c><c r="B1" t="inlineStr"><is><t>a</t></is></c><c r="C1" t="inlineStr"><is><t>b</t></is></c><c r="D1" t="inlineStr"><is><t>answer</t></is></c></row><row r="2"><c r="A2" t="inlineStr"><is><t>পৃথিবীর উপগ্রহ?</t></is></c><c r="B2" t="inlineStr"><is><t>চাঁদ</t></is></c><c r="C2" t="inlineStr"><is><t>সূর্য</t></is></c><c r="D2" t="inlineStr"><is><t>A</t></is></c></row></sheetData></worksheet>';
   const zip = QC.zipStore([{ name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) }]);
