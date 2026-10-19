@@ -344,12 +344,17 @@ class FxField {
 }
 
 /** Shrinks text until it fits its box — no clipped Bengali conjuncts, no overflow. */
+let FIT_GEN = 0; // bumped when web fonts finish loading: the same words then measure differently
 function fitText(el, maxPx, minPx = 12) {
   if (!el || !el.parentElement) return;
   const box = el.parentElement;
   const H = box.clientHeight; const W = box.clientWidth;
   if (!H || !W) return;
+  // the same words in the same box at the same limits keep their size — re-measuring long Bengali text froze the TV for up to a second
   el.classList.add('fitted');
+  const key = FIT_GEN + '|' + W + 'x' + H + '|' + maxPx + '|' + minPx + '|' + el.className + '|' + el.innerHTML;
+  if (el._fitKey === key) return;
+  el._fitKey = key;
   let lo = minPx; let hi = Math.max(minPx, maxPx); let best = lo;
   for (let i = 0; i < 14 && lo <= hi; i++) {
     const mid = (lo + hi) / 2;

@@ -459,6 +459,7 @@ class StageView {
     const refit = () => { if (this.refitQ) return; this.refitQ = requestAnimationFrame(() => { this.refitQ = 0; this.fitAll(); }); };
     this.stage.addEventListener('animationend', (e) => { if (e.target.classList && e.target.classList.contains('layer')) refit(); });
     this.stage.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') refit(); }, true);
+    if (document.fonts) document.fonts.addEventListener('loadingdone', () => { FIT_GEN++; refit(); });
     this.stage.addEventListener('transitionend', (e) => { if (e.target.classList && e.target.classList.contains('q-wrap')) refit(); }); // the question widened / narrowed
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
@@ -633,6 +634,7 @@ class StageView {
     const h = this.stage.clientHeight;
     if (!h) return;
     $$('[data-fit]', this.stage).forEach((el) => {
+      if (el.closest('.layer.exiting')) return; // the screen on its way out keeps its size
       const cqh = num(el.getAttribute('data-fit'), 5);
       const T = Store.state.design.text;
       const scale = el.classList.contains('q-text') ? T.question.size : el.classList.contains('otext') ? T.option.size : el.classList.contains('rname') ? T.title.size : el.classList.contains('ans') ? T.answer.size : (el.classList.contains('name') || el.classList.contains('wname')) ? T.team.size : 1;
