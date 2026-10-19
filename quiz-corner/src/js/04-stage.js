@@ -105,7 +105,7 @@ const Scenes = {
   },
   THEME(s) {
     const bars = Array.from({ length: 24 }, (_, i) => '<i style="animation-delay:' + (i * 0.07).toFixed(2) + 's"></i>').join('');
-    return { key: 'THEME', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<div class="eq">' + bars + '</div><div class="s-sub" style="text-align:center">♪ ' + esc(s.event.programme) + ' — থিম সং ♪</div>', 'center-col') };
+    return { key: 'THEME', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<div class="eq">' + bars + '</div>' + (s.event.programme ? '<div class="s-sub" style="text-align:center">♪ ' + esc(s.event.programme) + ' ♪</div>' : ''), 'center-col') };
   },
   /** V100 "OUR IDENTITY": the brand, the event, numbered credit cards and the group photo. */
   IDENTITY(s) {
@@ -208,7 +208,7 @@ const Scenes = {
   /** Main-round opening: gold particles gather → a golden light sweeps → JUNIOR GENIUS SEASON 4 comes out of the depth,
       grows a little and settles inside a luminous double frame → MAIN ROUND. */
   MAIN_TITLE(s) {
-    const b = str(s.event.mainTitle).trim() || 'JUNIOR GENIUS SEASON 4';
+    const b = str(s.event.mainTitle).trim() || str(s.event.brandEn).trim() || 'QUIZ CORNER';
     const dots = Array.from({ length: 28 }, (_, i) => { const a = (i / 28) * Math.PI * 2; const r = 38 + (i % 4) * 9; return '<i style="--x:' + (Math.cos(a) * r).toFixed(1) + 'cqw;--y:' + (Math.sin(a) * r * 0.55).toFixed(1) + 'cqh;--d:' + ((i % 7) * 0.05).toFixed(2) + 's"></i>'; }).join('');
     const words = b.split(/\s+/); const last = words.pop();
     return { key: 'MT:' + s.show.startedAt, anim: 'fade', html: H.part('body', '<div class="mt-dots" aria-hidden="true">' + dots + '</div><div class="mt-frame"><div class="mt-title"><span>' + esc(words.join(' ')) + '</span> <b>' + esc(last) + '</b></div><div class="mt-sweep" aria-hidden="true"></div></div><div class="mt-sub">MAIN ROUND</div>', 'main-title') };
@@ -295,7 +295,7 @@ const Scenes = {
   },
   PODIUM(s) {
     const teams = Sel.finalists();
-    return { key: 'PODIUM', anim: 'push', html: H.head(s, '<span class="round-tag">মূল পর্বের দলসমূহ</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') + H.part('grid', '<div class="podium" style="flex:1;display:flex;min-height:0">' + Scenes.teamGrid(teams, (t) => { const pk = s.draw.picks.find((x) => x.team === t.id); const it = pk && s.draw.items[pk.card]; const g = it ? '<span class="gift">' + esc((it.emoji ? it.emoji + ' ' : '') + it.label) + '</span>' : s.settings.giftScenes && t.gift && t.gift.item ? '<span class="gift">' + esc(t.gift.item) + '</span>' : ''; return g + (t.players.filter(Boolean).length ? '<small>' + esc(t.players.filter(Boolean).join(' • ')) + '</small>' : ''); }) + '</div>', '', 'flex:1;display:flex;min-height:0') };
+    return { key: 'PODIUM', anim: 'push', html: H.head(s, '<span class="round-tag">MAIN ROUND TEAMS</span>', '<span class="qnum">' + esc(s.event.programme) + '</span>') + H.part('grid', '<div class="podium" style="flex:1;display:flex;min-height:0">' + Scenes.teamGrid(teams, (t) => { const pk = s.draw.picks.find((x) => x.team === t.id); const it = pk && s.draw.items[pk.card]; const g = it ? '<span class="gift">' + esc((it.emoji ? it.emoji + ' ' : '') + it.label) + '</span>' : s.settings.giftScenes && t.gift && t.gift.item ? '<span class="gift">' + esc(t.gift.item) + '</span>' : ''; return g + (t.players.filter(Boolean).length ? '<small>' + esc(t.players.filter(Boolean).join(' • ')) + '</small>' : ''); }) + '</div>', '', 'flex:1;display:flex;min-height:0') };
   },
   ROUND_INTRO(s, p) {
     const r = Sel.round(p.roundId);
@@ -435,7 +435,7 @@ const Scenes = {
     const cols = order.map(([r, pos]) => '<div class="pod pod' + pos + '" style="' + H.teamVars(r.team) + '">' + (r.rank === 1 ? '<div class="crown">👑</div>' : '<div class="crown" style="visibility:hidden">👑</div>') + '<div class="pod-ph">' + H.tphoto(r.team) + '</div><b>' + H.tn(r.team) + '</b><small>' + Sel.rankTitleEn(r.rank) + '</small>' + (r.team.school ? '<span class="pod-sch">' + esc(r.team.school) + '</span>' : '') + H.mem(r.team, 'pod-mem') + '<div class="pod-block"><span>' + String(r.rank) + '</span><em>' + String(r.score) + '</em></div></div>').join('');
     return { key: 'TOP3', anim: 'push', confetti: true, html: H.head(s, '<span class="round-tag">WINNERS</span>', '<span class="qnum">CONGRATULATIONS</span>') + H.part('podium', cols, 'podium3') };
   },
-  END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">THANK YOU</h1><div class="s-sub">' + esc(s.event.programme) + ' • ' + esc(s.event.organizer) + '</div>', 'center-col') }; },
+  END(s) { return { key: 'END', anim: 'orbit', html: H.part('brand', Scenes.brand(s, false) + '<h1 class="s-title gold" style="font-size:7cqh">THANK YOU</h1>' + ([s.event.programme, s.event.organizer].filter(Boolean).length ? '<div class="s-sub">' + [s.event.programme, s.event.organizer].filter(Boolean).map(esc).join(' • ') + '</div>' : ''), 'center-col') }; },
   GRAPHIC(s, p) { return { key: 'GFX:' + p.media, anim: 'zoom', bare: true, html: '<div class="poster" data-part="poster"><img data-media="' + esc(p.media || '') + '" alt="" style="object-fit:contain"></div>' }; },
 };
 

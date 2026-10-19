@@ -234,7 +234,7 @@ const SelfTest = {
       T('Render: every rundown scene (' + rd.length + ')', () => (bad.length ? bad.slice(0, 3).join('; ') && false : true));
       T('Rundown: the selection round is played on the TV (rules, countdown, 15 questions, results)', () => ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_RESULT'].every((k) => rd.some((x) => x.scene === k)) && rd.filter((x) => x.scene === 'PRELIM_Q').length === 15);
       T('Rundown: prelim questions return when switched on', () => { Store.state.prelim.onStage = true; const ok = ['PRELIM_RULES', 'PRELIM_COUNTDOWN', 'PRELIM_Q'].every((k) => Show.rundown().some((x) => x.scene === k)); Store.state.prelim.onStage = false; return ok && !Show.rundown().some((x) => x.scene === 'PRELIM_Q'); });
-      T('Rundown: full show flow', () => ['ORGANIZER', 'LOGO', 'PROGRAMME', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_TITLE', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)));
+      T('Rundown: full show flow (no organiser / programme / main-title screens: only the questions and answers matter)', () => ['LOGO', 'THEME', 'TEAM_INTRO', 'PRELIM_RESULT', 'FINALISTS', 'FINALIST_INTRO', 'WELCOME', 'DRAW', 'PODIUM', 'MAIN_COUNTDOWN', 'ROUND_INTRO', 'GRID', 'QUESTION', 'SCOREBOARD', 'FINAL', 'WINNER', 'END'].every((k) => rd.some((x) => x.scene === k)) && !rd.some((x) => ['ORGANIZER', 'PROGRAMME', 'MAIN_TITLE', 'IDENTITY'].includes(x.scene)));
       T('Rundown: the 3 main rounds and the rapid-fire round', () => rd.filter((x) => x.scene === 'ROUND_INTRO').length === s().rounds.filter((r) => r.enabled).length && s().rounds.filter((r) => r.enabled).map((r) => r.id).join() === 'R1,R2,R3,R5');
 
       // ---- the latest rules (DOC-20261004-WA0002) for the 13 October main stage ----
@@ -342,7 +342,7 @@ const SelfTest = {
       Show._rd = null;
       const rd2 = Show.rundown();
       const iTheme = rd2.findIndex((x) => x.scene === 'THEME'); const iId = rd2.findIndex((x) => x.scene === 'IDENTITY'); const iCrew = rd2.findIndex((x) => x.scene === 'CREW'); const iTeams = rd2.findIndex((x) => x.scene === 'TEAMS_ALL');
-      T('Identity: theme song → our identity → our team → all teams', () => iTheme >= 0 && iTheme < iId && iId < iCrew && iCrew < iTeams);
+      T('Theme song → our team → all teams (no identity / teachers\' photo screen)', () => iTheme >= 0 && iId === -1 && iTheme < iCrew && iCrew < iTeams);
       const introStep = rd2.find((x) => x.scene === 'TEAM_INTRO' && x.params.teamId === s().teams[0].id);
       Show.go(introStep);
       T('Intro: team first (members hidden)', () => s().show.params.sub === 0 && (Scenes.TEAM_INTRO(s(), s().show.params).html.match(/mem-card[^"]*hidden/g) || []).length === 2);
@@ -390,7 +390,7 @@ const SelfTest = {
       T('Questions: no question repeated between main stage and prelim', () => { const pre = Sel.prelimQuestions().map((q) => q.text); return ['R1', 'R2', 'R3'].every((id) => Sel.roundQuestions(id).every((q) => !pre.includes(q.text))); });
       {
         Show._rd = null; const rr = Show.rundown(); const at = (sc) => rr.findIndex((x) => x.scene === sc);
-        T('Order: finalists called to stage → welcome → our identity → our team → team intro → countdown → round', () => at('FINALIST_INTRO') < at('WELCOME') && at('WELCOME') < at('IDENTITY') && at('IDENTITY') < at('CREW') && at('CREW') < at('TEAM_INTRO') && at('TEAM_INTRO') < at('MAIN_COUNTDOWN') && at('MAIN_COUNTDOWN') < at('ROUND_INTRO'));
+        T('Order: finalists called to stage → welcome → our team → team intro → countdown → round', () => at('FINALIST_INTRO') < at('WELCOME') && at('WELCOME') < at('CREW') && at('CREW') < at('TEAM_INTRO') && at('TEAM_INTRO') < at('MAIN_COUNTDOWN') && at('MAIN_COUNTDOWN') < at('ROUND_INTRO'));
         const g = rr.find((x) => x.scene === 'GRID' && x.params.roundId === 'R1'); Show.go(g);
         Actions.gridKey(5);
         T('Question board: pressing 5 opens question 5', () => s().show.scene === 'QUESTION' && Sel.question(s().live.qid).number === 5 && Sel.question(s().live.qid).roundId === 'R1');
@@ -425,7 +425,7 @@ const SelfTest = {
         st().teams.forEach((t, i) => { t.school = 'বিদ্যালয় ' + bn(i + 1); t.prelim.manual = 10 + ((i * 5) % 8); });
         const before = Sel.finalistIds().slice(); const top = Sel.prelimRanking()[0].team.id; const ids0 = st().teams.map((t) => t.id);
         Show._rd = null; const rr = Show.rundown(); const at = (sc) => rr.findIndex((x) => x.scene === sc);
-        T('Lottery: podium lottery right after welcome, then identity and team intro', () => at('DRAW') === at('WELCOME') + 1 && at('DRAW') < at('IDENTITY') && at('DRAW') < at('TEAM_INTRO'));
+        T('Lottery: podium lottery right after welcome, then our team and team intro', () => at('DRAW') === at('WELCOME') + 1 && at('DRAW') < at('CREW') && at('DRAW') < at('TEAM_INTRO'));
         Show.go(rr.find((x) => x.scene === 'FINALIST_INTRO'));
         const fi = Scenes.FINALIST_INTRO(st(), st().show.params).html;
         T('Before the lottery the stage call shows school name, not team code', () => !fi.includes('tcode') && fi.includes('বিদ্যালয়'));
@@ -451,8 +451,8 @@ const SelfTest = {
 
         Store.state = normalizeState(defaultState()); typedR1(); Show._rd = null; // the tests below start from the stock order T1 … T8
       }
-      T('Our team: Arindam Guchhait in the centre, then Subrata, Pradip, Chandan Paloi, Sanjay, Sourav — all with photos, no "captain"', () => { const c = defaultState().crew; return c.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালই|সঞ্জয় মণ্ডল|সৌরভ মাইতি' && !JSON.stringify(c).includes('অধিনায়ক') && !defaultState().event.credits.includes('অধিনায়ক') && !Scenes.CREW(defaultState(), { sub: 6 }).html.includes('অধিনায়ক') && c.every((x, i) => x.photo === 'asset:crew' + i) && c[5].role.includes('সহযোগিতা') && defaultState().event.credits.includes('সহযোগিতায়: সৌরভ মাইতি') && !defaultState().event.credits.includes('চন্দন পাল ও'); });
-      T('Our team: old crew list in old saves becomes the new team, own edits kept', () => { const old = defaultState(); delete old.rulesVersion; old.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); old.event.credits = 'প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত\nপুরনো'; const n = normalizeState(old); const mine = defaultState(); delete mine.rulesVersion; mine.crew = [{ name: 'আমার লোক', role: '', about: '', photo: '' }]; const v7 = defaultState(); delete v7.rulesVersion; v7.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল'.split('|').map((name) => ({ name, role: '', about: '', photo: '' })); v7.event.credits = 'পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত (অধিনায়ক)\nবাছাই পর্বের প্রশ্ন সংকলন: চন্দন পাল ও প্রদীপ ভূঁইয়া'; const n7 = normalizeState(v7); return n7.crew.length === 6 && n7.crew[3].name === 'চন্দন পালই' && n7.crew[5].photo === 'asset:crew5' && n7.event.credits.includes('সৌরভ') && n.crew.length === 6 && n.crew[2].photo === 'asset:crew2' && n.event.credits.includes('সঞ্জয় মণ্ডল') && n.event.credits.includes('টিকাশী গুচ্ছ সম্পদ কেন্দ্র') && normalizeState(mine).crew[0].name === 'আমার লোক'; });
+      T('Our team: only Arindam Guchhait and Sanjay Mondal, with their photos; no credits, no captain', () => { const d = defaultState(); const c = d.crew; return c.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সঞ্জয় মণ্ডল' && c[0].photo === 'asset:crew0' && c[1].photo === 'asset:crew4' && !d.event.credits && !JSON.stringify(c).includes('অধিনায়ক'); });
+      T('Old saves: the team becomes Arindam Guchhait and Sanjay Mondal; programme, organiser, banner and teachers\' photo go', () => { const old = defaultState(); delete old.rulesVersion; old.crew = 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'.split('|').map((name, i) => ({ name, role: '', about: '', photo: 'asset:crew' + i })); Object.assign(old.event, { programme: 'জুনিয়র জিনিয়াস (সিজন ৪)', organizer: 'টিকাশী গুচ্ছ সম্পদ কেন্দ্র (CRC)', subtitle: 'আন্তঃপ্রাথমিক বিদ্যালয় ও শিশু শিক্ষা কেন্দ্র কুইজ প্রতিযোগিতা', mainTitle: 'JUNIOR GENIUS SEASON 4', credits: 'পুরনো' }); old.groupPhoto = 'asset:group'; old.groupCaption = 'শিক্ষকমণ্ডলী'; const n = normalizeState(old); return n.crew.map((x) => x.name).join('|') === 'অরিন্দম গুছাইত|সঞ্জয় মণ্ডল' && !n.event.programme && !n.event.organizer && !n.event.subtitle && !n.event.mainTitle && !n.event.credits && !n.groupPhoto && !n.groupCaption; });
       T('Corrections: an old save still holding an old question gets the new one (text, options, subject, picture), its old reading dropped', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R2' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], subject: 'সাম্প্রতিক ঘটনা', voiceQ: 'asset:voice_R2_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.text === sq.text && n.options[n.answer] === 'চৈত্র' && n.subject === sq.subject && n.voiceQ === '' && n.image === ''; });
       T('Corrections: an old save still holding the old round 1 question gets the picture question (picture, answer picture)', () => { const o = defaultState(); delete o.rulesVersion; const sq = SEED.questions.find((q) => q.roundId === 'R1' && q.number === 1); const q = o.questions.find((x) => x.id === sq.id); Object.assign(q, { text: sq.prevText[0], options: ['ক', 'খ', 'গ', 'ঘ'], image: '', picOnly: false, answerImage: '', voiceQ: 'asset:voice_R1_1' }); const n = normalizeState(o).questions.find((x) => x.id === sq.id); return n.picOnly && n.image === 'asset:r1pic_q01.jpg' && n.answerImage === 'asset:r1pic_a01.jpg' && n.voiceQ === ''; });
       {
@@ -553,14 +553,14 @@ const SelfTest = {
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
       T('Sound: question, option, correct, wrong, pass — all sounds present', () => ['question', 'option', 'correct', 'wrong', 'pass', 'countdown', 'impact'].every((k) => AUDIO_CUES[k] && s().audio.cues[k]));
       T('Sound: theme song at full volume', () => s().audio.music.theme.vol === 1 && s().audio.music.theme.media === 'asset:theme');
-      T('Brand stays QUIZ CORNER (programme, identity); main-round title is separate; event subtitle present', () => { const d = defaultState().event; const st = Store.state; const prog = Scenes.PROGRAMME(st).html.replace(/<[^>]+>/g, ''); return d.brandEn === 'QUIZ CORNER' && d.mainTitle === 'JUNIOR GENIUS SEASON 4' && !!str(d.subtitle).trim() && prog.includes(st.event.brandEn + ' presents') && !prog.includes('JUNIOR GENIUS SEASON 4 presents'); });
-      T('Old save (title stored as brand) gets QUIZ CORNER back and keeps the main-round title', () => { const o = defaultState(); o.rulesVersion = 14; o.event.brandEn = 'JUNIOR GENIUS SEASON 4'; delete o.event.mainTitle; delete o.event.subtitle; const n = normalizeState(o); return n.event.brandEn === 'QUIZ CORNER' && n.event.mainTitle === 'JUNIOR GENIUS SEASON 4' && !!str(n.event.subtitle).trim(); });
-      T('JUNIOR GENIUS SEASON 4: opening before the countdown, and on round intro, team intro, question, scoreboard and winner', () => {
-        const st = Store.state; const keep = [st.show.scene, st.show.params]; const rd2 = Show.rundown(); const at = (k) => rd2.findIndex((x) => x.scene === k);
-        const has = (sc, p) => { st.show.scene = sc; st.show.params = p || {}; const h = Scenes[sc](st, st.show.params).html.replace(/<[^>]+>/g, ''); return h.includes('JUNIOR GENIUS SEASON 4'); };
-        const r1 = st.rounds[0]; const team = st.teams[0];
-        const ok = at('MAIN_TITLE') >= 0 && at('MAIN_TITLE') === at('MAIN_COUNTDOWN') - 1 && has('MAIN_TITLE') && has('ROUND_INTRO', { roundId: r1.id }) && has('TEAM_INTRO', { teamId: team.id, n: 1 }) && has('SCOREBOARD', { roundId: r1.id }) && has('GRID', { roundId: r1.id });
-        [st.show.scene, st.show.params] = keep; return ok;
+      T('Brand stays QUIZ CORNER; no programme / competition name, organiser or main-round title by default', () => { const d = defaultState().event; return d.brandEn === 'QUIZ CORNER' && !d.mainTitle && !d.programme && !d.subtitle && !d.organizer && !d.conductedBy; });
+      T('Old save (title stored as brand) gets QUIZ CORNER back', () => { const o = defaultState(); o.rulesVersion = 14; o.event.brandEn = 'JUNIOR GENIUS SEASON 4'; const n = normalizeState(o); return n.event.brandEn === 'QUIZ CORNER' && !n.event.mainTitle; });
+      T('No main-round title anywhere on the TV (round intro, team intro, scoreboard, board); with one typed in, its opening comes before the countdown', () => {
+        const st = Store.state; const keep = [st.show.scene, st.show.params, st.event.mainTitle]; const r1 = st.rounds[0]; const team = st.teams[0];
+        const has = (sc, p) => { st.show.scene = sc; st.show.params = p || {}; const h = Scenes[sc](st, st.show.params).html.replace(/<[^>]+>/g, ''); return h.includes('JUNIOR GENIUS'); };
+        const none = !has('ROUND_INTRO', { roundId: r1.id }) && !has('TEAM_INTRO', { teamId: team.id, n: 1 }) && !has('SCOREBOARD', { roundId: r1.id }) && !has('GRID', { roundId: r1.id });
+        st.event.mainTitle = 'MY TITLE'; Show._rd = null; const rd2 = Show.rundown(); const at = (k) => rd2.findIndex((x) => x.scene === k); const back = at('MAIN_TITLE') >= 0 && at('MAIN_TITLE') === at('MAIN_COUNTDOWN') - 1;
+        [st.show.scene, st.show.params, st.event.mainTitle] = keep; Show._rd = null; return none && back;
       });
       T('Round 1 on the TV: only the question picture — no words, no answer picture until the answer button; then right / wrong as before', () => {
         const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';
@@ -669,11 +669,11 @@ const SelfTest = {
           return (none && ok1 && ok2 && tie) || [none, ok1, ok2, tie].join();
         } finally { Store.state = keep; }
       });
-      T('Spelling: corrected words on the TV (ঘণ্টা, ইংরেজি, শ্রীলঙ্কা, ৩৯টি, sin 90°-এর) and an old save takes them', () => {
+      T('Spelling: corrected words on the TV (ঘণ্টা, ইংরেজি, শ্রীলঙ্কা, ৩৯টি) and an old save takes them', () => {
         const d0 = normalizeState(defaultState()); const q = (rid, n) => d0.questions.find((x) => x.roundId === rid && x.number === n);
         const fresh = q('R3', 1).answerText.includes('ঘণ্টা') && q('R2', 1).text.includes('ইংরেজি') && q('R2', 6).options.includes('শ্রীলঙ্কা') && q('R2', 6).text.includes('৩৯টি');
-        const o = defaultState(); delete o.rulesVersion; const sq = o.questions.find((x) => x.id === q('R3', 1).id); sq.answerText = 'শূন্য ঘন্টা / Zero hour'; o.groupCaption = 'উত্তর কলমদান বোর্ড প্রাথমিক বিদ্যালয়-এর শিক্ষকমণ্ডলী';
-        const n = normalizeState(o); return fresh && n.questions.find((x) => x.id === sq.id).answerText.includes('ঘণ্টা') && n.groupCaption.includes('বিদ্যালয়ের');
+        const o = defaultState(); delete o.rulesVersion; const sq = o.questions.find((x) => x.id === q('R3', 1).id); sq.answerText = 'শূন্য ঘন্টা / Zero hour';
+        const n = normalizeState(o); return fresh && n.questions.find((x) => x.id === sq.id).answerText.includes('ঘণ্টা');
       });
       T('Rounds 1–3 on the TV: no title line; the question alone first (full screen, scores underneath); the team photo and timer come in on Next or after the set seconds, or when the timer starts', () => {
         const keep = Store.state; Store.state = normalizeState(defaultState()); Store.state.show.scene = 'QUESTION';

@@ -25,11 +25,11 @@ const Show = {
   _rdSig: '',
   rundown() {
     const s = Store.state;
-    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes, s.prelim.onStage].join('|');
+    const sig = [s.teams.map((t) => t.id).join(), Sel.finalistIds().join(), s.prelim.count, s.prelim.questions.length, s.rounds.map((r) => r.id + r.enabled + (r.rules ? 1 : 0)).join(), s.questions.map((q) => q.id + q.roundId + q.number).join(), Sel.crew().length, !!(s.event.credits || s.groupPhoto), s.draw.on, s.draw.theme, s.draw.title, s.settings.giftScenes, s.prelim.onStage, s.event.organizer, s.event.conductedBy, s.event.programme, s.event.mainTitle].join('|');
     if (sig === this._rdSig && this._rd) return this._rd;
     const out = [];
     const add = (scene, params = {}, label = '') => out.push({ key: scene + (params.key ? ':' + params.key : ''), scene, params, label: label || SCENE_LABELS[scene] || SCENES[scene] });
-    add('ORGANIZER'); add('LOGO'); add('PROGRAMME'); add('THEME');
+    if (s.event.organizer || s.event.conductedBy) add('ORGANIZER'); add('LOGO'); if (s.event.programme) add('PROGRAMME'); add('THEME');
     add('OVERVIEW');
     if (s.prelim.onStage) add('PRELIM_RULES');
     if (s.prelim.onStage) add('PRELIM_COUNTDOWN');
@@ -48,7 +48,7 @@ const Show = {
     fin.forEach((id, i) => { const t = Sel.team(id); if (t) add('TEAM_INTRO', { key: id, teamId: id, n: i + 1, of: fin.length }, 'Team intro • ' + Sel.label(t)); });
     // the old "special presentation" cards (one per team) are off by default: the podium lottery replaced them
     if (s.settings.giftScenes) Sel.finalistIds().forEach((id, i) => add('GIFT', { key: id, teamId: id, n: i + 1 }, 'Special presentation • ' + ((Sel.team(id) || {}).name || '')));
-    add('PODIUM'); add('MAIN_TITLE'); add('MAIN_COUNTDOWN');
+    add('PODIUM'); if (str(s.event.mainTitle).trim()) add('MAIN_TITLE'); add('MAIN_COUNTDOWN');
     s.rounds.forEach((r, ri) => {
       if (!r.enabled) return;
       add('ROUND_INTRO', { key: r.id, roundId: r.id }, 'Round ' + String(ri + 1) + ' • ' + r.name);
