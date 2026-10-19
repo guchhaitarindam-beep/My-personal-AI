@@ -335,7 +335,7 @@ const SoundDirector = {
     Music.setVolume(b.vol * s.audio.master);
     let level = 1;
     const clipOn = ['QUESTION', 'PRELIM_Q'].includes(s.show.scene) && s.live.clip && s.live.clip.action === 'play';
-    if (!b.on || this.muted || songPlaying || clipOn || !AudioDirector.isOutput()) level = 0;
+    if (!b.on || s.audio.noMusic || this.muted || songPlaying || clipOn || !AudioDirector.isOutput()) level = 0;
     else {
       if (('speechSynthesis' in window && speechSynthesis.speaking) || VoicePlayer.playing) level = Math.min(level, 0.2);
       if (performance.now() < this.duckUntil) level = Math.min(level, this.duckLevel);

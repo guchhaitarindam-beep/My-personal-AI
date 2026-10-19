@@ -394,7 +394,7 @@ const AudioDirector = {
   playCue(name, opts = {}) {
     const a = Store.state.audio;
     const cfg = a.cues[name] || { vol: 0.8, mute: false, media: '' };
-    if (cfg.mute) return;
+    if (cfg.mute || (a.noMusic && MUSIC_CUES.includes(name))) return;
     const r = opts.round ? Sel.round(opts.round) : null;
     const override = (r && r.sounds && r.sounds[name]) || cfg.media;
     if (override) { this.playFile(override, cfg.vol * a.master * (opts.soft ? 0.5 : 1)); return; }
@@ -426,6 +426,7 @@ const AudioDirector = {
     const cfg = Store.state.audio.music[slot];
     if (!cfg) return;
     if (action === 'stop') { this.fadeOutMusic(slot, cfg.fadeOut); return; }
+    if (Store.state.audio.noMusic) return; // no theme / welcome / winner / background song at all
     const id = mediaOverride || cfg.media;
     if (!id) { if (slot === 'winner') this.playCue('fanfare'); return; }
     const u = await Media.url(id);

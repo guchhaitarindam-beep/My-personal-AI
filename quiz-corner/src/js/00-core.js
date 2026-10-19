@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 43;
+const RULES_VERSION = 44;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -133,6 +133,8 @@ const AUDIO_CUES = {
   tick: 'Tick (last 10 seconds)', warning: 'Warning (10/5 seconds)', timeout: 'Time up', correct: 'Correct', wrong: 'Wrong', reveal: 'Answer reveal',
   pass: 'Pass', challenge: 'Challenge', lifeline: 'Lifeline', scoreboard: 'Scoreboard', fanfare: 'Winner fanfare', teamintro: 'Team intro', roundintro: 'Round start',
 };
+/** Musical jingles — silent when the organiser wants no music at all (audio.noMusic); the game signals (correct, wrong, time up, beeps) stay. */
+const MUSIC_CUES = ['fanfare', 'round', 'roundintro', 'teamintro', 'scoreboard', 'drumroll', 'suspense', 'heartbeat'];
 const MUSIC_SLOTS = { theme: 'Theme song', welcome: 'Welcome music', winner: 'Winner music', background: 'Background music' };
 
 /** Podium lottery: eight things children love, all of one kind. Each card hides a podium (A / 1 … H / 8). */
@@ -298,7 +300,7 @@ function defaultState() {
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cdVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
+      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', noMusic: true, bgm: { on: false, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cdVoice: false, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
       music: {
         theme: { media: 'asset:theme', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
         welcome: { media: 'asset:welcome', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
@@ -347,6 +349,10 @@ function mergeDefaults(def, src) {
 function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
+  // version 44: no music at all — background music, songs and jingles off; the game sounds and a question's own song / video stay
+  // the main rounds hold exactly their 10 picture questions and the buzzer round its 16 — any extra question an older save picked up (an import, a typed one) goes
+  if (from < 44 && Array.isArray(s.questions)) { const keep = new Set(def.questions.map((q) => q.id)); s.questions = s.questions.filter((q) => isObj(q) && keep.has(q.id)); if (isObj(s.board)) s.board.played = {}; }
+  if (from < 44 && isObj(s.audio)) { s.audio.noMusic = true; if (isObj(s.audio.bgm)) s.audio.bgm.on = false; s.audio.cdVoice = false; }
   // versions 37–39: new buzzer-round questions (everyday things nobody thinks about; two options each)
   if (from < 41 && from >= 32 && Array.isArray(s.questions)) { const ids = new Set(def.questions.filter((q) => q.roundId === 'R5').map((q) => q.id)); s.questions = s.questions.filter((q) => !(isObj(q) && (q.roundId === 'R5' || ids.has(q.id)))).concat(def.questions.filter((q) => q.roundId === 'R5')); if (isObj(s.board) && isObj(s.board.played)) ids.forEach((id) => { delete s.board.played[id]; }); }
   // versions 36–38: new selection-round questions (everyday life, recent events; the video at 8 and the song at 15 stay), then 9, 10, 13 new and one-line answers, then all "seen every day, never thought about" questions

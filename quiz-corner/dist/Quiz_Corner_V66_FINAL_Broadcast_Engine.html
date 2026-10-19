@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261019-1542 -->
+<!-- QC-BUILD: 20261019-1639 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 15:42</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 16:39</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -2020,7 +2020,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 43;
+const RULES_VERSION = 44;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -2146,6 +2146,8 @@ const AUDIO_CUES = {
   tick: 'Tick (last 10 seconds)', warning: 'Warning (10/5 seconds)', timeout: 'Time up', correct: 'Correct', wrong: 'Wrong', reveal: 'Answer reveal',
   pass: 'Pass', challenge: 'Challenge', lifeline: 'Lifeline', scoreboard: 'Scoreboard', fanfare: 'Winner fanfare', teamintro: 'Team intro', roundintro: 'Round start',
 };
+/** Musical jingles — silent when the organiser wants no music at all (audio.noMusic); the game signals (correct, wrong, time up, beeps) stay. */
+const MUSIC_CUES = ['fanfare', 'round', 'roundintro', 'teamintro', 'scoreboard', 'drumroll', 'suspense', 'heartbeat'];
 const MUSIC_SLOTS = { theme: 'Theme song', welcome: 'Welcome music', winner: 'Winner music', background: 'Background music' };
 
 /** Podium lottery: eight things children love, all of one kind. Each card hides a podium (A / 1 … H / 8). */
@@ -2311,7 +2313,7 @@ function defaultState() {
       anim: 'flip', animSpeed: 1, motion: true, floor: true, rays: true, particles: true, ringWidth: 7, bgImage: '', vAlign: 'center',
     },
     audio: {
-      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', bgm: { on: true, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cdVoice: true, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
+      master: 1, boost: 1.8, musicBoost: 1.6, output: 'control', noMusic: true, bgm: { on: false, vol: 0.35, tagore: true, questionLevel: 0.5 }, themeSting: true, countVoice: true, cdVoice: false, cues: Object.fromEntries(Object.keys(AUDIO_CUES).map((k) => [k, { vol: 1, mute: false, media: '' }])),
       music: {
         theme: { media: 'asset:theme', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
         welcome: { media: 'asset:welcome', vol: 1, fadeIn: 1.5, fadeOut: 2, loop: false, delay: 0 },
@@ -2360,6 +2362,10 @@ function mergeDefaults(def, src) {
 function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
+  // version 44: no music at all — background music, songs and jingles off; the game sounds and a question's own song / video stay
+  // the main rounds hold exactly their 10 picture questions and the buzzer round its 16 — any extra question an older save picked up (an import, a typed one) goes
+  if (from < 44 && Array.isArray(s.questions)) { const keep = new Set(def.questions.map((q) => q.id)); s.questions = s.questions.filter((q) => isObj(q) && keep.has(q.id)); if (isObj(s.board)) s.board.played = {}; }
+  if (from < 44 && isObj(s.audio)) { s.audio.noMusic = true; if (isObj(s.audio.bgm)) s.audio.bgm.on = false; s.audio.cdVoice = false; }
   // versions 37–39: new buzzer-round questions (everyday things nobody thinks about; two options each)
   if (from < 41 && from >= 32 && Array.isArray(s.questions)) { const ids = new Set(def.questions.filter((q) => q.roundId === 'R5').map((q) => q.id)); s.questions = s.questions.filter((q) => !(isObj(q) && (q.roundId === 'R5' || ids.has(q.id)))).concat(def.questions.filter((q) => q.roundId === 'R5')); if (isObj(s.board) && isObj(s.board.played)) ids.forEach((id) => { delete s.board.played[id]; }); }
   // versions 36–38: new selection-round questions (everyday life, recent events; the video at 8 and the song at 15 stay), then 9, 10, 13 new and one-line answers, then all "seen every day, never thought about" questions
@@ -3777,7 +3783,7 @@ const AudioDirector = {
   playCue(name, opts = {}) {
     const a = Store.state.audio;
     const cfg = a.cues[name] || { vol: 0.8, mute: false, media: '' };
-    if (cfg.mute) return;
+    if (cfg.mute || (a.noMusic && MUSIC_CUES.includes(name))) return;
     const r = opts.round ? Sel.round(opts.round) : null;
     const override = (r && r.sounds && r.sounds[name]) || cfg.media;
     if (override) { this.playFile(override, cfg.vol * a.master * (opts.soft ? 0.5 : 1)); return; }
@@ -3809,6 +3815,7 @@ const AudioDirector = {
     const cfg = Store.state.audio.music[slot];
     if (!cfg) return;
     if (action === 'stop') { this.fadeOutMusic(slot, cfg.fadeOut); return; }
+    if (Store.state.audio.noMusic) return; // no theme / welcome / winner / background song at all
     const id = mediaOverride || cfg.media;
     if (!id) { if (slot === 'winner') this.playCue('fanfare'); return; }
     const u = await Media.url(id);
@@ -4412,7 +4419,7 @@ const SoundDirector = {
     Music.setVolume(b.vol * s.audio.master);
     let level = 1;
     const clipOn = ['QUESTION', 'PRELIM_Q'].includes(s.show.scene) && s.live.clip && s.live.clip.action === 'play';
-    if (!b.on || this.muted || songPlaying || clipOn || !AudioDirector.isOutput()) level = 0;
+    if (!b.on || s.audio.noMusic || this.muted || songPlaying || clipOn || !AudioDirector.isOutput()) level = 0;
     else {
       if (('speechSynthesis' in window && speechSynthesis.speaking) || VoicePlayer.playing) level = Math.min(level, 0.2);
       if (performance.now() < this.duckUntil) level = Math.min(level, this.duckLevel);
@@ -6981,7 +6988,7 @@ const TabRender = {
     const music = Object.entries(MUSIC_SLOTS).map(([k, l]) => { const m = a.music[k]; const p = 'audio.music.' + k + '.'; return '<div class="team-editor"><header><b style="flex:1">' + l + ' — <span class="muted">' + esc(Media.label(m.media)) + '</span></b>' + (AudioDirector.playing(k) ? '<span class="status-pill ok">Playing</span>' : '') + F.btn('music', '▶ Preview', 'sm good', k) + F.btn('musicStop', '■', 'sm', k) + F.btn('musicPick', 'Change', 'sm primary', k) + F.btn('musicReset', 'Back to original', 'sm', k) + F.btn('musicClear', 'Delete', 'sm bad', k) + '</header><div class="g4">' + F.range(p + 'vol', 'Volume', m.vol, 0, 1, 0.05) + F.num(p + 'fadeIn', 'Fade-in (s)', m.fadeIn, 0, 20, 0.5) + F.num(p + 'fadeOut', 'Fade-out (s)', m.fadeOut, 0, 20, 0.5) + F.num(p + 'delay', 'Delay (s)', m.delay, 0, 60, 0.5) + '</div>' + F.check(p + 'loop', 'Loop', m.loop) + '</div>'; }).join('');
     const cues = Object.entries(AUDIO_CUES).map(([k, l]) => { const c = a.cues[k] || { vol: 0.8, mute: false, media: '' }; return '<div class="li" style="grid-template-columns:150px 1fr auto"><b>' + l + '</b><input type="range" min="0" max="1" step="0.05" data-bind="audio.cues.' + k + '.vol" data-type="num" value="' + c.vol + '" aria-label="' + esc(l) + ' volume"><div class="acts">' + F.check('audio.cues.' + k + '.mute', 'Mute', c.mute) + F.btn('cue', '▶', 'sm good', k) + F.btn('cuePick', c.media ? 'File ✓' : 'File', 'sm', k) + (c.media ? F.btn('cueReset', 'Back to synth', 'sm', k) : '') + '</div></div>'; }).join('');
     return F.card('Master audio', '<div class="g3">' + F.range('audio.master', 'Master volume', a.master, 0, 1, 0.05) + F.range('audio.boost', 'Sound effect boost', a.boost, 0.5, 4, 0.1) + F.range('audio.musicBoost', 'Music/theme song boost', a.musicBoost, 0.5, 4, 0.1) + F.range('audio.bgm.questionLevel', 'Background music level during questions', a.bgm.questionLevel, 0, 1, 0.05) + F.check('settings.autoApplause', 'Applause after a correct answer', s.settings.autoApplause) + F.check('audio.themeSting', 'Short theme-song sting at round start', a.themeSting) + F.select('audio.output', 'Play sound on', [['control', 'Control window (recommended)'], ['stage', 'Stage window'], ['both', 'Both']], a.output) + '<div class="field"><span>Test</span>' + F.btn('cue', '🔔 Test sound', 'good', 'correct') + '</div></div>') +
-      F.card('Background music (generated, no files needed — V100)', '<div class="row">' + F.check('audio.bgm.on', 'Background music on', a.bgm.on) + F.check('audio.bgm.tagore', 'Tagore instrumental in the first three rounds', a.bgm.tagore) + F.check('audio.cdVoice', 'Main countdown: recorded voice & music (Ten … GO!)', a.cdVoice !== false) + F.check('audio.countVoice', 'English voice in countdown ("Ten … Go!")', a.countVoice) + '</div><div class="g3">' + F.range('audio.bgm.vol', 'Background music volume', a.bgm.vol, 0, 1, 0.05) + '</div><p class="big-hint">The mood changes by itself with the scene: Calm (intros/rules), Light (question board), Focus (during a question; intense in the last 10 seconds), Suspense (final result), Celebrate (scoreboard & winner). It goes quiet while the theme/welcome song plays and softer during voice. Tagore track: ' + esc(SoundDirector.tagoreStatus) + '</p><div class="deck">' + [['calm', 'Calm'], ['lounge', 'Light'], ['focus', 'Focus'], ['suspense', 'Suspense'], ['celebrate', 'Celebrate']].map(([m, l]) => F.btn('moodPreview', '▶ ' + l, 'sm', m)).join('') + F.btn('moodPreview', '■ Stop preview', 'sm', '') + '</div>') +
+      F.card('Background music (generated, no files needed — V100)', '<div class="row">' + F.check('audio.noMusic', 'NO MUSIC AT ALL (songs, background music and jingles off; game sounds stay)', a.noMusic) + F.check('audio.bgm.on', 'Background music on', a.bgm.on) + F.check('audio.bgm.tagore', 'Tagore instrumental in the first three rounds', a.bgm.tagore) + F.check('audio.cdVoice', 'Main countdown: recorded voice & music (Ten … GO!)', a.cdVoice !== false) + F.check('audio.countVoice', 'English voice in countdown ("Ten … Go!")', a.countVoice) + '</div><div class="g3">' + F.range('audio.bgm.vol', 'Background music volume', a.bgm.vol, 0, 1, 0.05) + '</div><p class="big-hint">The mood changes by itself with the scene: Calm (intros/rules), Light (question board), Focus (during a question; intense in the last 10 seconds), Suspense (final result), Celebrate (scoreboard & winner). It goes quiet while the theme/welcome song plays and softer during voice. Tagore track: ' + esc(SoundDirector.tagoreStatus) + '</p><div class="deck">' + [['calm', 'Calm'], ['lounge', 'Light'], ['focus', 'Focus'], ['suspense', 'Suspense'], ['celebrate', 'Celebrate']].map(([m, l]) => F.btn('moodPreview', '▶ ' + l, 'sm', m)).join('') + F.btn('moodPreview', '■ Stop preview', 'sm', '') + '</div>') +
       F.card('Speaker test', '<div class="deck">' + F.btn('testTone', '◀ Left', '', '-1') + F.btn('testTone', 'Both', '', '0') + F.btn('testTone', 'Right ▶', '', '1') + '</div>') +
       F.card('Music (theme, welcome, winner, background)', '<div class="list">' + music + '</div>', 'MP3 / WAV / M4A') +
       F.card('Sound effects (Web Audio synthesis — no files needed)', '<div class="list">' + cues + '</div>');
@@ -9115,6 +9122,8 @@ const SelfTest = {
         Game.load(Sel.roundQuestions('R2')[9].id, x); Game.judge('wrong'); Game.pass();
         T('On a pass the new team photo, code and score appear in the corner', () => { const h = Scenes.QUESTION(s(), { qid: s().live.qid }).html; return h.includes('PASS TO') && h.includes('TEAM ' + Sel.code(Sel.team(s().live.active))) && h.includes('class="tscore"'); });
       }
+      T('Old save with extra questions (an import, typed ones) in rounds 1 and 3: only the 10 picture questions of each stay, 16 in the buzzer round', () => { const o = defaultState(); o.rulesVersion = 43; for (let k = 11; k <= 14; k++) o.questions.push({ id: 'IMP' + k, roundId: 'R1', number: k, text: 'লেখা প্রশ্ন ' + k, options: ['ক', 'খ', '', ''], answer: 0 }, { id: 'IMQ' + k, roundId: 'R3', number: k, text: 'লেখা প্রশ্ন ' + k, options: ['ক', 'খ', '', ''], answer: 0 }); const n = normalizeState(o); const c = (id) => n.questions.filter((q) => q.roundId === id).length; return c('R1') === 10 && c('R3') === 10 && c('R5') === 16 && n.questions.filter((q) => q.roundId !== 'R5').every((q) => q.picOnly); });
+      T('No music at all: on by default and for an older save — no background music, no songs, no jingles; the countdown is the plain beeps and voice', () => { const d = normalizeState(defaultState()); const o = defaultState(); o.rulesVersion = 43; o.audio.noMusic = false; o.audio.bgm.on = true; o.audio.cdVoice = true; const n = normalizeState(o); return d.audio.noMusic && !d.audio.bgm.on && d.audio.cdVoice === false && n.audio.noMusic && !n.audio.bgm.on && n.audio.cdVoice === false && MUSIC_CUES.includes('fanfare') && !MUSIC_CUES.includes('correct') && !MUSIC_CUES.includes('buzzer'); });
       T('Default: applause on correct, theme sting at round start, soft music during questions', () => s().settings.autoApplause && s().audio.themeSting && s().audio.bgm.questionLevel > 0 && s().audio.bgm.questionLevel < 1);
       T('Sound: loud — boost and limiter', () => s().audio.boost >= 1.5 && s().audio.musicBoost >= 1.5 && s().audio.master === 1);
       T('Sound: every effect at full volume', () => Object.values(s().audio.cues).every((c) => c.vol === 1 && !c.mute));
