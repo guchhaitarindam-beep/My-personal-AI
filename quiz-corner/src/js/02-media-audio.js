@@ -598,6 +598,31 @@ function publicState(s) {
     prelim: Object.assign({}, s.prelim, { questions: s.prelim.questions.map((q, i) => (s.show.scene === 'PRELIM_Q' && i === pl.idx && pl.reveal ? q : Object.assign({}, q, { answer: '' }))) }),
   });
 }
+/** The sound of a question's clip, played by the control window when the TV window may not start sound by itself. */
+const ClipRelay = {
+  el: null, id: '', at: 0, kind: '',
+  async play(id, at) {
+    const s = Store.state; const c = s.live.clip || {};
+    if (!id || c.at !== at || c.action !== 'play') return;
+    const u = await Media.url(id);
+    if (!u || (Store.state.live.clip || {}).at !== at) return;
+    this.stop();
+    this.id = id; this.at = at; this.kind = Sel.clipKind({ clip: id });
+    const el = this.el = new Audio(u); // the sound track of a video plays from an audio element too
+    el.addEventListener('loadedmetadata', () => { const t = (now() - at) / 1000; if (t > 0.5 && t < el.duration) el.currentTime = t; }, { once: true });
+    el.play().catch((e) => { Log.err('clip-relay', e); UI.toast('The clip has no sound — click once on the TV window, or start the quiz with START_QUIZ_CORNER.bat', 'err'); });
+  },
+  stop() { if (this.el) { try { this.el.pause(); } catch (e) { /* gone */ } this.el.removeAttribute('src'); this.el = null; } this.id = ''; },
+  /** stops with the clip: another clip or scene, a stopped clip, or a video that has finished (audio may go on) */
+  check(s) {
+    if (!this.el) return;
+    const c = s.live.clip || {};
+    const videoDone = this.kind === 'video' && (s.show.scene === 'PRELIM_Q' ? s.prelimLive.clipDone : s.live.clipDone);
+    if (!['QUESTION', 'PRELIM_Q'].includes(s.show.scene) || c.at !== this.at || c.action !== 'play' || videoDone) this.stop();
+  },
+};
+Bus.on('change', () => { if (MODE === 'control') safe('clip-relay', () => ClipRelay.check(Store.state)); });
+
 const Sync = {
   bc: null,
   stageWin: null,
@@ -646,6 +671,7 @@ const Sync = {
       else if (m.type === 'pong') { this.lastPong = Date.now(); Bus.emit('stage-status'); }
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
+      else if (m.type === 'clipsound') ClipRelay.play(m.id, m.at);
       return;
     }
     if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);

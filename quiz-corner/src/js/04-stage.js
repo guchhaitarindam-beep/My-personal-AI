@@ -688,7 +688,9 @@ class StageView {
     el.autoplay = c.action === 'play' || c.action === 'restart';
     safe('clip', () => {
       // a browser that refuses to start a video with sound (no click on the TV yet) still shows it, without sound
-      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => { Log.err('clip', e); if (e && e.name === 'NotAllowedError' && el.tagName === 'VIDEO') { el.muted = true; el.play().catch(() => {}); } }); }
+      // a browser that will not start sound on the TV window (opened without the launcher, never clicked): the picture still plays here,
+      // and the laptop's control window — already clicked — plays the sound
+      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => { Log.err('clip', e); if (e && e.name === 'NotAllowedError') { el.muted = true; if (el.tagName === 'VIDEO') el.play().catch(() => {}); Sync.send({ type: 'clipsound', id: el.getAttribute('data-media'), at: c.at }); } }); }
       else if (c.action === 'pause') el.pause();
       else if (c.action === 'restart') { el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
       else { el.pause(); el.currentTime = 0; }

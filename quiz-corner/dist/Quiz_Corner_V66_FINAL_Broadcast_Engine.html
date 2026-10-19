@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261019-1702 -->
+<!-- QC-BUILD: 20261019-1710 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 17:02</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 19-10-2026 17:10</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -3989,6 +3989,31 @@ function publicState(s) {
     prelim: Object.assign({}, s.prelim, { questions: s.prelim.questions.map((q, i) => (s.show.scene === 'PRELIM_Q' && i === pl.idx && pl.reveal ? q : Object.assign({}, q, { answer: '' }))) }),
   });
 }
+/** The sound of a question's clip, played by the control window when the TV window may not start sound by itself. */
+const ClipRelay = {
+  el: null, id: '', at: 0, kind: '',
+  async play(id, at) {
+    const s = Store.state; const c = s.live.clip || {};
+    if (!id || c.at !== at || c.action !== 'play') return;
+    const u = await Media.url(id);
+    if (!u || (Store.state.live.clip || {}).at !== at) return;
+    this.stop();
+    this.id = id; this.at = at; this.kind = Sel.clipKind({ clip: id });
+    const el = this.el = new Audio(u); // the sound track of a video plays from an audio element too
+    el.addEventListener('loadedmetadata', () => { const t = (now() - at) / 1000; if (t > 0.5 && t < el.duration) el.currentTime = t; }, { once: true });
+    el.play().catch((e) => { Log.err('clip-relay', e); UI.toast('The clip has no sound — click once on the TV window, or start the quiz with START_QUIZ_CORNER.bat', 'err'); });
+  },
+  stop() { if (this.el) { try { this.el.pause(); } catch (e) { /* gone */ } this.el.removeAttribute('src'); this.el = null; } this.id = ''; },
+  /** stops with the clip: another clip or scene, a stopped clip, or a video that has finished (audio may go on) */
+  check(s) {
+    if (!this.el) return;
+    const c = s.live.clip || {};
+    const videoDone = this.kind === 'video' && (s.show.scene === 'PRELIM_Q' ? s.prelimLive.clipDone : s.live.clipDone);
+    if (!['QUESTION', 'PRELIM_Q'].includes(s.show.scene) || c.at !== this.at || c.action !== 'play' || videoDone) this.stop();
+  },
+};
+Bus.on('change', () => { if (MODE === 'control') safe('clip-relay', () => ClipRelay.check(Store.state)); });
+
 const Sync = {
   bc: null,
   stageWin: null,
@@ -4037,6 +4062,7 @@ const Sync = {
       else if (m.type === 'pong') { this.lastPong = Date.now(); Bus.emit('stage-status'); }
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
+      else if (m.type === 'clipsound') ClipRelay.play(m.id, m.at);
       return;
     }
     if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);
@@ -5527,7 +5553,9 @@ class StageView {
     el.autoplay = c.action === 'play' || c.action === 'restart';
     safe('clip', () => {
       // a browser that refuses to start a video with sound (no click on the TV yet) still shows it, without sound
-      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => { Log.err('clip', e); if (e && e.name === 'NotAllowedError' && el.tagName === 'VIDEO') { el.muted = true; el.play().catch(() => {}); } }); }
+      // a browser that will not start sound on the TV window (opened without the launcher, never clicked): the picture still plays here,
+      // and the laptop's control window — already clicked — plays the sound
+      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => { Log.err('clip', e); if (e && e.name === 'NotAllowedError') { el.muted = true; if (el.tagName === 'VIDEO') el.play().catch(() => {}); Sync.send({ type: 'clipsound', id: el.getAttribute('data-media'), at: c.at }); } }); }
       else if (c.action === 'pause') el.pause();
       else if (c.action === 'restart') { el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
       else { el.pause(); el.currentTime = 0; }
@@ -9413,7 +9441,7 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix, PptxImport, PptxUI });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, ClipRelay, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix, PptxImport, PptxUI });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
