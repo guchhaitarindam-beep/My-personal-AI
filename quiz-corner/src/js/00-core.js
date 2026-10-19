@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 31;
+const RULES_VERSION = 32;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -346,7 +346,15 @@ function mergeDefaults(def, src) {
 /** Bring an older save up to the current built-in rules (13 Oct main stage). */
 function upgradeRules(s, def, from = 0) {
   // v31: the new selection round (15 questions with a video and a song), played on the TV
-  if (from < 31 && isObj(s.prelim)) { s.prelim.questions = def.prelim.questions; s.prelim.count = 15; s.prelim.onStage = true; }
+  if (from < 32 && isObj(s.prelim)) { s.prelim.questions = def.prelim.questions; s.prelim.count = 15; s.prelim.onStage = true; }
+  // v32: the buzzer round's 16 new class-XII questions replace the earlier 20 (rounds 1–3 stay exactly as they are)
+  if (from < 32 && Array.isArray(s.questions)) {
+    const old = new Set(s.questions.filter((q) => isObj(q) && q.roundId === 'R5').map((q) => q.id));
+    s.questions = s.questions.filter((q) => !(isObj(q) && q.roundId === 'R5')).concat(def.questions.filter((q) => q.roundId === 'R5'));
+    if (isObj(s.board) && isObj(s.board.played)) old.forEach((id) => { delete s.board.played[id]; });
+    const r5 = arr(s.rounds).find((r) => isObj(r) && r.id === 'R5'); const d5 = def.rounds.find((r) => r.id === 'R5');
+    if (r5 && d5) { r5.slots = d5.slots; r5.rules = d5.rules; }
+  }
   // versions 13–14 kept the main-round title in event.brandEn (the QUIZ CORNER brand): give the brand back, the title has its own field
   if (isObj(s.event) && str(s.event.brandEn).trim().toUpperCase() === 'JUNIOR GENIUS SEASON 4') { s.event.brandEn = def.event.brandEn; if (!str(s.event.mainTitle).trim()) s.event.mainTitle = def.event.mainTitle; }
   // the calm TV look (Midnight Blue · Ivory · Soft Gold) replaces the old neon default — only where the operator had not chosen colours

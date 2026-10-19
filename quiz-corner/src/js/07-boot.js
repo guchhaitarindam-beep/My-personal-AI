@@ -241,7 +241,7 @@ const SelfTest = {
       Store.state = normalizeState(defaultState()); typedR1();
       const R = (id) => Sel.round(id);
       T('Rules: names of the 3 main-stage rounds', () => R('R1').name === 'মজার মিশেল' && R('R2').name === 'চিন্তা ও চয়েস' && R('R3').name === 'বুদ্ধির টক্কর');
-      T('Rules: rounds 1–3 and the rapid-fire round (R5, 20 two-option questions) enabled; 4, 6, 7 in the file but disabled', () => ['R1', 'R2', 'R3', 'R5'].every((id) => R(id).enabled) && ['R4', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled) && R('R5').type === 'rapid' && Sel.roundQuestions('R5').length === 20 && Sel.roundQuestions('R5').every((q) => q.options.filter(Boolean).length === 2 && q.options[q.answer]) && Sel.roundQuestions('R5').find((q) => q.number === 20).options[Sel.roundQuestions('R5').find((q) => q.number === 20).answer] === 'Au');
+      T('Rules: rounds 1–3 and the rapid-fire round (R5, 16 two-option class-XII questions) enabled; 4, 6, 7 in the file but disabled', () => ['R1', 'R2', 'R3', 'R5'].every((id) => R(id).enabled) && ['R4', 'R6', 'R7'].every((id) => R(id) && !R(id).enabled) && R('R5').type === 'rapid' && Sel.roundQuestions('R5').length === 16 && Sel.roundQuestions('R5').every((q) => q.options.filter(Boolean).length === 2 && q.options[q.answer]) && Sel.roundQuestions('R5').find((q) => q.number === 16).options[Sel.roundQuestions('R5').find((q) => q.number === 16).answer] === 'বৃক্ক' && /১৬টি/.test(R('R5').rules));
       T('Rules: rule text says 60 seconds (round 2 also 45 for the pass)', () => ['R1', 'R2', 'R3'].every((id) => R(id).rules.includes('৬০ সেকেন্ড')) && R('R2').rules.includes('৪৫ সেকেন্ড'));
       T('Rules: no old 30/15 seconds anywhere', () => s().rounds.every((r) => !/(৩০|১৫) সেকেন্ড/.test(r.rules)) && !/(৩০|১৫) সেকেন্ড/.test(s().prelim.rules));
       T('Rules: round 1 — direct 10, 4 options 5, 2 options 3', () => R('R1').scoring.direct === 10 && R('R1').scoring.options4 === 5 && R('R1').scoring.options2 === 3);
@@ -671,7 +671,7 @@ const SelfTest = {
       });
       T('Spelling: corrected words on the TV (ঘণ্টা, ইংরেজি, শ্রীলঙ্কা, ৩৯টি, sin 90°-এর) and an old save takes them', () => {
         const d0 = normalizeState(defaultState()); const q = (rid, n) => d0.questions.find((x) => x.roundId === rid && x.number === n);
-        const fresh = q('R3', 1).answerText.includes('ঘণ্টা') && q('R2', 1).text.includes('ইংরেজি') && q('R2', 6).options.includes('শ্রীলঙ্কা') && q('R2', 6).text.includes('৩৯টি') && q('R5', 10).text.includes('90°-এর');
+        const fresh = q('R3', 1).answerText.includes('ঘণ্টা') && q('R2', 1).text.includes('ইংরেজি') && q('R2', 6).options.includes('শ্রীলঙ্কা') && q('R2', 6).text.includes('৩৯টি');
         const o = defaultState(); delete o.rulesVersion; const sq = o.questions.find((x) => x.id === q('R3', 1).id); sq.answerText = 'শূন্য ঘন্টা / Zero hour'; o.groupCaption = 'উত্তর কলমদান বোর্ড প্রাথমিক বিদ্যালয়-এর শিক্ষকমণ্ডলী';
         const n = normalizeState(o); return fresh && n.questions.find((x) => x.id === sq.id).answerText.includes('ঘণ্টা') && n.groupCaption.includes('বিদ্যালয়ের');
       });
