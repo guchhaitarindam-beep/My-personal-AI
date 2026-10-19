@@ -7,7 +7,7 @@ const VERSION = '66.0';
 const SCHEMA = 66;
 /* Raised whenever the built-in rules change. A save from an older file gets the new rules, round names,
    question placement and loudness defaults; teams, photos, scores and the operator's own question texts stay. */
-const RULES_VERSION = 34;
+const RULES_VERSION = 35;
 /** The organising team as first shipped — an older save still holding exactly this gets the 13 Oct team (an edited team is kept). */
 const OLD_CREW_NAMES = ['অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|মহেশ্বর দাস|প্রতাপ বেড়া|কমলেন্দু মাইতি', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পাল|সঞ্জয় মণ্ডল', 'অরিন্দম গুছাইত|সুব্রত মাইতি|প্রদীপ ভূঁইয়া|চন্দন পালুই|সঞ্জয় মণ্ডল|সৌরভ মাইতি'];
 const OLD_CREDITS = (c) => c.startsWith('প্রশ্ন সংকলন ও ডিজাইন: অরিন্দম গুছাইত') || (c.startsWith('পরিকল্পনা, মূল পর্বের প্রশ্ন সংকলন ও কুইজ ইঞ্জিন: অরিন্দম গুছাইত') && (c.includes('চন্দন পাল ও') || c.includes('চন্দন পালুই') || c.includes('(অধিনায়ক)')) && !c.includes('চন্দন পালই'));
@@ -187,6 +187,7 @@ function defaultScoring() { return Object.assign({}, ROUND_TYPE_DEFAULTS.standar
 
 /** Translate the V100 round profiles into explicit V66 feature switches. */
 function roundFromSeed(r, i) {
+  if (/^R\d+$/.test(str(r.id))) i = Math.max(0, parseInt(str(r.id).slice(1), 10) - 1); // colours, animation and turn direction follow the round's own number (R3 stays A → H with round 2 gone)
   const p = isObj(r.profile) ? r.profile : {};
   const type = r.type === 'audio' ? 'bonus' : r.type === 'rapid' ? 'rapid' : 'standard';
   const palette = [['#1f4fa3', '#b8913f', '#f2d488'], ['#155e75', '#b8913f', '#f2d488'], ['#3f3a9e', '#b8913f', '#f2d488'], ['#059669', '#34d399', '#ffd166'], ['#ea580c', '#fbbf24', '#fff1a8'], ['#0891b2', '#67e8f9', '#ffd166'], ['#4f46e5', '#a5b4fc', '#ffd166']][i % 7];
@@ -346,6 +347,8 @@ function mergeDefaults(def, src) {
 function upgradeRules(s, def, from = 0) {
   // v33: on the TV only the questions and answers — no programme / competition name, organiser, banner, credits or teachers' photo;
   // the team is Arindam Guchhait and Sanjay Mondal
+  // version 35: round 2 (চিন্তা ও চয়েস — text questions only) is taken out of the show, with its questions
+  if (from < 35) { if (Array.isArray(s.rounds)) s.rounds = s.rounds.filter((r) => !(isObj(r) && r.id === 'R2')); if (Array.isArray(s.questions)) s.questions = s.questions.filter((q) => !(isObj(q) && q.roundId === 'R2')); }
   // version 34: the main rounds keep only their picture questions — the spare text-question rounds (4, 6, 7) and their questions go
   if (from < 34) { const gone = ['R4', 'R6', 'R7']; if (Array.isArray(s.rounds)) s.rounds = s.rounds.filter((r) => !(isObj(r) && gone.includes(r.id))); if (Array.isArray(s.questions)) s.questions = s.questions.filter((q) => !(isObj(q) && gone.includes(q.roundId))); }
   if (from < 33) {

@@ -9,6 +9,7 @@ const ctx = await b.newContext({ viewport: { width: 1600, height: 950 }, acceptD
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 p.on('dialog', (d) => d.accept()); p.on('filechooser', () => {}); // enables chooser interception before the first click
 await p.goto('file://' + file); await p.waitForFunction(() => window.QC);
+await p.evaluate(() => window.QC.Store.commit('test-pass-round', (s) => window.QC.SelfTest.addPassRound(s))); // the show has no round 2 any more: the pass-round checks use the built-in test round
 // headless Chromium sometimes misses the very first file dialog: try the click again when no dialog came
 const choose = async (selector, files) => { for (let i = 0; i < 4; i++) { const pr = p.waitForEvent('filechooser', { timeout: 4000 }).catch(() => null); await p.click(selector); const fc = await pr; if (fc) { await fc.setFiles(files); return true; } } return false; };
 const log = []; const step = (ok, n, i = '') => log.push((ok ? 'OK   ' : 'FAIL ') + n + (i ? ' — ' + i : ''));

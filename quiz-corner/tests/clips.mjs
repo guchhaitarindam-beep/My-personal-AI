@@ -9,6 +9,7 @@ const ctx = await b.newContext({ viewport: { width: 1600, height: 950 } });
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const res = []; const ok = (n, v, d = '') => res.push((v ? 'PASS ' : 'FAIL ') + n + (d ? ' ' + d : ''));
 await p.goto('file://' + file); await p.waitForFunction(() => window.QC && window.QC.Store.state);
+await p.evaluate(() => window.QC.Store.commit('test-pass-round', (s) => window.QC.SelfTest.addPassRound(s))); // the show has no round 2 any more: the pass-round checks use the built-in test round
 await p.mouse.click(400, 300);
 const [stage] = await Promise.all([ctx.waitForEvent('page'), p.keyboard.press('o')]);
 stage.on('pageerror', (e) => errs.push('stage ' + e.message));

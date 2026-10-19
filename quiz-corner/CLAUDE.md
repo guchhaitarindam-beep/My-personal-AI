@@ -42,9 +42,12 @@ Quiz Corner and Tumi Prothoma are two separate shows: deliver each as its own fi
   organiser sends a deck here, follow that deck's way of playing (options or none, its rules) — the
   organiser sends the rules beforehand; set them up before the show. Ask when a deck's rules clash with
   the engine's current round rules.
-- Current show: round 1 মজার মিশেল (picture questions, challenge), round 2 চিন্তা ও চয়েস (pass round,
-  H/8 → A/1, passes backwards), round 3 বুদ্ধির টক্কর (picture questions, challenge), buzzer round
-  বাজাও বাজার (20 two-option questions, 15 s).
+- Current show: only picture questions in the main rounds — round 1 মজার মিশেল (10 picture questions,
+  challenge) and বুদ্ধির টক্কর (R3: 10 picture questions, challenge, A/1 first); round 2 চিন্তা ও চয়েস
+  (text questions) is out of the show, as are the spare text rounds 4, 6, 7. Buzzer round বাজাও বাজার
+  (16 two-option class-XII questions, 15 s, the timer starts by itself). Selection round: 15 class-XII
+  questions on the TV. No programme / competition / organiser names anywhere; crew: only অরিন্দম গুছাইত
+  and সঞ্জয় মণ্ডল.
 
 ## Git
 - No pull request unless asked. No model names in commits or files.

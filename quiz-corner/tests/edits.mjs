@@ -73,7 +73,7 @@ await tv.screenshot({ path: path.join(out, 'edit-question.png') });
 // 5. Event details: the main-round title; the QUIZ CORNER brand is a separate field and stays
 await page('event'); await ctl.waitForTimeout(400);
 await type('event.mainTitle', 'MAIN TITLE TEST');
-await go('ROUND_INTRO', { roundId: 'R2' });
+await go('ROUND_INTRO', { roundId: 'R3' });
 txt = flat(await tvText(2200));
 step(txt.includes('MAIN TITLE TEST'), 'Event details: Main-round title বদলালে টিভিতে বদলায়', txt.slice(0, 80));
 await go('LOGO');
