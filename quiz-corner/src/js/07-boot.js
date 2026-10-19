@@ -823,7 +823,7 @@ function boot() {
   Keys.init();
   KeepAwake.init();
   DesignSystem.apply();
-  if (MODE === 'stage') Stage.init();
+  if (MODE === 'stage') { Stage.init(); setTimeout(() => { const s = Store.state; s.prelim.questions.concat(s.questions).forEach((q) => { if (q && q.clip && Media.builtin('clip-' + String(q.clip).slice(5))) Media.url(q.clip); }); }, 2500); } // built-in clips unpacked in advance: they start at once
   else if (MODE === 'host') Host.init();
   else {
     UI.mount();

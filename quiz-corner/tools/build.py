@@ -48,6 +48,10 @@ assets += [(os.path.basename(f)[:-4], os.path.basename(f), 'audio/mpeg') for f i
 assets += [('cd-voice', 'cd-voice.mp3', 'audio/mpeg')]
 if not lite:
     assets += [('theme', 'theme.mp3', 'audio/mpeg'), ('welcome', 'welcome_tagore.mp3', 'audio/mpeg')]
+    # the show's own question clips (media/S-8.mp4, S-15.mp3 …), built in unchanged: they play even when the QuizCorner_Media
+    # folder is not next to the quiz file (the built-in copy is used first; the lite file uses the folder)
+    _mime = {'.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.wav': 'audio/wav'}
+    assets += [('clip-' + os.path.basename(f), os.path.join('..', 'media', os.path.basename(f)), _mime[os.path.splitext(f)[1].lower()]) for f in sorted(glob.glob(os.path.join(ROOT, 'media', '*'))) if os.path.splitext(f)[1].lower() in _mime]
 asset_html = '\n'.join('<script type="text/plain" id="asset-%s">%s</script>' % (aid, data_uri(f, m)) for aid, f, m in assets)
 
 js_parts = sorted(glob.glob(os.path.join(ROOT, 'src', 'js', '*.js')))

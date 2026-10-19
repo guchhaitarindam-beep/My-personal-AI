@@ -687,7 +687,8 @@ class StageView {
     // the file may still be on its way (its address comes a moment later): autoplay starts it as soon as it is there
     el.autoplay = c.action === 'play' || c.action === 'restart';
     safe('clip', () => {
-      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => Log.err('clip', e)); }
+      // a browser that refuses to start a video with sound (no click on the TV yet) still shows it, without sound
+      if (c.action === 'play') { const p = el.play(); if (p && p.catch) p.catch((e) => { Log.err('clip', e); if (e && e.name === 'NotAllowedError' && el.tagName === 'VIDEO') { el.muted = true; el.play().catch(() => {}); } }); }
       else if (c.action === 'pause') el.pause();
       else if (c.action === 'restart') { el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
       else { el.pause(); el.currentTime = 0; }
