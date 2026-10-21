@@ -231,7 +231,7 @@ const Scenes = {
     if (pk === 'video' && !s.prelimLive.clipDone) return { key: 'PQV:' + i + ':' + s.prelimLive.deliverAt, anim: 'fade', html: H.part('pqclip-' + i, '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>', 'pq-clipfull') + badge };
     const img = q.image ? '<div class="pq-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
     const aud = pk === 'audio' ? '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio><div class="pclip-aud">🎵 LISTEN AND ANSWER</div>' : '';
-    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="5">' + esc(q.answer) + '</div></div>', 'answer-bar pq-ans') : '';
+    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="9">' + esc(q.answer) + '</div></div>', 'answer-bar pq-ans') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: s.design.anim,
       html: '<div class="pq-full' + (q.star ? ' star' : '') + '" data-part="pq">' + badge + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="12">' + esc(q.text) + '</div></div>' + aud, 'q-card glass pq-card') + ans + '</div>',

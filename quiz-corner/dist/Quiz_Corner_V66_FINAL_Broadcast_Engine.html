@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261021-1020 -->
+<!-- QC-BUILD: 20261021-1023 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:20</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:23</title>
 <style>html,body{background:#050f29;color:#fff}</style><!-- dark from the first moment: no white flash while the big file opens -->
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
@@ -1911,9 +1911,20 @@ fieldset.lockset[disabled] { opacity: .75; }
 .pq-full.star .pq-card { box-shadow: 0 0 0 .35cqh var(--gold), 0 0 5cqh rgba(255,210,63,.35); }
 .pq-card .q-text-box { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
 .pq-card .q-text { text-align: center; font-weight: 700; line-height: 1.38; text-wrap: balance; }
+/* no single word left alone on the last line, on every screen of the TV (questions, options, answers, rules) */
+.stage .q-text, .stage .otext, .stage .answer-bar .ans, .stage .rule-t { text-wrap: pretty; }
+.stage .pq-card .q-text, .stage .answer-bar.pq-ans .ans { text-wrap: balance; }
 .pq-img { flex: 0 1 46%; min-height: 0; display: grid; place-items: center; }
 .pq-img img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1.2cqh; }
-.pq-ans { flex: 0 0 auto; }
+body .stage .answer-bar.pq-ans { flex: 0 0 auto; position: relative; overflow: hidden; min-height: 22cqh; max-height: 34cqh; padding: 2.2cqh 3cqw; gap: 2.4cqw;
+  background: linear-gradient(180deg, rgba(120,88,10,.92), rgba(52,36,4,.94)); border: .45cqh solid var(--gold);
+  box-shadow: 0 0 0 .2cqh rgba(255,240,190,.25) inset, 0 0 7cqh rgba(255,210,63,.5);
+  animation: pqAnsIn .7s cubic-bezier(.2,1.4,.4,1) both; }
+/* the selection answer: big, white on deep gold, it rises in */
+body .stage .pq-ans .lbl { font-size: 3.4cqh; letter-spacing: .3em; color: #ffe08a; writing-mode: vertical-rl; transform: rotate(180deg); }
+body .stage .answer-bar.pq-ans .ans { font-size: 8cqh; text-align: center; color: #fff; text-shadow: 0 .4cqh 1.4cqh rgba(0,0,0,.7); }
+@keyframes pqAnsIn { from { opacity: 0; transform: translateY(40%) scale(.92); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { body .stage .answer-bar.pq-ans { animation: none; } }
 .pq-clipfull { position: absolute; inset: 0; background: #000; }
 .pq-clipfull video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .pq-clipfull ~ .pq-badge { position: absolute; top: 2.4cqh; left: 2.4cqw; background: rgba(0,0,0,.55); }
@@ -5099,7 +5110,7 @@ const Scenes = {
     if (pk === 'video' && !s.prelimLive.clipDone) return { key: 'PQV:' + i + ':' + s.prelimLive.deliverAt, anim: 'fade', html: H.part('pqclip-' + i, '<video data-clip data-media="' + esc(q.clip) + '" preload="auto" playsinline></video>', 'pq-clipfull') + badge };
     const img = q.image ? '<div class="pq-img"><img data-media="' + esc(q.image) + '" alt=""></div>' : '';
     const aud = pk === 'audio' ? '<audio data-clip data-media="' + esc(q.clip) + '" preload="auto"></audio><div class="pclip-aud">🎵 LISTEN AND ANSWER</div>' : '';
-    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="5">' + esc(q.answer) + '</div></div>', 'answer-bar pq-ans') : '';
+    const ans = s.prelimLive.reveal ? H.part('answer', '<span class="lbl">ANSWER</span><div class="ans-box"><div class="ans" data-fit="9">' + esc(q.answer) + '</div></div>', 'answer-bar pq-ans') : '';
     return {
       key: 'PQ:' + i + ':' + s.prelimLive.deliverAt, anim: s.design.anim,
       html: '<div class="pq-full' + (q.star ? ' star' : '') + '" data-part="pq">' + badge + H.part('card', img + '<div class="q-text-box"><div class="q-text" data-fit="12">' + esc(q.text) + '</div></div>' + aud, 'q-card glass pq-card') + ans + '</div>',
