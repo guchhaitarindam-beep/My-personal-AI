@@ -452,6 +452,10 @@ class StageView {
     // The real 3D background runs on the TV window only (the operator preview stays light).
     this.gl = opts.preview ? null : safe('webgl', () => createStageGL($('canvas.gl', host)), null);
     if (!this.gl) $('canvas.gl', host).hidden = true;
+    // a laptop without real graphics (software drawing) or one that cannot keep up: the 3D background steps aside, the screen stays smooth
+    this.light = '';
+    if (this.gl) { const why = softwareGraphics(); if (why) this.goLight('software graphics (' + why + ')'); }
+    this.frameAt = 0; this.slowFrames = 0;
     this.ro = new ResizeObserver(() => { this.layout(); this.fitAll(); });
     new ResizeObserver(() => this.layout()).observe(host);
     this.ro.observe(this.stage);
@@ -645,12 +649,21 @@ class StageView {
     if (!this.host.isConnected) return;
     requestAnimationFrame(this.loop);
     const s = Store.state;
+    const t0 = performance.now(); const dt = this.frameAt ? t0 - this.frameAt : 16; this.frameAt = t0;
+    if (!this.light && this.gl && !document.hidden) { if (dt > 34 && dt < 1000) this.slowFrames++; else this.slowFrames = Math.max(0, this.slowFrames - 2); if (this.slowFrames > 120) this.goLight('the TV screen was not smooth'); }
     safe('stage-loop', () => {
       this.drawTimer(s);
       this.drawCountdown(s);
       if (this.fx) this.fx.frame({ particles: s.design.particles && s.design.motion, accent: s.design.colors.accent });
-      if (this.gl) { const on = s.display.webgl && s.design.motion && s.display.calib === 'off'; $('canvas.gl', this.stage).hidden = !on; if (on) this.gl.draw(performance.now(), this.fx && this.fx.quality < 0.5 ? 'light' : 'full'); }
+      if (this.gl) { const on = !this.light && s.display.webgl && s.design.motion && s.display.calib === 'off'; $('canvas.gl', this.stage).hidden = !on; if (on) this.gl.draw(performance.now(), this.fx && this.fx.quality < 0.5 ? 'light' : 'full'); }
     });
+  }
+  /** the light background: the 3D layer off for the rest of the show (the colours, pictures and words stay the same) */
+  goLight(why) {
+    if (this.light || this.opts.preview) return;
+    this.light = why; $('canvas.gl', this.stage).hidden = true; this.stage.classList.add('light-bg');
+    Log.add('INFO', 'Light background: ' + why);
+    if (MODE === 'stage') Sync.send({ type: 'perf', light: why });
   }
   /** Screen shape (16:9, 16:10, 4:3, fill) and safe margin for TVs that crop the picture. */
   layout() {

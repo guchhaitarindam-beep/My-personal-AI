@@ -8,6 +8,15 @@
    that shades every node like a small sphere (lit side, dark side, highlight, rim), so light and shadow move in real time.
    Every position is computed on the graphics card from fixed seeds: the main thread only sets a few numbers per frame.
    Returns null when WebGL is not available (or would run in slow software mode): the CSS background then stays as it is. */
+/** '' on real graphics hardware; the renderer's name when the browser draws in software (no graphics chip, or it is blocked) */
+function softwareGraphics() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl'); if (!gl) return 'no WebGL';
+    const ext = gl.getExtension('WEBGL_debug_renderer_info'); const r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+    const m = r.match(/SwiftShader|llvmpipe|softpipe|Software|Basic Render/i); return m ? m[0] : '';
+  } catch (e) { return ''; }
+}
 function createStageGL(canvas, o = {}) {
   const ctxOpt = { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: !!o.keep, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: !o.allowSoftware };
   let gl = null; try { gl = canvas.getContext('webgl', ctxOpt) || null; } catch (_) { gl = null; }

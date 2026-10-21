@@ -738,6 +738,7 @@ Object.assign(Actions, {
 const PreShow = {
   backupDone: false,
   media: null, // { 'file:R1-5.mp4': ms or -1 } after the 🎬 check
+  perf: '', // why the TV switched to the light background ('' = full 3D background)
   tv: {}, // { clip id: { ok, muted, code } } — what the TV window reported when the clip was played there
   testing: false,
   /** every question with a clip that the show will play: the selection round (when on the TV), then the rounds */
@@ -804,6 +805,7 @@ const PreShow = {
     const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + ' question(s) with errors (Questions ▸ Spell check)' : 'No serious errors in the question bank', true);
     bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
     add(this.backupDone, this.backupDone ? 'Backup taken this session' : 'No Backup taken yet this session', true);
+    out.push(['pass', this.perf ? 'TV background: light (' + this.perf + ') — smooth on this laptop' : 'TV background: full 3D']);
     if (!s.audio.noMusic) add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
     // what the TV said when each clip was played there (📺 Test every clip on the TV)
     const steps = this.clipSteps(s);

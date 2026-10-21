@@ -1,12 +1,13 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261021-1017 -->
+<!-- QC-BUILD: 20261021-1020 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:17</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:20</title>
+<style>html,body{background:#050f29;color:#fff}</style><!-- dark from the first moment: no white flash while the big file opens -->
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -4063,6 +4064,7 @@ const Sync = {
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
       else if (m.type === 'clipsound') ClipRelay.play(m.id, m.at);
+      else if (m.type === 'perf') { PreShow.perf = m.light; UI.toast('TV: light background — ' + m.light + ' (the show stays smooth)', 'ok'); Bus.emit('preshow'); }
       else if (m.type === 'clipstate') { PreShow.tv[m.id] = { ok: !!m.ok, muted: !!m.muted, code: m.code || 0, relay: !!(ClipRelay.el && ClipRelay.id === m.id) }; Bus.emit('preshow'); }
       return;
     }
@@ -5318,6 +5320,10 @@ class StageView {
     // The real 3D background runs on the TV window only (the operator preview stays light).
     this.gl = opts.preview ? null : safe('webgl', () => createStageGL($('canvas.gl', host)), null);
     if (!this.gl) $('canvas.gl', host).hidden = true;
+    // a laptop without real graphics (software drawing) or one that cannot keep up: the 3D background steps aside, the screen stays smooth
+    this.light = '';
+    if (this.gl) { const why = softwareGraphics(); if (why) this.goLight('software graphics (' + why + ')'); }
+    this.frameAt = 0; this.slowFrames = 0;
     this.ro = new ResizeObserver(() => { this.layout(); this.fitAll(); });
     new ResizeObserver(() => this.layout()).observe(host);
     this.ro.observe(this.stage);
@@ -5511,12 +5517,21 @@ class StageView {
     if (!this.host.isConnected) return;
     requestAnimationFrame(this.loop);
     const s = Store.state;
+    const t0 = performance.now(); const dt = this.frameAt ? t0 - this.frameAt : 16; this.frameAt = t0;
+    if (!this.light && this.gl && !document.hidden) { if (dt > 34 && dt < 1000) this.slowFrames++; else this.slowFrames = Math.max(0, this.slowFrames - 2); if (this.slowFrames > 120) this.goLight('the TV screen was not smooth'); }
     safe('stage-loop', () => {
       this.drawTimer(s);
       this.drawCountdown(s);
       if (this.fx) this.fx.frame({ particles: s.design.particles && s.design.motion, accent: s.design.colors.accent });
-      if (this.gl) { const on = s.display.webgl && s.design.motion && s.display.calib === 'off'; $('canvas.gl', this.stage).hidden = !on; if (on) this.gl.draw(performance.now(), this.fx && this.fx.quality < 0.5 ? 'light' : 'full'); }
+      if (this.gl) { const on = !this.light && s.display.webgl && s.design.motion && s.display.calib === 'off'; $('canvas.gl', this.stage).hidden = !on; if (on) this.gl.draw(performance.now(), this.fx && this.fx.quality < 0.5 ? 'light' : 'full'); }
     });
+  }
+  /** the light background: the 3D layer off for the rest of the show (the colours, pictures and words stay the same) */
+  goLight(why) {
+    if (this.light || this.opts.preview) return;
+    this.light = why; $('canvas.gl', this.stage).hidden = true; this.stage.classList.add('light-bg');
+    Log.add('INFO', 'Light background: ' + why);
+    if (MODE === 'stage') Sync.send({ type: 'perf', light: why });
   }
   /** Screen shape (16:9, 16:10, 4:3, fill) and safe margin for TVs that crop the picture. */
   layout() {
@@ -5619,6 +5634,15 @@ class StageView {
    that shades every node like a small sphere (lit side, dark side, highlight, rim), so light and shadow move in real time.
    Every position is computed on the graphics card from fixed seeds: the main thread only sets a few numbers per frame.
    Returns null when WebGL is not available (or would run in slow software mode): the CSS background then stays as it is. */
+/** '' on real graphics hardware; the renderer's name when the browser draws in software (no graphics chip, or it is blocked) */
+function softwareGraphics() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl'); if (!gl) return 'no WebGL';
+    const ext = gl.getExtension('WEBGL_debug_renderer_info'); const r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+    const m = r.match(/SwiftShader|llvmpipe|softpipe|Software|Basic Render/i); return m ? m[0] : '';
+  } catch (e) { return ''; }
+}
 function createStageGL(canvas, o = {}) {
   const ctxOpt = { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: !!o.keep, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: !o.allowSoftware };
   let gl = null; try { gl = canvas.getContext('webgl', ctxOpt) || null; } catch (_) { gl = null; }
@@ -8084,6 +8108,7 @@ Object.assign(Actions, {
 const PreShow = {
   backupDone: false,
   media: null, // { 'file:R1-5.mp4': ms or -1 } after the 🎬 check
+  perf: '', // why the TV switched to the light background ('' = full 3D background)
   tv: {}, // { clip id: { ok, muted, code } } — what the TV window reported when the clip was played there
   testing: false,
   /** every question with a clip that the show will play: the selection round (when on the TV), then the rounds */
@@ -8150,6 +8175,7 @@ const PreShow = {
     const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + ' question(s) with errors (Questions ▸ Spell check)' : 'No serious errors in the question bank', true);
     bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
     add(this.backupDone, this.backupDone ? 'Backup taken this session' : 'No Backup taken yet this session', true);
+    out.push(['pass', this.perf ? 'TV background: light (' + this.perf + ') — smooth on this laptop' : 'TV background: full 3D']);
     if (!s.audio.noMusic) add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
     // what the TV said when each clip was played there (📺 Test every clip on the TV)
     const steps = this.clipSteps(s);
