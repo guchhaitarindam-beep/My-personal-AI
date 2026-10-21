@@ -196,6 +196,7 @@ const UI = {
     Bus.on('music', () => { this.liveSig = ''; this.renderLive(); });
     Bus.on('log', () => { const l = $('#logBox'); if (l) { l.textContent = Log.lines.slice(-120).join('\n'); l.scrollTop = l.scrollHeight; } });
     Bus.on('voices', () => { if (this.tab === 'voice') this.renderTab(); });
+    Bus.on('preshow', () => { if (this.tab === 'preshow') this.renderTab(); });
     setInterval(() => this.renderStatus(), 1500);
     setInterval(() => this.renderClock(), 200);
   },

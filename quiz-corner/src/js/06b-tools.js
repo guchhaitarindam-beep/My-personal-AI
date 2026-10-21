@@ -738,6 +738,38 @@ Object.assign(Actions, {
 const PreShow = {
   backupDone: false,
   media: null, // { 'file:R1-5.mp4': ms or -1 } after the 🎬 check
+  tv: {}, // { clip id: { ok, muted, code } } — what the TV window reported when the clip was played there
+  testing: false,
+  /** every question with a clip that the show will play: the selection round (when on the TV), then the rounds */
+  clipSteps(s) {
+    const out = [];
+    if (s.prelim.onStage) Sel.prelimQuestions().forEach((q, i) => { if (q.clip) out.push({ label: 'Selection ' + (i + 1), clip: q.clip, step: Show.rundown().find((x) => x.scene === 'PRELIM_Q' && x.params.idx === i) }); });
+    s.rounds.filter((r) => r.enabled).forEach((r) => Sel.roundQuestions(r.id).forEach((q) => { if (q.clip) out.push({ label: r.name + ' ' + q.number, clip: q.clip, qid: q.id, roundId: r.id }); }));
+    return out;
+  },
+  /** 📺 each clip on the TV for a few seconds, then back to where the show was */
+  async tvTest(secs = 5) {
+    if (this.testing) return;
+    const s = Store.state; const steps = this.clipSteps(s);
+    if (!steps.length) return UI.toast('No question has audio / video', 'err');
+    if (!Sync.connected()) return UI.toast('Open the TV window first (O)', 'err');
+    this.testing = true; this.tv = {};
+    const back = Show.rundown()[s.show.step] || null; const scene = s.show.scene; const params = clone(s.show.params);
+    try {
+      for (const st of steps) {
+        UI.toast('📺 Testing on the TV: ' + st.label + '…', 'ok');
+        if (st.step) Show.go(st.step); else Show.jump('QUESTION', { key: st.qid, roundId: st.roundId, qid: st.qid });
+        await new Promise((r) => setTimeout(r, secs * 1000));
+        if (!this.tv[st.clip]) this.tv[st.clip] = { ok: false, code: -1 };
+      }
+    } finally {
+      this.testing = false;
+      if (back && back.scene === scene) Show.go(back); else Show.jump(scene, params);
+      Bus.emit('preshow');
+    }
+    const bad = steps.filter((st) => !(this.tv[st.clip] && this.tv[st.clip].ok)).length;
+    UI.toast(bad ? '⚠ ' + bad + ' clip(s) did not play on the TV — see the list' : '✔ Every clip played on the TV', bad ? 'err' : 'ok');
+  },
   async probeAll(s) {
     const names = [...new Set(s.questions.concat(s.prelim.questions).flatMap((q) => ['image', 'clip', 'answerImage'].map((k) => q[k])).filter((id) => id && id.startsWith('file:')))];
     const res = {}; for (const id of names) res[id] = await Media.probe(id.slice(5), 8000);
@@ -751,7 +783,8 @@ const PreShow = {
     add(screen.width >= 1280, 'Screen: ' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1), true);
     add(Store.storageOk, Store.storageOk ? 'Autosave is working' : 'Saving in the browser failed — take a Backup');
     add(!!(AudioDirector.unlocked && AudioDirector.ctx && AudioDirector.ctx.state === 'running'), AudioDirector.unlocked ? 'Audio is on' : 'Audio is not on yet — click any button once', true);
-    add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'Theme song: ' + Media.label(s.audio.music.theme.media) : 'No theme song', true);
+    if (!s.audio.noMusic) add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'Theme song: ' + Media.label(s.audio.music.theme.media) : 'No theme song', true);
+    else out.push(['pass', 'Music: off (no music at all) — game sounds and question clips only']);
     const bnVoice = Speech.voices.some((v) => /^bn/i.test(v.lang));
     add(bnVoice, bnVoice ? 'Bengali voice installed' : 'No Bengali voice (Windows Settings ▸ Speech)', true);
     add(Sync.connected(), Sync.connected() ? 'Stage window connected' : 'Stage window is not open (O)', true);
@@ -771,7 +804,14 @@ const PreShow = {
     const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + ' question(s) with errors (Questions ▸ Spell check)' : 'No serious errors in the question bank', true);
     bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
     add(this.backupDone, this.backupDone ? 'Backup taken this session' : 'No Backup taken yet this session', true);
-    add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
+    if (!s.audio.noMusic) add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
+    // what the TV said when each clip was played there (📺 Test every clip on the TV)
+    const steps = this.clipSteps(s);
+    if (steps.length) {
+      const t = this.tv; const tried = steps.filter((st) => t[st.clip]);
+      if (!tried.length) add(false, steps.length + ' question(s) with audio / video — press 📺 "Test every clip on the TV" before the show', true);
+      else steps.forEach((st) => { const r = t[st.clip]; if (!r) return; add(r.ok && !r.muted, 'On the TV — ' + st.label + ': ' + (r.ok ? (r.muted ? 'picture plays, sound from the laptop (start the quiz with START_QUIZ_CORNER.bat for sound on the TV)' : 'plays with sound ✓') : r.code === 4 ? 'this file type does not play — convert to MP4 (H.264) / MP3' : 'did not play'), r.ok); });
+    }
     // Question pictures / audio / video: engine copies must exist; folder files are checked with the 🎬 button (it plays each file's start silently)
     const qs = s.questions.filter((q) => played.some((r) => r.id === q.roundId));
     const ids = []; qs.concat(s.prelim.onStage ? Sel.prelimQuestions().map((q, i) => Object.assign({}, q, { roundId: 'S', number: i + 1 })) : []).forEach((q) => ['image', 'clip', 'answerImage'].forEach((k) => { if (q[k]) ids.push([q, q[k]]); }));

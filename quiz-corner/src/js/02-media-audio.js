@@ -672,6 +672,7 @@ const Sync = {
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
       else if (m.type === 'clipsound') ClipRelay.play(m.id, m.at);
+      else if (m.type === 'clipstate') { PreShow.tv[m.id] = { ok: !!m.ok, muted: !!m.muted, code: m.code || 0, relay: !!(ClipRelay.el && ClipRelay.id === m.id) }; Bus.emit('preshow'); }
       return;
     }
     if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);

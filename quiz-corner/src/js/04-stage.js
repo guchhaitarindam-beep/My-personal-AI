@@ -686,6 +686,10 @@ class StageView {
     if (this.opts.preview) el.muted = true;
     // the file may still be on its way (its address comes a moment later): autoplay starts it as soon as it is there
     el.autoplay = c.action === 'play' || c.action === 'restart';
+    // tell the control window what really happened (the pre-show TV test lists it): playing, with or without sound, or failed
+    const id = el.getAttribute('data-media');
+    el.onplaying = () => Sync.send({ type: 'clipstate', id, ok: true, muted: el.muted });
+    el.onerror = () => Sync.send({ type: 'clipstate', id, ok: false, code: el.error ? el.error.code : 0 });
     safe('clip', () => {
       // a browser that refuses to start a video with sound (no click on the TV yet) still shows it, without sound
       // a browser that will not start sound on the TV window (opened without the launcher, never clicked): the picture still plays here,

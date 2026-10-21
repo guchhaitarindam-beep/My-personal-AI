@@ -7,7 +7,7 @@ question numbers — is in English.
 Quiz Corner and Tumi Prothoma are two separate shows: deliver each as its own file, never bundled together.
 
 ## Every delivery
-- Build (`python3 tools/build.py`, and `--lite`), run the self-test and the Playwright suites in `tests/` (incl. `clipadd.mjs`)
+- Build (`python3 tools/build.py`, and `--lite`), run the self-test and the Playwright suites in `tests/` (incl. `clipadd.mjs`, `tvtest.mjs`)
   (one at a time; they share the CPU), commit, push to the session's branch, then send:
   `dist/Quiz_Corner_V66_FINAL_Broadcast_Engine.html`, `launcher/START_QUIZ_CORNER.bat`,
   `launcher/QuizCorner_Launcher.ps1` and `dist/QuizCorner_13Oct_Package.zip` (`python3 -I tools/package.py`).

@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="bn">
 <head>
-<!-- QC-BUILD: 20261021-1015 -->
+<!-- QC-BUILD: 20261021-1018 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Quiz Corner V66.0 FINAL — offline 3D broadcast quiz engine for stage and 55-inch 4K TV">
-<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:15</title>
+<title>Quiz Corner V66.0 FINAL — Ultimate Broadcast Engine · 21-10-2026 10:18</title>
 <style>/* Embedded Bengali font subsets (SIL Open Font License) */
 @font-face {
   font-family: 'Hind Siliguri';
@@ -4059,6 +4059,7 @@ const Sync = {
       else if (m.type === 'key') Keys.handle(m.key, m.mods || {});
       else if (m.type === 'act' && m.name === 'drawPick') Actions.drawPick(m.arg); // only this one action may come from the TV window
       else if (m.type === 'clipsound') ClipRelay.play(m.id, m.at);
+      else if (m.type === 'clipstate') { PreShow.tv[m.id] = { ok: !!m.ok, muted: !!m.muted, code: m.code || 0, relay: !!(ClipRelay.el && ClipRelay.id === m.id) }; Bus.emit('preshow'); }
       return;
     }
     if (m.type === 'state' && MODE === 'stage') this.applyState(m.state, m.rehearsal);
@@ -5547,6 +5548,10 @@ class StageView {
     if (this.opts.preview) el.muted = true;
     // the file may still be on its way (its address comes a moment later): autoplay starts it as soon as it is there
     el.autoplay = c.action === 'play' || c.action === 'restart';
+    // tell the control window what really happened (the pre-show TV test lists it): playing, with or without sound, or failed
+    const id = el.getAttribute('data-media');
+    el.onplaying = () => Sync.send({ type: 'clipstate', id, ok: true, muted: el.muted });
+    el.onerror = () => Sync.send({ type: 'clipstate', id, ok: false, code: el.error ? el.error.code : 0 });
     safe('clip', () => {
       // a browser that refuses to start a video with sound (no click on the TV yet) still shows it, without sound
       // a browser that will not start sound on the TV window (opened without the launcher, never clicked): the picture still plays here,
@@ -5893,6 +5898,7 @@ const UI = {
     Bus.on('music', () => { this.liveSig = ''; this.renderLive(); });
     Bus.on('log', () => { const l = $('#logBox'); if (l) { l.textContent = Log.lines.slice(-120).join('\n'); l.scrollTop = l.scrollHeight; } });
     Bus.on('voices', () => { if (this.tab === 'voice') this.renderTab(); });
+    Bus.on('preshow', () => { if (this.tab === 'preshow') this.renderTab(); });
     setInterval(() => this.renderStatus(), 1500);
     setInterval(() => this.renderClock(), 200);
   },
@@ -7056,7 +7062,7 @@ const TabRender = {
   preshow(s) {
     const res = PreShow.run(s);
     const icon = { pass: '✔', warn: '⚠', fail: '✘' };
-    return F.card('Pre-show check', '<div class="row">' + F.btn('tab', '↻ Check again', 'primary', 'preshow') + F.btn('preshowMedia', '🎬 Check audio/video files') + '<span class="muted">' + res.filter((r) => r[0] === 'pass').length + ' / ' + res.length + ' OK</span></div><div class="list" style="margin-top:.5rem">' + res.map(([st, msg]) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (st === 'pass' ? 'var(--correct)' : st === 'warn' ? 'var(--warn)' : 'var(--wrong)') + '">' + icon[st] + '</span><div class="t">' + esc(msg) + '</div></div>').join('') + '</div>');
+    return F.card('Pre-show check', '<div class="row">' + F.btn('tab', '↻ Check again', 'primary', 'preshow') + F.btn('preshowMedia', '🎬 Check audio/video files') + F.btn('preshowTv', '📺 Test every clip on the TV (5 s each)', 'gold') + '<span class="muted">' + res.filter((r) => r[0] === 'pass').length + ' / ' + res.length + ' OK</span></div><div class="list" style="margin-top:.5rem">' + res.map(([st, msg]) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (st === 'pass' ? 'var(--correct)' : st === 'warn' ? 'var(--warn)' : 'var(--wrong)') + '">' + icon[st] + '</span><div class="t">' + esc(msg) + '</div></div>').join('') + '</div>');
   },
 
   /* ---------------- TESTS & LOG ---------------- */
@@ -7074,6 +7080,7 @@ const TabRender = {
 
 /* ---------------- Tab actions ---------------- */
 Object.assign(Actions, {
+  async preshowTv() { await PreShow.tvTest(5); UI.renderTab(true); },
   async preshowMedia() { UI.toast('Checking every audio / video file…'); const r = await PreShow.probeAll(Store.state); const bad = Object.values(r).filter((v) => v < 0).length; UI.toast(bad ? bad + ' file(s) missing / not playable' : 'All audio / video files OK (' + Object.keys(r).length + ')', bad ? 'err' : 'ok'); UI.renderTab(true); },
   async setMedia(arg) {
     const [path, accept, kind] = String(arg).split('|');
@@ -8073,6 +8080,38 @@ Object.assign(Actions, {
 const PreShow = {
   backupDone: false,
   media: null, // { 'file:R1-5.mp4': ms or -1 } after the 🎬 check
+  tv: {}, // { clip id: { ok, muted, code } } — what the TV window reported when the clip was played there
+  testing: false,
+  /** every question with a clip that the show will play: the selection round (when on the TV), then the rounds */
+  clipSteps(s) {
+    const out = [];
+    if (s.prelim.onStage) Sel.prelimQuestions().forEach((q, i) => { if (q.clip) out.push({ label: 'Selection ' + (i + 1), clip: q.clip, step: Show.rundown().find((x) => x.scene === 'PRELIM_Q' && x.params.idx === i) }); });
+    s.rounds.filter((r) => r.enabled).forEach((r) => Sel.roundQuestions(r.id).forEach((q) => { if (q.clip) out.push({ label: r.name + ' ' + q.number, clip: q.clip, qid: q.id, roundId: r.id }); }));
+    return out;
+  },
+  /** 📺 each clip on the TV for a few seconds, then back to where the show was */
+  async tvTest(secs = 5) {
+    if (this.testing) return;
+    const s = Store.state; const steps = this.clipSteps(s);
+    if (!steps.length) return UI.toast('No question has audio / video', 'err');
+    if (!Sync.connected()) return UI.toast('Open the TV window first (O)', 'err');
+    this.testing = true; this.tv = {};
+    const back = Show.rundown()[s.show.step] || null; const scene = s.show.scene; const params = clone(s.show.params);
+    try {
+      for (const st of steps) {
+        UI.toast('📺 Testing on the TV: ' + st.label + '…', 'ok');
+        if (st.step) Show.go(st.step); else Show.jump('QUESTION', { key: st.qid, roundId: st.roundId, qid: st.qid });
+        await new Promise((r) => setTimeout(r, secs * 1000));
+        if (!this.tv[st.clip]) this.tv[st.clip] = { ok: false, code: -1 };
+      }
+    } finally {
+      this.testing = false;
+      if (back && back.scene === scene) Show.go(back); else Show.jump(scene, params);
+      Bus.emit('preshow');
+    }
+    const bad = steps.filter((st) => !(this.tv[st.clip] && this.tv[st.clip].ok)).length;
+    UI.toast(bad ? '⚠ ' + bad + ' clip(s) did not play on the TV — see the list' : '✔ Every clip played on the TV', bad ? 'err' : 'ok');
+  },
   async probeAll(s) {
     const names = [...new Set(s.questions.concat(s.prelim.questions).flatMap((q) => ['image', 'clip', 'answerImage'].map((k) => q[k])).filter((id) => id && id.startsWith('file:')))];
     const res = {}; for (const id of names) res[id] = await Media.probe(id.slice(5), 8000);
@@ -8086,7 +8125,8 @@ const PreShow = {
     add(screen.width >= 1280, 'Screen: ' + screen.width + '×' + screen.height + ' • DPR ' + (window.devicePixelRatio || 1), true);
     add(Store.storageOk, Store.storageOk ? 'Autosave is working' : 'Saving in the browser failed — take a Backup');
     add(!!(AudioDirector.unlocked && AudioDirector.ctx && AudioDirector.ctx.state === 'running'), AudioDirector.unlocked ? 'Audio is on' : 'Audio is not on yet — click any button once', true);
-    add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'Theme song: ' + Media.label(s.audio.music.theme.media) : 'No theme song', true);
+    if (!s.audio.noMusic) add(!!s.audio.music.theme.media, s.audio.music.theme.media ? 'Theme song: ' + Media.label(s.audio.music.theme.media) : 'No theme song', true);
+    else out.push(['pass', 'Music: off (no music at all) — game sounds and question clips only']);
     const bnVoice = Speech.voices.some((v) => /^bn/i.test(v.lang));
     add(bnVoice, bnVoice ? 'Bengali voice installed' : 'No Bengali voice (Windows Settings ▸ Speech)', true);
     add(Sync.connected(), Sync.connected() ? 'Stage window connected' : 'Stage window is not open (O)', true);
@@ -8106,7 +8146,14 @@ const PreShow = {
     const errs = bank.rows.filter((r) => r.findings.some((f) => f.sev === 'error')).length; add(!errs, errs ? errs + ' question(s) with errors (Questions ▸ Spell check)' : 'No serious errors in the question bank', true);
     bank.bank.forEach((b) => add(false, b.msg, b.sev !== 'error'));
     add(this.backupDone, this.backupDone ? 'Backup taken this session' : 'No Backup taken yet this session', true);
-    add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
+    if (!s.audio.noMusic) add(SoundDirector.tagoreStatus === 'ready' || !s.audio.bgm.tagore, 'Tagore instrumental: ' + SoundDirector.tagoreStatus, true);
+    // what the TV said when each clip was played there (📺 Test every clip on the TV)
+    const steps = this.clipSteps(s);
+    if (steps.length) {
+      const t = this.tv; const tried = steps.filter((st) => t[st.clip]);
+      if (!tried.length) add(false, steps.length + ' question(s) with audio / video — press 📺 "Test every clip on the TV" before the show', true);
+      else steps.forEach((st) => { const r = t[st.clip]; if (!r) return; add(r.ok && !r.muted, 'On the TV — ' + st.label + ': ' + (r.ok ? (r.muted ? 'picture plays, sound from the laptop (start the quiz with START_QUIZ_CORNER.bat for sound on the TV)' : 'plays with sound ✓') : r.code === 4 ? 'this file type does not play — convert to MP4 (H.264) / MP3' : 'did not play'), r.ok); });
+    }
     // Question pictures / audio / video: engine copies must exist; folder files are checked with the 🎬 button (it plays each file's start silently)
     const qs = s.questions.filter((q) => played.some((r) => r.id === q.roundId));
     const ids = []; qs.concat(s.prelim.onStage ? Sel.prelimQuestions().map((q, i) => Object.assign({}, q, { roundId: 'S', number: i + 1 })) : []).forEach((q) => ['image', 'clip', 'answerImage'].forEach((k) => { if (q[k]) ids.push([q, q[k]]); }));
@@ -9470,7 +9517,7 @@ function boot() {
     Media.ready.then(() => { Media.hydrate(document.body); UI.renderTab(); });
     Log.add('INFO', 'Quiz Corner V' + VERSION + ' ready');
   }
-  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, ClipRelay, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix, PptxImport, PptxUI });
+  window.QC = Object.freeze({ VERSION, MODE, Store, Sel, Timer, Game, Show, Scenes, Media, Sync, ClipRelay, PreShow, SelfTest, AudioDirector, Speech, VoicePlayer, UI, Draw, Log, Actions, Keys, Sfx, Music, SoundDirector, Coach, NexusImport, NLP, AI, Legacy, ImportUI, renderCertificate, zipStore, TeamLock, Tray, PhotoFix, PptxImport, PptxUI });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 

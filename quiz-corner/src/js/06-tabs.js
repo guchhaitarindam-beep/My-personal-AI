@@ -277,7 +277,7 @@ const TabRender = {
   preshow(s) {
     const res = PreShow.run(s);
     const icon = { pass: '✔', warn: '⚠', fail: '✘' };
-    return F.card('Pre-show check', '<div class="row">' + F.btn('tab', '↻ Check again', 'primary', 'preshow') + F.btn('preshowMedia', '🎬 Check audio/video files') + '<span class="muted">' + res.filter((r) => r[0] === 'pass').length + ' / ' + res.length + ' OK</span></div><div class="list" style="margin-top:.5rem">' + res.map(([st, msg]) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (st === 'pass' ? 'var(--correct)' : st === 'warn' ? 'var(--warn)' : 'var(--wrong)') + '">' + icon[st] + '</span><div class="t">' + esc(msg) + '</div></div>').join('') + '</div>');
+    return F.card('Pre-show check', '<div class="row">' + F.btn('tab', '↻ Check again', 'primary', 'preshow') + F.btn('preshowMedia', '🎬 Check audio/video files') + F.btn('preshowTv', '📺 Test every clip on the TV (5 s each)', 'gold') + '<span class="muted">' + res.filter((r) => r[0] === 'pass').length + ' / ' + res.length + ' OK</span></div><div class="list" style="margin-top:.5rem">' + res.map(([st, msg]) => '<div class="li" style="grid-template-columns:auto 1fr"><span class="n" style="color:' + (st === 'pass' ? 'var(--correct)' : st === 'warn' ? 'var(--warn)' : 'var(--wrong)') + '">' + icon[st] + '</span><div class="t">' + esc(msg) + '</div></div>').join('') + '</div>');
   },
 
   /* ---------------- TESTS & LOG ---------------- */
@@ -295,6 +295,7 @@ const TabRender = {
 
 /* ---------------- Tab actions ---------------- */
 Object.assign(Actions, {
+  async preshowTv() { await PreShow.tvTest(5); UI.renderTab(true); },
   async preshowMedia() { UI.toast('Checking every audio / video file…'); const r = await PreShow.probeAll(Store.state); const bad = Object.values(r).filter((v) => v < 0).length; UI.toast(bad ? bad + ' file(s) missing / not playable' : 'All audio / video files OK (' + Object.keys(r).length + ')', bad ? 'err' : 'ok'); UI.renderTab(true); },
   async setMedia(arg) {
     const [path, accept, kind] = String(arg).split('|');
