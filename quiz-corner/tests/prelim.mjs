@@ -16,6 +16,7 @@ stage.on('pageerror', (e) => errs.push('stage ' + e.message));
 await stage.setViewportSize({ width: 1920, height: 1080 }); await stage.waitForTimeout(1200);
 await p.evaluate(() => window.QC.Store.commit('t-prelim', (s) => { s.prelim.onStage = true; }));
 await p.evaluate(() => window.QC.Actions.clipPage('R1'));
+await p.evaluate(() => document.querySelectorAll('#clipPage details').forEach((d) => { d.open = true; })); // the folder scan is under 'More ways'
 await p.click('[data-act="clipScan"]');
 await p.waitForFunction(() => /linked|No R1/.test((document.getElementById('clipScanOut') || {}).textContent || ''), null, { timeout: 180000 });
 const cl = await p.evaluate(() => window.QC.Store.state.prelim.questions.slice(0, 2).map((q) => q.clip));

@@ -19,7 +19,8 @@ await p.evaluate(() => window.QC.Actions.clipPage('R1'));
 const path = await p.evaluate(() => document.getElementById('clipFolder').textContent);
 ok('the folder path is shown', /QuizCorner_Media$/.test(path) && path.includes('Quiz Corner'), path);
 await p.screenshot({ path: out + '/mf-page.png' });
-const t0 = Date.now(); await p.click('[data-act="clipScan"]');
+const t0 = Date.now(); await p.evaluate(() => document.querySelectorAll('#clipPage details').forEach((d) => { d.open = true; })); // the folder scan is under 'More ways'
+await p.click('[data-act="clipScan"]');
 await p.waitForFunction(() => /linked|No R1/.test((document.getElementById('clipScanOut') || {}).textContent || ''), null, { timeout: 120000 });
 const sc = await p.evaluate(() => ({ txt: document.getElementById('clipScanOut').textContent, v: window.QC.Sel.roundQuestions('R1').find((q) => q.number === 3).clip, a: window.QC.Sel.roundQuestions('R2').find((q) => q.number === 4).clip }));
 ok('Find the files: R1-3.webm and R2-4.mp3 linked from the folder (' + Math.round((Date.now() - t0) / 1000) + ' s for every question)', sc.v === 'file:R1-3.webm' && sc.a === 'file:R2-4.mp3', JSON.stringify(sc));
